@@ -6,7 +6,7 @@ from langgraph.prebuilt import create_react_agent
 load_dotenv()
 
 
-def build_agent(system_prompt: str, tools: list, temperature: float = 0.2):
+def build_agent(system_prompt: str, tools: list, temperature: float = 0.2, max_tokens: int = 4096):
     """Build a LangGraph react agent with Mistral AI."""
     api_key = os.getenv("MISTRAL_API_KEY")
     if not api_key:
@@ -15,6 +15,8 @@ def build_agent(system_prompt: str, tools: list, temperature: float = 0.2):
     llm = ChatMistralAI(
         model="mistral-large-latest",
         temperature=temperature,
+        max_tokens=max_tokens,
+        top_p=0.95,
         api_key=api_key,
     )
 

@@ -1,15 +1,21 @@
 import json
 import sys
 import io
+import os
+import re
+import base64
 from pathlib import Path
 from datetime import datetime
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from typing import Optional
+from dotenv import load_dotenv
 import uvicorn
+
+load_dotenv()
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
@@ -37,6 +43,66 @@ def get_supervisor():
 class ChatRequest(BaseModel):
     message: str
     agent: Optional[str] = None  # if provided, skip auto-classification
+
+
+# ─── Receipt Scanner ─────────────────────────────────────────────────────────
+
+RECEIPT_PROMPT = """Kamu adalah sistem pembaca struk/bukti transaksi keuangan.
+Analisis gambar ini dan ekstrak informasi transaksi.
+
+Kembalikan HANYA JSON dengan format berikut (tanpa penjelasan apapun):
+{"type":"expense","amount":50000,"category":"food","description":"Makan siang di warung","date":"2025-01-15"}
+
+Aturan:
+- type: "expense" untuk pengeluaran, "income" untuk pemasukan (hampir semua struk = expense)
+- amount: angka saja tanpa titik/koma/simbol mata uang
+- category expense: food, transport, shopping, entertainment, bills, health, education, other
+- category income: salary, freelance, business, investment, gift, other
+- description: nama toko / deskripsi singkat apa yang dibeli
+- date: format YYYY-MM-DD jika terlihat di struk, atau null jika tidak ada
+"""
+
+@app.post("/api/budget/scan-receipt")
+async def scan_receipt(file: UploadFile = File(...)):
+    api_key = os.getenv("MISTRAL_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="MISTRAL_API_KEY not found")
+
+    image_data = await file.read()
+    b64 = base64.b64encode(image_data).decode("utf-8")
+    mime = file.content_type or "image/jpeg"
+
+    try:
+        from mistralai import Mistral
+        client = Mistral(api_key=api_key)
+        response = client.chat.complete(
+            model="pixtral-12b-2409",
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}},
+                    {"type": "text", "text": RECEIPT_PROMPT},
+                ],
+            }],
+        )
+        raw = response.choices[0].message.content.strip()
+        match = re.search(r"\{.*?\}", raw, re.DOTALL)
+        if not match:
+            raise HTTPException(status_code=422, detail="Tidak bisa membaca struk. Coba foto yang lebih jelas.")
+        result = json.loads(match.group())
+        # Ensure required fields
+        result.setdefault("type", "expense")
+        result.setdefault("category", "other")
+        result.setdefault("description", "")
+        result.setdefault("date", datetime.now().strftime("%Y-%m-%d"))
+        if not result.get("date"):
+            result["date"] = datetime.now().strftime("%Y-%m-%d")
+        result["amount"] = float(result.get("amount", 0))
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Gagal memproses struk: {str(e)}")
 
 
 # ─── Chat ────────────────────────────────────────────────────────────────────
@@ -115,6 +181,7 @@ async def get_budget_summary():
 # ─── Frontend ─────────────────────────────────────────────────────────────────
 
 Path("static").mkdir(exist_ok=True)
+Path("static/avatars").mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 

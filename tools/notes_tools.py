@@ -1,5 +1,7 @@
 import json
 import uuid
+import re
+import os
 import requests
 from datetime import datetime
 from langchain.tools import tool
@@ -8,11 +10,15 @@ NOTES_FILE = "data/notes.json"
 
 
 def _load() -> list:
-    with open(NOTES_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(NOTES_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
 
 
 def _save(data: list):
+    os.makedirs(os.path.dirname(NOTES_FILE), exist_ok=True)
     with open(NOTES_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
@@ -129,8 +135,6 @@ def fetch_and_summarize_url(url: str) -> str:
         headers = {"User-Agent": "Mozilla/5.0"}
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
-        # Basic text extraction — strip HTML tags
-        import re
         text = re.sub(r"<[^>]+>", " ", response.text)
         text = re.sub(r"\s+", " ", text).strip()
         # Return first 3000 chars for the LLM to summarize

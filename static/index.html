@@ -215,17 +215,47 @@
         [3,10,'#cc9900'],[4,10,'#cc9900'],[5,10,'#cc9900'],[6,10,'#cc9900'],[7,10,'#cc9900'],[8,10,'#cc9900'],[9,10,'#cc9900'],[10,10,'#cc9900'],[11,10,'#cc9900'],[12,10,'#cc9900'],
         [4,11,P.gld],[5,11,P.gld],[6,11,P.gld],[7,11,P.gld],[8,11,P.gld],[9,11,P.gld],[10,11,P.gld],[11,11,P.gld],
       ],
+      research:[
+        [7,1,'#00ddff'],[8,1,'#00ddff'],
+        [5,2,'#00ddff'],[6,2,'#00ddff'],[9,2,'#00ddff'],[10,2,'#00ddff'],
+        [4,3,'#00ddff'],[11,3,'#00ddff'],
+        [3,4,'#00ddff'],[5,4,P.t0],[6,4,P.t0],[7,4,P.t0],[8,4,P.t0],[9,4,P.t0],[12,4,'#00ddff'],
+        [3,5,'#00ddff'],[5,5,P.t0],[12,5,'#00ddff'],
+        [3,6,'#00ddff'],[5,6,P.t0],[6,6,P.t0],[7,6,P.t0],[8,6,P.t0],[9,6,P.t0],[12,6,'#00ddff'],
+        [3,7,'#00ddff'],[5,7,P.t0],[12,7,'#00ddff'],
+        [3,8,'#00ddff'],[5,8,P.t0],[6,8,P.t0],[7,8,P.t0],[8,8,P.t0],[9,8,P.t0],[12,8,'#00ddff'],
+        [4,9,'#00ddff'],[11,9,'#00ddff'],
+        [5,10,'#00ddff'],[6,10,'#00ddff'],[9,10,'#00ddff'],[10,10,'#00ddff'],
+        [7,11,'#00ddff'],[8,11,'#00ddff'],
+        [6,12,'#0099bb'],[7,12,'#0099bb'],[8,12,'#0099bb'],[9,12,'#0099bb'],
+      ],
+      fitness:[
+        [7,1,P.red],[8,1,P.red],
+        [6,2,P.red],[7,2,P.red],[8,2,P.red],[9,2,P.red],
+        [5,3,P.red],[6,3,'#cc1133'],[9,3,'#cc1133'],[10,3,P.red],
+        [4,4,P.red],[5,4,'#cc1133'],[10,4,'#cc1133'],[11,4,P.red],
+        [4,5,P.red],[11,5,P.red],
+        [4,6,P.red],[5,6,P.red],[6,6,P.red],[7,6,P.red],[8,6,P.red],[9,6,P.red],[10,6,P.red],[11,6,P.red],
+        [3,7,P.red],[4,7,'#cc1133'],[7,7,P.t0],[8,7,P.t0],[11,7,'#cc1133'],[12,7,P.red],
+        [3,8,P.red],[12,8,P.red],
+        [3,9,P.red],[4,9,P.red],[5,9,P.red],[6,9,P.red],[7,9,P.red],[8,9,P.red],[9,9,P.red],[10,9,P.red],[11,9,P.red],[12,9,P.red],
+        [5,10,P.red],[6,10,P.red],[9,10,P.red],[10,10,P.red],
+        [5,11,'#cc1133'],[6,11,'#cc1133'],[9,11,'#cc1133'],[10,11,'#cc1133'],
+        [5,12,P.t1],[6,12,P.t1],[9,12,P.t1],[10,12,P.t1],
+      ],
     };
 
     const AGENTS = {
-      task:     { id:'task',     name:'QUEST',     fullName:'Quest Log',  short:'QUEST',  color:P.grn, dark:'#00aa2a', bg:'rgba(0,255,65,0.08)',   desc:'MISSION TRACKER // DEADLINES & TASKS',   greeting:"> QUEST SYSTEM ONLINE\n> Ready to manage your missions, Commander.\n> Add tasks, list quests, or mark objectives complete." },
-      notes:    { id:'notes',    name:'SCRIBE',    fullName:'Scribe',     short:'SCRIBE', color:P.blu, dark:'#2266cc', bg:'rgba(68,153,255,0.08)', desc:'KNOWLEDGE BASE // NOTES & RESEARCH',     greeting:"> SCRIBE MODULE LOADED\n> I can write notes, organize knowledge, and summarize research.\n> What shall I record?" },
-      news:     { id:'news',     name:'TICKER',    fullName:'Ticker',     short:'TICKER', color:P.amb, dark:'#cc7700', bg:'rgba(255,170,0,0.08)',  desc:'NEWS FEED // 24H BRIEFINGS',             greeting:"> TICKER SIGNAL ACQUIRED\n> Live intelligence feed active. Last 24 hours monitored.\n> Query any topic for instant briefing." },
-      coding:   { id:'coding',   name:'SENSEI',    fullName:'Sensei',     short:'SENSEI', color:P.prp, dark:'#8822cc', bg:'rgba(187,68,255,0.08)', desc:'CODE DOJO // PROGRAMMING TUTOR',         greeting:"> SENSEI AI ACTIVATED\n> Code training module ready. Debugging, explaining, reviewing.\n> What code challenge shall we tackle?" },
-      schedule: { id:'schedule', name:'CLOCKWORK', fullName:'Clockwork',  short:'CLOCK',  color:P.cyn, dark:'#00aaaa', bg:'rgba(0,255,204,0.08)', desc:'TIME MATRIX // CALENDAR ENGINE',         greeting:"> CLOCKWORK INITIALIZED\n> Calendar systems synced. Google Calendar connected.\n> Manage your time, Commander." },
-      budget:   { id:'budget',   name:'VAULT',     fullName:'Vault',      short:'VAULT',  color:P.gld, dark:'#ccaa00', bg:'rgba(255,204,0,0.08)', desc:'FINANCE CORE // BUDGET TRACKER',         greeting:"> VAULT SECURED\n> Financial systems online. Tracking income, expenses, balance.\n> What shall we audit?" },
+      task:     { id:'task',     name:'ALFRED',    fullName:'Alfred',         short:'ALFRED',   color:P.grn, dark:'#00aa2a', bg:'rgba(0,255,65,0.08)',   desc:'MISSION TRACKER // DEADLINES & TASKS',   greeting:"> ALFRED AT YOUR SERVICE\n> Your loyal task manager, Commander.\n> Add tasks, list missions, or mark objectives complete." },
+      notes:    { id:'notes',    name:'CICERO',    fullName:'Cicero',         short:'CICERO',   color:P.blu, dark:'#2266cc', bg:'rgba(68,153,255,0.08)', desc:'KNOWLEDGE BASE // NOTES & RESEARCH',     greeting:"> CICERO SPEAKS\n> Scribe of knowledge and keeper of wisdom.\n> What shall I write, record, or summarize for you?" },
+      news:     { id:'news',     name:'NAJWA',     fullName:'Najwa Shihab',   short:'NAJWA',    color:P.amb, dark:'#cc7700', bg:'rgba(255,170,0,0.08)',  desc:'NEWS FEED // 24H BRIEFINGS',             greeting:"> SELAMAT DATANG — INI NAJWA SHIHAB\n> Live intelligence feed aktif. 24 jam terakhir dipantau.\n> Tanyakan topik apapun untuk laporan terkini." },
+      coding:   { id:'coding',   name:'LINUS',     fullName:'Linus Torvalds', short:'LINUS',    color:P.prp, dark:'#8822cc', bg:'rgba(187,68,255,0.08)', desc:'CODE DOJO // PROGRAMMING TUTOR',         greeting:"> LINUS TORVALDS ONLINE\n> Talk is cheap. Show me the code.\n> What programming challenge shall we solve today?" },
+      schedule: { id:'schedule', name:'MIYAMOTO',  fullName:'Miyamoto',       short:'MIYAMOTO', color:P.cyn, dark:'#00aaaa', bg:'rgba(0,255,204,0.08)', desc:'TIME MATRIX // CALENDAR ENGINE',         greeting:"> MIYAMOTO STANDS READY\n> Discipline in time is discipline in life.\n> Calendar synced — how shall we command your schedule?" },
+      budget:   { id:'budget',   name:'MANSA',     fullName:'Mansa Musa',     short:'MANSA',    color:P.gld,       dark:'#ccaa00', bg:'rgba(255,204,0,0.08)',    desc:'FINANCE CORE // BUDGET TRACKER',         greeting:"> MANSA MUSA PRESIDES\n> Keeper of wealth and master of finance.\n> Income, expenses, balance — what shall we audit today?" },
+      research: { id:'research', name:'FERRY',     fullName:'Ferry Irwandi',  short:'FERRY',    color:'#00ddff',   dark:'#0099bb', bg:'rgba(0,221,255,0.08)',    desc:'DEEP RESEARCH // MULTI-SOURCE ANALYSIS', greeting:"> FERRY IRWANDI ONLINE\n> Deep research mode aktif. Semua layer pencarian siap.\n> Topik apa yang ingin kamu investigasi hari ini?" },
+      fitness:  { id:'fitness',  name:'LAVOISER',  fullName:'Lavoiser',       short:'LAVOISER', color:P.red,       dark:'#cc1133', bg:'rgba(255,34,68,0.08)',    desc:'FITNESS CORE // WIKI + LEAN GAIN',       greeting:"> LAVOISER AKTIF\n> Wiki pribadi kamu siap di-scan. Profil: 21 th · lean gain · aktif.\n> Tanya tentang workout, nutrisi, atau buka wiki fitness kamu." },
     };
-    const AGENT_ORDER = ['task','notes','news','coding','schedule','budget'];
+    const AGENT_ORDER = ['task','notes','news','coding','schedule','budget','research','fitness'];
 
     function formatRp(n) { return 'Rp ' + Number(n).toLocaleString('id-ID'); }
 
@@ -262,13 +292,21 @@
 
     function Avatar({ id, size=32 }) {
       const a = AGENTS[id];
+      const [imgOk, setImgOk] = useState(true);
+      useEffect(() => { setImgOk(true); }, [id]);
       return (
         <div style={{ width:size, height:size, flexShrink:0,
           border:`2px solid ${a.dark}`, background:a.bg,
           display:'flex', alignItems:'center', justifyContent:'center',
           boxShadow:`2px 2px 0 0 rgba(0,0,0,.6), inset 0 0 8px ${a.bg}`,
-          imageRendering:'pixelated' }}>
-          <Sprite pixels={SP[id]} size={size - 8}/>
+          overflow:'hidden', imageRendering:'pixelated' }}>
+          {imgOk
+            ? <img key={id} src={`/static/avatars/${id}.jpg`} alt={a.name}
+                onError={() => setImgOk(false)}
+                style={{ width:'100%', height:'100%', objectFit:'cover', display:'block',
+                  imageRendering:'auto', filter:`drop-shadow(0 0 4px ${a.dark})` }}/>
+            : <Sprite pixels={SP[id]} size={size - 8}/>
+          }
         </div>
       );
     }
@@ -374,13 +412,68 @@
       );
     }
 
-    function ChatInput({ onSend, isLoading, activeAgent }) {
+    function ReceiptPanel({ receipt, onConfirm, onCancel, activeAgent }) {
+      if (!receipt) return null;
+      const a = AGENTS[activeAgent];
+      const isIncome = receipt.type === 'income';
+      const typeColor = isIncome ? P.grn : P.red;
+      return (
+        <div style={{ margin:'0 16px 8px', border:`2px solid ${P.gld}`,
+          background:'rgba(255,204,0,0.06)', boxShadow:`2px 2px 0 0 rgba(0,0,0,.5)`,
+          padding:'12px 14px' }}>
+          <div style={{ fontFamily:"'Press Start 2P',monospace", fontSize:7,
+            color:P.gld, marginBottom:10, display:'flex', alignItems:'center', gap:8 }}>
+            <span>RECEIPT DETECTED</span>
+            <div className="blink" style={{ width:5, height:5, background:P.gld }}/>
+          </div>
+          {receipt.imageUrl && (
+            <img src={receipt.imageUrl} alt="receipt"
+              style={{ width:'100%', maxHeight:120, objectFit:'cover',
+                border:`1px solid ${P.bd1}`, marginBottom:10, imageRendering:'auto' }}/>
+          )}
+          <div style={{ display:'grid', gridTemplateColumns:'auto 1fr', gap:'5px 12px',
+            fontFamily:"'VT323',monospace", fontSize:17, marginBottom:12 }}>
+            <span style={{ color:P.t2, fontFamily:"'Press Start 2P',monospace", fontSize:6 }}>TYPE</span>
+            <span style={{ color:typeColor }}>{receipt.type.toUpperCase()}</span>
+            <span style={{ color:P.t2, fontFamily:"'Press Start 2P',monospace", fontSize:6 }}>AMOUNT</span>
+            <span style={{ color:typeColor, fontFamily:"'Press Start 2P',monospace", fontSize:9 }}>
+              Rp {Number(receipt.amount).toLocaleString('id-ID')}
+            </span>
+            <span style={{ color:P.t2, fontFamily:"'Press Start 2P',monospace", fontSize:6 }}>CATEGORY</span>
+            <span style={{ color:P.t0 }}>{receipt.category}</span>
+            <span style={{ color:P.t2, fontFamily:"'Press Start 2P',monospace", fontSize:6 }}>DESC</span>
+            <span style={{ color:P.t0 }}>{receipt.description || '-'}</span>
+            <span style={{ color:P.t2, fontFamily:"'Press Start 2P',monospace", fontSize:6 }}>DATE</span>
+            <span style={{ color:P.t1 }}>{receipt.date}</span>
+          </div>
+          <div style={{ display:'flex', gap:8 }}>
+            <button onClick={onConfirm} className="px-btn"
+              style={{ flex:1, background:'rgba(0,255,65,0.1)', borderColor:P.grn,
+                color:P.grn, padding:'7px 12px' }}>
+              ✓ CONFIRM &amp; SAVE
+            </button>
+            <button onClick={onCancel} className="px-btn"
+              style={{ background:'rgba(255,34,68,0.1)', borderColor:P.red,
+                color:P.red, padding:'7px 12px' }}>
+              ✗ CANCEL
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    function ChatInput({ onSend, onReceiptSelect, isLoading, activeAgent }) {
       const [value, setValue] = useState('');
       const textRef = useRef(null);
+      const fileRef = useRef(null);
       const a = AGENTS[activeAgent];
       function submit() {
         const v = value.trim(); if (!v || isLoading) return;
         onSend(v); setValue(''); textRef.current?.focus();
+      }
+      function handleFile(e) {
+        const file = e.target.files?.[0];
+        if (file) { onReceiptSelect(file); e.target.value = ''; }
       }
       return (
         <div style={{ padding:'12px 16px', borderTop:`2px solid ${P.bd0}`,
@@ -400,6 +493,19 @@
                 resize:'none', color:P.t0, fontFamily:"'VT323',monospace",
                 fontSize:18, lineHeight:1.4, minHeight:24, maxHeight:120, overflow:'hidden' }}
               rows={1}/>
+            {activeAgent === 'budget' && (
+              <>
+                <input ref={fileRef} type="file" accept="image/*" capture="environment"
+                  style={{ display:'none' }} onChange={handleFile}/>
+                <button onClick={() => fileRef.current?.click()} disabled={isLoading}
+                  className="px-btn" title="Scan receipt"
+                  style={{ background:isLoading ? P.bg3 : 'rgba(255,204,0,0.1)',
+                    borderColor:isLoading ? P.bd0 : P.gld,
+                    color:isLoading ? P.t2 : P.gld, padding:'6px 10px', fontSize:14 }}>
+                  📷
+                </button>
+              </>
+            )}
             <button onClick={submit} disabled={!value.trim()||isLoading} className="px-btn"
               style={{ background: value.trim()&&!isLoading ? a.dark : P.bg3,
                 borderColor: value.trim()&&!isLoading ? a.color : P.bd0,
@@ -411,6 +517,7 @@
           <div style={{ fontFamily:"'Press Start 2P',monospace", fontSize:5, color:P.t2,
             marginTop:6, textAlign:'center' }}>
             [ENTER] SEND // [SHIFT+ENTER] NEWLINE // ROUTED TO {a.name}
+            {activeAgent === 'budget' && <span style={{ color:P.gld }}> // 📷 SCAN RECEIPT</span>}
           </div>
         </div>
       );
@@ -663,6 +770,8 @@
       });
       const [isLoading, setIsLoading] = useState(false);
       const [panelData, setPanelData] = useState({tasks:{},notes:{},budget:{}});
+      const [pendingReceipt, setPendingReceipt] = useState(null);
+      const [isScanningReceipt, setIsScanningReceipt] = useState(false);
       const bottomRef = useRef(null);
       const messages = messagesByAgent[activeAgent] || [];
 
@@ -717,6 +826,50 @@
         } finally { setIsLoading(false); }
       }
 
+      async function scanReceipt(file) {
+        setPendingReceipt(null);
+        setIsScanningReceipt(true);
+        const imageUrl = URL.createObjectURL(file);
+        const time = new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'});
+        // Show scanning message in chat
+        const scanMsg = { id: Date.now(), role:'agent', agent:'budget',
+          content:'> SCANNING RECEIPT...\n> Memproses gambar dengan Pixtral Vision AI...',
+          time };
+        setMessagesByAgent(prev => ({...prev, budget:[...(prev.budget||[]), scanMsg]}));
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          const res = await fetch(`${API}/api/budget/scan-receipt`, { method:'POST', body:formData });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || 'Scan failed');
+          setPendingReceipt({ ...data, imageUrl });
+          // Replace scan message with result prompt
+          const doneMsg = { id: Date.now()+1, role:'agent', agent:'budget',
+            content:'> RECEIPT SCAN COMPLETE!\n> Periksa detail di bawah lalu klik CONFIRM untuk menyimpan.',
+            time };
+          setMessagesByAgent(prev => ({
+            ...prev,
+            budget: [...(prev.budget||[]).filter(m => m.id !== scanMsg.id), doneMsg]
+          }));
+        } catch(err) {
+          const errMsg = { id: Date.now()+1, role:'agent', agent:'budget',
+            content:`> SCAN FAILED: ${err.message}\n> Pastikan foto struk jelas dan coba lagi.`,
+            time };
+          setMessagesByAgent(prev => ({
+            ...prev,
+            budget: [...(prev.budget||[]).filter(m => m.id !== scanMsg.id), errMsg]
+          }));
+        } finally { setIsScanningReceipt(false); }
+      }
+
+      function confirmReceipt() {
+        if (!pendingReceipt) return;
+        const r = pendingReceipt;
+        const msg = `Tambah ${r.type === 'income' ? 'pemasukan' : 'pengeluaran'}: ${r.amount} kategori ${r.category} deskripsi "${r.description}" tanggal ${r.date}`;
+        setPendingReceipt(null);
+        sendMessage(msg);
+      }
+
       const a = AGENTS[activeAgent];
       return (
         <div style={{ display:'flex', height:'100vh', overflow:'hidden', background:P.bg0 }}>
@@ -748,7 +901,15 @@
               {isLoading && <TypingIndicator agent={activeAgent}/>}
               <div ref={bottomRef}/>
             </div>
-            <ChatInput onSend={sendMessage} isLoading={isLoading} activeAgent={activeAgent}/>
+            {activeAgent === 'budget' && pendingReceipt && (
+              <ReceiptPanel
+                receipt={pendingReceipt}
+                onConfirm={confirmReceipt}
+                onCancel={() => setPendingReceipt(null)}
+                activeAgent={activeAgent}/>
+            )}
+            <ChatInput onSend={sendMessage} onReceiptSelect={scanReceipt}
+              isLoading={isLoading || isScanningReceipt} activeAgent={activeAgent}/>
           </div>
           <DataPanel activeAgent={activeAgent} data={panelData}
             onQuickAsk={sendMessage} onRefresh={() => fetchPanelData(activeAgent)}/>

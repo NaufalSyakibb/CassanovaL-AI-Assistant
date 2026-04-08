@@ -7,11 +7,16 @@ TASKS_FILE = "data/tasks.json"
 
 
 def _load() -> list:
-    with open(TASKS_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(TASKS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
 
 
 def _save(data: list):
+    import os
+    os.makedirs(os.path.dirname(TASKS_FILE), exist_ok=True)
     with open(TASKS_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 

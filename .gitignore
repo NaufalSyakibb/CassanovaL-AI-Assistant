@@ -14,6 +14,9 @@ env/
 # Data (personal data, optional — remove these lines if you want to include them)
 data/
 
+# Claude Code local settings
+.claude/
+
 # IDE
 .vscode/
 .idea/

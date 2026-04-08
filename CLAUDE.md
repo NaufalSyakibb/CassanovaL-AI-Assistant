@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 ## Project Overview
-**Personal AI Multi-Agent Assistant** — A CLI-based personal assistant with 6 specialist AI agents, all powered by Mistral AI + LangChain. Each agent handles a specific domain; a supervisor router automatically directs messages to the right one.
+**Personal AI Multi-Agent Assistant** — A CLI-based personal assistant with 7 specialist AI agents, all powered by Mistral AI + LangChain. Each agent handles a specific domain; a supervisor router automatically directs messages to the right one.
 
 ## Agents
 | Agent | Responsibility | Tools |
@@ -12,6 +12,7 @@
 | Coding | Programming mentor & tutor | search docs, LLM reasoning |
 | Schedule | Google Calendar management | list/create/update/delete events |
 | Budget | Personal finance tracking | add income/expense, balance, monthly summary |
+| Research | Deep autonomous research & paper summarization | deep web search, iterative multi-angle search, fetch & read URLs, multi-source synthesis, compile report |
 
 ## Architecture
 ```

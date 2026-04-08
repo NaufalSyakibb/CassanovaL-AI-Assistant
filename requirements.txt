@@ -1,5 +1,6 @@
 langchain
 langchain-mistralai
+mistralai
 langchain-community
 langchain-core
 langgraph

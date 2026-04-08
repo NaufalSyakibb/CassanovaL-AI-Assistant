@@ -17,6 +17,8 @@ AGENT_REGISTRY = {
     "coding":   "Programming help, code explanation, debugging, tutorials, tech questions",
     "schedule": "Calendar, meetings, events, appointments, schedule management",
     "budget":   "Money, expenses, income, spending, finance, budget, cashflow",
+    "research": "Deep research, investigating topics, summarizing papers or articles, multi-source analysis, autonomous research reports",
+    "fitness":  "Fitness, workout, gym, exercise, nutrition, protein, muscle, lean gain, diet, supplement, training program, body composition",
 }
 
 CLASSIFY_PROMPT = """You are a routing assistant. Based on the user's message, decide which specialist agent should handle it.
@@ -24,8 +26,29 @@ CLASSIFY_PROMPT = """You are a routing assistant. Based on the user's message, d
 Available agents:
 {agent_list}
 
+Examples of correct routing:
+- "add a task to call dentist tomorrow" → task
+- "remind me to submit the report by Friday" → task
+- "what's happening in tech today?" → news
+- "latest AI news" → news
+- "how do I use async/await in Python?" → coding
+- "debug this error: TypeError: 'NoneType'" → coding
+- "schedule a meeting with John at 3pm" → schedule
+- "what's on my calendar this week?" → schedule
+- "save this article for later" → notes
+- "what did I write about machine learning?" → notes
+- "I spent 50k on food this week" → budget
+- "show me my monthly expenses" → budget
+- "research the history of quantum computing" → research
+- "deep dive into climate change solutions" → research
+- "berapa protein yang harus aku makan untuk lean gain?" → fitness
+- "workout split terbaik untuk hypertrophy?" → fitness
+- "apakah creatine bagus untuk muscle gain?" → fitness
+- "how many calories for lean bulk?" → fitness
+- "baca wiki fitness aku tentang nutrisi" → fitness
+
 Reply with ONLY the agent name (one word, lowercase). Choose the most relevant one.
-If unclear, choose 'task' as default.
+If the message is ambiguous or a general greeting, choose 'task' as default.
 
 User message: {message}
 Agent:"""
@@ -66,6 +89,12 @@ class SupervisorRouter:
             elif name == "budget":
                 from agents.budget_agent import create_budget_agent
                 self._agents[name] = create_budget_agent()
+            elif name == "research":
+                from agents.research_agent import create_research_agent
+                self._agents[name] = create_research_agent()
+            elif name == "fitness":
+                from agents.fitness_agent import create_fitness_agent
+                self._agents[name] = create_fitness_agent()
         return self._agents[name]
 
     @staticmethod
@@ -91,7 +120,8 @@ class SupervisorRouter:
         agent_list = "\n".join(f"- {name}: {desc}" for name, desc in AGENT_REGISTRY.items())
         prompt = CLASSIFY_PROMPT.format(agent_list=agent_list, message=message)
         response = self.llm.invoke([HumanMessage(content=prompt)])
-        agent_name = response.content.strip().lower().split()[0]
+        parts = response.content.strip().lower().split()
+        agent_name = parts[0] if parts else "task"
         return agent_name if agent_name in AGENT_REGISTRY else "task"
 
     def chat(self, user_message: str) -> tuple[str, str]:
@@ -110,9 +140,15 @@ class SupervisorRouter:
         # Update this agent's chat history
         history.append(HumanMessage(content=user_message))
         history.append(AIMessage(content=answer))
-        # Keep last 20 messages per agent
-        if len(history) > 20:
-            self._chat_histories[agent_name] = history[-20:]
+        if len(history) > 30:
+            self._chat_histories[agent_name] = history[-30:]
+
+        # Auto-save to Obsidian history (silently skipped if vault not configured)
+        try:
+            from tools.obsidian_tools import append_to_history
+            append_to_history(agent_name, user_message, answer)
+        except Exception:
+            pass
 
         return agent_name, answer
 
@@ -130,7 +166,14 @@ class SupervisorRouter:
 
         history.append(HumanMessage(content=user_message))
         history.append(AIMessage(content=answer))
-        if len(history) > 20:
-            self._chat_histories[agent_name] = history[-20:]
+        if len(history) > 30:
+            self._chat_histories[agent_name] = history[-30:]
+
+        # Auto-save to Obsidian history (silently skipped if vault not configured)
+        try:
+            from tools.obsidian_tools import append_to_history
+            append_to_history(agent_name, user_message, answer)
+        except Exception:
+            pass
 
         return agent_name, answer
