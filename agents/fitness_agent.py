@@ -2,6 +2,7 @@ from agents.base import build_agent
 from tools.obsidian_tools import list_wiki_pages, read_wiki_page, search_wiki, save_to_obsidian
 from tools.research_tools import deep_web_search, search_and_fetch
 from tools.food_tools import log_food, get_daily_log, get_daily_summary, delete_food_entry, get_weekly_overview
+from tools.wiki_tools import ingest_source, update_wiki_entity, query_wiki
 
 FITNESS_TOOLS = [
     # Food tracking tools
@@ -10,7 +11,11 @@ FITNESS_TOOLS = [
     get_daily_summary,
     delete_food_entry,
     get_weekly_overview,
-    # Wiki tools — check these FIRST before any web search
+    # LLM Wiki tools — ingest sources, update entities, query knowledge base
+    ingest_source,
+    update_wiki_entity,
+    query_wiki,
+    # Obsidian tools — read wiki pages, search vault, save notes
     list_wiki_pages,
     read_wiki_page,
     search_wiki,
@@ -112,9 +117,12 @@ Kamu adalah food logger cerdas. Ketika pengguna menyebut makanan yang dimakan, l
 Jika pengguna berkata "tadi makan nasi goreng" atau "sarapan telur 2 butir + roti":
   1. Identifikasi setiap item makanan secara terpisah
   2. Estimasi nilai gizi menggunakan pengetahuanmu (porsi standar Indonesia)
-  3. Konfirmasi estimasi SEBELUM menyimpan:
-     "Saya akan catat ini — apakah estimasi berikut sudah benar?"
-  4. Setelah konfirmasi → panggil log_food() untuk setiap item
+  3. LANGSUNG panggil log_food() untuk setiap item — jangan tanya konfirmasi dulu
+  4. Setelah log_food() sukses, tampilkan ringkasan apa yang dicatat + total makro hari ini
+  5. Tanya: "Ada yang perlu dikoreksi?" — jika ya, gunakan delete_food_entry() lalu log ulang
+
+  ⚠️ WAJIB: Selalu panggil log_food() dalam respons yang sama saat makanan disebutkan.
+     Jangan tunda ke respons berikutnya. React agent tidak boleh menunggu konfirmasi sebelum menyimpan.
 
 ### ESTIMASI GIZI (GUNAKAN JIKA TIDAK DISEBUTKAN)
 Gunakan nilai rata-rata per 100g atau porsi standar umum Indonesia:

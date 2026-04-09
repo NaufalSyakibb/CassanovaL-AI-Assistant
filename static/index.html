@@ -319,7 +319,7 @@
           <div className="dither-bg" style={{ padding:'14px 12px',
             borderBottom:`2px solid ${P.bd0}`, background:P.bg2 }}>
             <div style={{ fontFamily:"'Press Start 2P',monospace", fontSize:9, color:P.cyn, marginBottom:5 }}>
-              ▶ PIXEL.AI
+              ▶ CassanovaL
             </div>
             <div style={{ fontFamily:"'Press Start 2P',monospace", fontSize:5, color:P.t2 }}>
               COMMAND CENTER v2.0
@@ -755,6 +755,30 @@
       );
     }
 
+    function todayISO() { return new Date().toISOString().slice(0,10); }
+
+    function groupByDate(msgs) {
+      const groups = [];
+      for (const msg of msgs) {
+        const d = msg.date || todayISO();
+        if (!groups.length || groups[groups.length-1].date !== d) {
+          groups.push({ date: d, msgs: [msg] });
+        } else {
+          groups[groups.length-1].msgs.push(msg);
+        }
+      }
+      return groups;
+    }
+
+    function formatDateLabel(iso) {
+      const today = todayISO();
+      const yesterday = new Date(Date.now()-86400000).toISOString().slice(0,10);
+      if (iso === today) return 'HARI INI';
+      if (iso === yesterday) return 'KEMARIN';
+      const d = new Date(iso + 'T00:00:00');
+      return d.toLocaleDateString('id-ID',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
+    }
+
     function App() {
       const [activeAgent, setActiveAgent] = useState('task');
       const [messagesByAgent, setMessagesByAgent] = useState(() => {
@@ -764,6 +788,7 @@
             id: Date.now()+id, role:'agent', agent:id,
             content: AGENTS[id].greeting,
             time: new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}),
+            date: todayISO(),
           }];
         });
         return init;
@@ -797,7 +822,8 @@
       async function sendMessage(text) {
         if (isLoading) return;
         const userMsg = { id:Date.now(), role:'user', content:text,
-          time:new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}) };
+          time:new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}),
+          date:todayISO() };
         setMessagesByAgent(prev => ({...prev, [activeAgent]:[...(prev[activeAgent]||[]), userMsg]}));
         setIsLoading(true);
         try {
@@ -810,7 +836,8 @@
           if (!res.ok) throw new Error(data.detail || 'Server error');
           const agentMsg = { id:Date.now()+1, role:'agent',
             agent:data.agent||activeAgent, content:data.response,
-            time:new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}) };
+            time:new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}),
+            date:todayISO() };
           setMessagesByAgent(prev => ({...prev, [activeAgent]:[...(prev[activeAgent]||[]), agentMsg]}));
           await fetchPanelData(activeAgent);
           document.getElementById('conn-banner').style.display = 'none';
@@ -820,7 +847,8 @@
             content: isNet
               ? `> NETWORK ERROR: Cannot reach backend.\n> Make sure server is running:\n>   python server.py\n> Then visit: http://localhost:8000`
               : `> ERROR: ${err.message}`,
-            time:new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}) };
+            time:new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}),
+            date:todayISO() };
           setMessagesByAgent(prev => ({...prev, [activeAgent]:[...(prev[activeAgent]||[]), errMsg]}));
           document.getElementById('conn-banner').style.display = 'block';
         } finally { setIsLoading(false); }
@@ -897,7 +925,32 @@
               </div>
             </div>
             <div style={{ flex:1, overflowY:'auto', padding:'16px', background:P.bg0 }}>
-              {messages.map(msg => <Bubble key={msg.id} msg={msg}/>)}
+              {groupByDate(messages).map((group, gi) => (
+                <div key={group.date}>
+                  {/* ── Date separator ── */}
+                  <div style={{ display:'flex', alignItems:'center', gap:8, margin:`${gi===0?0:18}px 0 10px` }}>
+                    <div style={{ flex:1, height:1, background:P.bd1 }}/>
+                    <span style={{ fontFamily:"'Press Start 2P',monospace", fontSize:5,
+                      color:P.t2, padding:'3px 10px',
+                      border:`1px solid ${P.bd1}`, background:P.bg0,
+                      letterSpacing:'.12em' }}>
+                      {formatDateLabel(group.date)}
+                    </span>
+                    <div style={{ flex:1, height:1, background:P.bd1 }}/>
+                  </div>
+                  {/* ── Day box ── */}
+                  <div style={{
+                    border:`2px solid ${P.bd0}`,
+                    borderTop:`3px solid ${AGENTS[activeAgent].dark}`,
+                    background:P.bg1,
+                    padding:'10px 8px 6px',
+                    boxShadow:`3px 3px 0 0 rgba(0,0,0,.35)`,
+                    marginBottom:4,
+                  }}>
+                    {group.msgs.map(msg => <Bubble key={msg.id} msg={msg}/>)}
+                  </div>
+                </div>
+              ))}
               {isLoading && <TypingIndicator agent={activeAgent}/>}
               <div ref={bottomRef}/>
             </div>

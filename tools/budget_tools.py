@@ -2,6 +2,7 @@ import json
 import uuid
 from datetime import datetime
 from langchain.tools import tool
+from tools.obsidian_tools import mirror_to_obsidian
 
 BUDGET_FILE = "data/budget.json"
 
@@ -22,6 +23,64 @@ def _save(data: list):
     os.makedirs(os.path.dirname(BUDGET_FILE), exist_ok=True)
     with open(BUDGET_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
+    try:
+        _mirror(data)
+    except Exception:
+        pass
+
+
+def _mirror(transactions: list) -> None:
+    """Mirror monthly budget to Obsidian AI Data/Budget/YYYY-MM.md"""
+    # Group by month
+    months: dict[str, list] = {}
+    for t in transactions:
+        month = t.get("date", "")[:7]
+        if month:
+            months.setdefault(month, []).append(t)
+
+    for month, txs in months.items():
+        income_txs  = [t for t in txs if t["type"] == "income"]
+        expense_txs = [t for t in txs if t["type"] == "expense"]
+        total_in    = sum(t["amount"] for t in income_txs)
+        total_ex    = sum(t["amount"] for t in expense_txs)
+        net         = total_in - total_ex
+        updated     = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+        lines = [
+            "---",
+            f"month: {month}",
+            f"income: {total_in:.0f}",
+            f"expenses: {total_ex:.0f}",
+            f"net: {net:.0f}",
+            f"updated: {updated}",
+            "---",
+            "",
+            f"# Budget — {month}",
+            "",
+            "## Pemasukan",
+            "| Tanggal | Kategori | Deskripsi | Jumlah |",
+            "|---------|----------|-----------|--------|",
+        ]
+        for t in sorted(income_txs, key=lambda x: x.get("date", "")):
+            lines.append(f"| {t['date']} | {t['category']} | {t.get('description','-')} | +Rp {t['amount']:,.0f} |")
+        lines += [
+            f"| **TOTAL** | | | **+Rp {total_in:,.0f}** |",
+            "",
+            "## Pengeluaran",
+            "| Tanggal | Kategori | Deskripsi | Jumlah |",
+            "|---------|----------|-----------|--------|",
+        ]
+        for t in sorted(expense_txs, key=lambda x: x.get("date", "")):
+            lines.append(f"| {t['date']} | {t['category']} | {t.get('description','-')} | -Rp {t['amount']:,.0f} |")
+        lines += [
+            f"| **TOTAL** | | | **-Rp {total_ex:,.0f}** |",
+            "",
+            "## Ringkasan",
+            f"| Pemasukan | Pengeluaran | Net |",
+            f"|-----------|-------------|-----|",
+            f"| +Rp {total_in:,.0f} | -Rp {total_ex:,.0f} | {'🟢' if net >= 0 else '🔴'} Rp {net:+,.0f} |",
+        ]
+        mirror_to_obsidian("AI Data/Budget", f"{month}.md", "\n".join(lines))
 
 
 @tool

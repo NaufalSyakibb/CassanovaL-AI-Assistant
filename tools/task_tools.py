@@ -2,8 +2,11 @@ import json
 import uuid
 from datetime import datetime
 from langchain.tools import tool
+from tools.obsidian_tools import mirror_to_obsidian
 
 TASKS_FILE = "data/tasks.json"
+
+PRIORITY_EMOJI = {"high": "🔴", "medium": "🟡", "low": "⚪"}
 
 
 def _load() -> list:
@@ -19,6 +22,48 @@ def _save(data: list):
     os.makedirs(os.path.dirname(TASKS_FILE), exist_ok=True)
     with open(TASKS_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
+    try:
+        _mirror(data)
+    except Exception:
+        pass
+
+
+def _mirror(tasks: list) -> None:
+    """Mirror task list to Obsidian AI Data/Tasks/Active Tasks.md"""
+    pending   = [t for t in tasks if t["status"] == "pending"]
+    completed = [t for t in tasks if t["status"] == "completed"]
+    today     = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    lines = [
+        "---",
+        f"updated: {today}",
+        f"total: {len(tasks)}",
+        f"pending: {len(pending)}",
+        f"completed: {len(completed)}",
+        "---",
+        "",
+        "# Active Tasks",
+        f"_Last synced: {today}_",
+        "",
+    ]
+
+    for priority in ["high", "medium", "low"]:
+        group = [t for t in pending if t.get("priority") == priority]
+        if not group:
+            continue
+        emoji = PRIORITY_EMOJI.get(priority, "⚪")
+        lines.append(f"## {emoji} {priority.capitalize()}")
+        for t in group:
+            due = f" · Due: {t['due_date']}" if t.get("due_date") else ""
+            lines.append(f"- [ ] **{t['title']}** `{t['id']}`{due}")
+        lines.append("")
+
+    if completed:
+        lines.append("## ✅ Completed")
+        for t in completed[-10:]:  # last 10 only
+            lines.append(f"- [x] {t['title']} `{t['id']}`")
+
+    mirror_to_obsidian("AI Data/Tasks", "Active Tasks.md", "\n".join(lines))
 
 
 @tool

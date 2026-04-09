@@ -5,6 +5,7 @@ import os
 import requests
 from datetime import datetime
 from langchain.tools import tool
+from tools.obsidian_tools import create_clipping
 
 NOTES_FILE = "data/notes.json"
 
@@ -128,6 +129,7 @@ def delete_note(note_id: str) -> str:
 def fetch_and_summarize_url(url: str) -> str:
     """
     Fetch a web page and return its text content for summarization.
+    Also auto-saves a Clipping to the Obsidian vault (Clippings/ folder).
     Args:
         url: The URL to fetch content from.
     """
@@ -137,7 +139,14 @@ def fetch_and_summarize_url(url: str) -> str:
         response.raise_for_status()
         text = re.sub(r"<[^>]+>", " ", response.text)
         text = re.sub(r"\s+", " ", text).strip()
-        # Return first 3000 chars for the LLM to summarize
+
+        # Extract a rough title from <title> tag if present
+        title_match = re.search(r"<title[^>]*>(.*?)</title>", response.text, re.IGNORECASE | re.DOTALL)
+        page_title = re.sub(r"\s+", " ", title_match.group(1)).strip() if title_match else url
+
+        # Auto-save to Obsidian Clippings (silent if vault not configured)
+        create_clipping(url=url, title=page_title, body=text[:5000], tags=["clipping"])
+
         return text[:3000] + ("..." if len(text) > 3000 else "")
     except Exception as e:
         return f"Failed to fetch URL: {e}"

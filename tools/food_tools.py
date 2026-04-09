@@ -9,6 +9,7 @@ import uuid
 import os
 from datetime import datetime, date, timedelta
 from langchain.tools import tool
+from tools.obsidian_tools import mirror_to_obsidian
 
 FOOD_LOG_FILE = "data/food_log.json"
 
@@ -27,6 +28,63 @@ def _save(data: dict):
     os.makedirs(os.path.dirname(FOOD_LOG_FILE), exist_ok=True)
     with open(FOOD_LOG_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
+    try:
+        _mirror(data)
+    except Exception:
+        pass  # Obsidian sync failure must never break the save
+
+
+def _mirror(data: dict) -> None:
+    """Mirror each day's food log to Obsidian AI Data/Food Log/YYYY-MM-DD.md"""
+    for day, entries in data.items():
+        if not entries:
+            continue
+        total_cal  = sum(e.get("calories", 0)  for e in entries)
+        total_pro  = sum(e.get("protein_g", 0) for e in entries)
+        total_carb = sum(e.get("carbs_g", 0)   for e in entries)
+        total_fib  = sum(e.get("fiber_g", 0)   for e in entries)
+        total_fat  = sum(e.get("fat_g", 0)     for e in entries)
+
+        lines = [
+            "---",
+            f"date: {day}",
+            f"calories: {round(total_cal)}",
+            f"protein_g: {round(total_pro, 1)}",
+            f"carbs_g: {round(total_carb, 1)}",
+            f"fiber_g: {round(total_fib, 1)}",
+            f"fat_g: {round(total_fat, 1)}",
+            "---",
+            "",
+            f"# Food Log — {day}",
+            "",
+        ]
+
+        # Group by meal_time
+        groups: dict[str, list] = {}
+        for e in entries:
+            groups.setdefault((e.get("meal_time") or "lainnya").capitalize(), []).append(e)
+
+        for meal, items in groups.items():
+            lines += [
+                f"## 🍽️ {meal}",
+                "| Makanan | Porsi | Protein | Karbo | Serat | Lemak | Kalori |",
+                "|---------|-------|---------|-------|-------|-------|--------|",
+            ]
+            for e in items:
+                lines.append(
+                    f"| {e['food']} | {e.get('amount','?')} | {e.get('protein_g',0)}g | "
+                    f"{e.get('carbs_g',0)}g | {e.get('fiber_g',0)}g | "
+                    f"{e.get('fat_g',0)}g | {e.get('calories',0)} kkal |"
+                )
+            lines.append("")
+
+        lines += [
+            "## 📊 Total Harian",
+            "| Protein | Karbo | Serat | Lemak | Kalori |",
+            "|---------|-------|-------|-------|--------|",
+            f"| {round(total_pro,1)}g | {round(total_carb,1)}g | {round(total_fib,1)}g | {round(total_fat,1)}g | {round(total_cal)} kkal |",
+        ]
+        mirror_to_obsidian("AI Data/Food Log", f"{day}.md", "\n".join(lines))
 
 
 def _today() -> str:
@@ -48,7 +106,7 @@ def _format_log_table(entries: list, date_label: str) -> str:
     # Group by meal_time
     groups: dict[str, list] = {}
     for e in entries:
-        meal = e.get("meal_time", "lainnya").capitalize()
+        meal = (e.get("meal_time") or "lainnya").capitalize()
         groups.setdefault(meal, []).append(e)
 
     lines = [f"📅 Log Makan — {date_label}", "─" * 46]
@@ -108,14 +166,14 @@ def log_food(
 
     entry = {
         "id":         str(uuid.uuid4())[:6],
-        "food":       food,
-        "amount":     amount,
-        "calories":   round(calories, 1),
-        "protein_g":  round(protein_g, 1),
-        "carbs_g":    round(carbs_g, 1),
-        "fiber_g":    round(fiber_g, 1),
-        "fat_g":      round(fat_g, 1),
-        "meal_time":  meal_time.lower(),
+        "food":       str(food),
+        "amount":     str(amount),
+        "calories":   round(float(calories), 1),
+        "protein_g":  round(float(protein_g), 1),
+        "carbs_g":    round(float(carbs_g), 1),
+        "fiber_g":    round(float(fiber_g), 1),
+        "fat_g":      round(float(fat_g), 1),
+        "meal_time":  (meal_time or "lainnya").lower(),
         "logged_at":  datetime.now().strftime("%H:%M"),
     }
     data[today].append(entry)

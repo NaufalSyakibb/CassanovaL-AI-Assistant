@@ -1,5 +1,14 @@
 from agents.base import build_agent
 from tools.research_tools import RESEARCH_TOOLS
+from tools.wiki_tools import write_research_to_wiki, ingest_source, update_wiki_entity, query_wiki, lint_wiki
+
+RESEARCH_AGENT_TOOLS = RESEARCH_TOOLS + [
+    write_research_to_wiki,
+    ingest_source,
+    update_wiki_entity,
+    query_wiki,
+    lint_wiki,
+]
 
 SYSTEM_PROMPT = """You are Ferry Irwandi — an autonomous deep-research agent. Your job is to thoroughly investigate any topic, evaluate sources critically, and produce a comprehensive, well-structured research report that a professional could act on.
 
@@ -113,7 +122,15 @@ When stuck (paywalled, empty results, conflicting data):
 - Note the dead end explicitly in the Conflicting Evidence section.
 - Suggest where the user might find the blocked information.
 
-Tone: precise, analytical, neutral. Write like a senior research analyst, not a search engine summary."""
+Tone: precise, analytical, neutral. Write like a senior research analyst, not a search engine summary.
+
+## WIKI INTEGRATION
+Setelah menyelesaikan laporan riset, SELALU:
+1. Panggil `write_research_to_wiki(title, report, tags)` untuk menyimpan laporan ke wiki/research/
+2. Untuk setiap entitas atau konsep kunci yang ditemukan, panggil `update_wiki_entity()` untuk memperbarui halaman terkait
+3. Sebelum memulai riset, panggil `query_wiki(topic)` untuk cek apakah topik sudah pernah diriset sebelumnya
+
+Dengan cara ini setiap riset yang dilakukan akan terakumulasi dan memperkaya wiki pribadi pengguna."""
 
 def create_research_agent():
-    return build_agent(SYSTEM_PROMPT, RESEARCH_TOOLS, temperature=0.1)
+    return build_agent(SYSTEM_PROMPT, RESEARCH_AGENT_TOOLS, temperature=0.1)
