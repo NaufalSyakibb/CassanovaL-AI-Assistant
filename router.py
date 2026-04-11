@@ -19,6 +19,7 @@ AGENT_REGISTRY = {
     "budget":   "Money, expenses, income, spending, finance, budget, cashflow",
     "research": "Deep research, investigating topics, summarizing papers or articles, multi-source analysis, autonomous research reports",
     "fitness":  "Fitness, workout, gym, exercise, nutrition, protein, muscle, lean gain, diet, supplement, training program, body composition",
+    "journal":  "Personal diary, daily journaling, reflection, mood tracking, gratitude writing, personal feelings, thoughts and emotions, jurnal harian, refleksi diri, perasaan, curhat, cerita pribadi",
 }
 
 CLASSIFY_PROMPT = """You are a routing assistant. Based on the user's message, decide which specialist agent should handle it.
@@ -46,6 +47,11 @@ Examples of correct routing:
 - "apakah creatine bagus untuk muscle gain?" → fitness
 - "how many calories for lean bulk?" → fitness
 - "baca wiki fitness aku tentang nutrisi" → fitness
+- "hari ini aku merasa cemas tentang masa depan" → journal
+- "tulis di jurnalku bahwa aku bersyukur" → journal
+- "mau refleksi diri sebentar" → journal
+- "ceritain perasaanku hari ini" → journal
+- "lihat jurnal aku minggu lalu" → journal
 
 Reply with ONLY the agent name (one word, lowercase). Choose the most relevant one.
 If the message is ambiguous or a general greeting, choose 'task' as default.
@@ -95,6 +101,9 @@ class SupervisorRouter:
             elif name == "fitness":
                 from agents.fitness_agent import create_fitness_agent
                 self._agents[name] = create_fitness_agent()
+            elif name == "journal":
+                from agents.dostyevsky_agent import create_dostyevsky_agent
+                self._agents[name] = create_dostyevsky_agent()
         return self._agents[name]
 
     @staticmethod

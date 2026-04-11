@@ -87,11 +87,12 @@ _AGENT_HISTORY_CONFIG: dict[str, tuple[str, str, str]] = {
     "news":     ("AI Data/Najwa Agent",    "News",      "Najwa News Log"),
     "budget":   ("AI Data/Mansa Agent",    "Financial", "Mansa Financial Log"),
     "research": ("AI Data/Ferry Agent",    "Research",  "Ferry Research Log"),
-    "fitness":  ("AI Data/Lavoiser Agent", "Makanan",   "Lavoiser Food & Fitness Log"),
-    "task":     ("AI Data/TaskCore Agent", "Tasks",     "TaskCore Log"),
-    "notes":    ("AI Data/Notes Agent",    "Notes",     "Notes Log"),
-    "coding":   ("AI Data/Linus Agent",    "Code",      "Linus Code Log"),
-    "schedule": ("AI Data/CalCore Agent",  "Schedule",  "CalCore Schedule Log"),
+    "fitness":  ("AI Data/Lavoiser Agent",    "Makanan",   "Lavoiser Food & Fitness Log"),
+    "task":     ("AI Data/TaskCore Agent",   "Tasks",     "TaskCore Log"),
+    "notes":    ("AI Data/Notes Agent",      "Notes",     "Notes Log"),
+    "coding":   ("AI Data/Linus Agent",      "Code",      "Linus Code Log"),
+    "schedule": ("AI Data/CalCore Agent",    "Schedule",  "CalCore Schedule Log"),
+    "journal":  ("AI Data/Dostoyevsky Agent","Journal",   "Dostoyevsky Journal Log"),
 }
 
 

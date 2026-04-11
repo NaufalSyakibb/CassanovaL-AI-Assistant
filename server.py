@@ -189,7 +189,14 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 async def serve_frontend(full_path: str):
     index = Path("static/index.html")
     if index.exists():
-        return FileResponse(str(index))
+        return FileResponse(
+            str(index),
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0",
+            },
+        )
     return JSONResponse(
         {"error": "Frontend not found. Place index.html in static/ folder."},
         status_code=404,

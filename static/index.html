@@ -3,69 +3,157 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>CassanovaL</title>
+  <!-- Pixel fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
+    /* ── PIXEL THEME (default) ─────────────────────────────── */
     :root {
       --bg0:#0a0a0f; --bg1:#111118; --bg2:#1a1a28; --bg3:#252538;
       --bd0:#2a2a40; --bd1:#3a3a55;
       --t0:#e8e8f0;  --t1:#9090b0;  --t2:#505068;
       --grn:#00ff41; --amb:#ffaa00; --blu:#4499ff;
       --prp:#bb44ff; --cyn:#00ffcc; --gld:#ffcc00; --red:#ff2244;
+      --journal:#c084fc;
+      /* layout */
+      --font-px:'Press Start 2P',monospace;
+      --font-mono:'VT323',monospace;
+      --font-code:'VT323',monospace;
+      --radius:0px; --radius-sm:0px; --radius-xs:0px;
+      --shadow:2px 2px 0 0 rgba(0,0,0,.5);
+      --shadow-md:3px 3px 0 0 rgba(0,0,0,.4);
+      --shadow-lg:4px 4px 0 0 rgba(0,0,0,.6);
+      --px-font-size-px:6px;
+      --px-font-size-label:5px;
     }
+
+    /* ── CASUAL THEME ──────────────────────────────────────── */
+    html.casual {
+      --bg0:#fdf6ee; --bg1:#fff9f2; --bg2:#f5ede0; --bg3:#ede3d2;
+      --bd0:#e2d4be; --bd1:#cfc0a4;
+      --t0:#3d2e1e;  --t1:#7a6248;  --t2:#b09070;
+      --grn:#52b04a; --amb:#e8892f; --blu:#4488cc;
+      --prp:#8855bb; --cyn:#3aa898; --gld:#d4a520; --red:#d04f35;
+      --journal:#9b72cf;
+      /* layout */
+      --font-px:'Nunito',sans-serif;
+      --font-mono:'Nunito',sans-serif;
+      --font-code:'JetBrains Mono',monospace;
+      --radius:16px; --radius-sm:10px; --radius-xs:6px;
+      --shadow:0 4px 16px rgba(0,0,0,.08);
+      --shadow-md:0 6px 24px rgba(0,0,0,.1);
+      --shadow-lg:0 8px 32px rgba(0,0,0,.12);
+      --px-font-size-px:13px;
+      --px-font-size-label:11px;
+    }
+
     *{box-sizing:border-box;margin:0;padding:0;}
-    html,body,#root{width:100%;height:100%;overflow:hidden;image-rendering:pixelated;image-rendering:crisp-edges;}
-    body{background:var(--bg0);color:var(--t0);font-family:'VT323',monospace;font-size:18px;}
+    html,body,#root{width:100%;height:100%;overflow:hidden;}
+    html:not(.casual){image-rendering:pixelated;image-rendering:crisp-edges;}
+    body{background:var(--bg0);color:var(--t0);font-family:var(--font-mono);font-size:18px;transition:background .3s,color .3s;}
+    html.casual body{font-size:15px;image-rendering:auto;}
+
+    /* Pixel scanlines — hidden in casual */
     body::after{content:'';position:fixed;inset:0;
-      background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.07) 2px,rgba(0,0,0,0.07) 4px);
+      background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.07) 2px,rgba(0,0,0,.07) 4px);
       pointer-events:none;z-index:9999;}
+    html.casual body::after{display:none;}
+
     ::-webkit-scrollbar{width:8px;}
     ::-webkit-scrollbar-track{background:var(--bg1);}
-    ::-webkit-scrollbar-thumb{background:var(--bd1);border:2px solid var(--bg1);}
+    ::-webkit-scrollbar-thumb{background:var(--bd1);border:2px solid var(--bg1);border-radius:var(--radius-xs);}
     ::-webkit-scrollbar-thumb:hover{background:var(--t2);}
-    .px-btn{font-family:'Press Start 2P',monospace;font-size:8px;border:2px solid;cursor:pointer;
-      transition:transform 0.05s,box-shadow 0.05s;}
-    .px-btn:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 0 rgba(0,0,0,.6);}
-    .px-btn:active{transform:translate(1px,1px);box-shadow:1px 1px 0 0 rgba(0,0,0,.6);}
-    .px-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none;}
-    .px-stat{background:var(--bg2);border:2px solid var(--bd0);box-shadow:2px 2px 0 0 rgba(0,0,0,.5);padding:10px 12px;}
-    .px-label{font-family:'Press Start 2P',monospace;font-size:6px;letter-spacing:.1em;text-transform:uppercase;color:var(--t2);}
-    .px-tag{font-family:'Press Start 2P',monospace;font-size:6px;padding:3px 6px;border:1px solid;}
-    .quick-btn{font-family:'VT323',monospace;font-size:16px;padding:6px 10px;border:2px solid;
+
+    /* ── Shared component classes ── */
+    .px-btn{
+      font-family:var(--font-px);font-size:var(--px-font-size-px);
+      border:2px solid;cursor:pointer;border-radius:var(--radius-sm);
+      transition:transform 0.1s,box-shadow 0.1s,background 0.15s;
+    }
+    html:not(.casual) .px-btn:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 0 rgba(0,0,0,.6);}
+    html:not(.casual) .px-btn:active{transform:translate(1px,1px);box-shadow:1px 1px 0 0 rgba(0,0,0,.6);}
+    html.casual .px-btn:hover{transform:translateY(-1px);box-shadow:var(--shadow-md);}
+    html.casual .px-btn:active{transform:translateY(0);}
+    .px-btn:disabled{opacity:.4;cursor:not-allowed;transform:none !important;box-shadow:none !important;}
+
+    .px-stat{background:var(--bg2);border:2px solid var(--bd0);
+      box-shadow:var(--shadow);padding:10px 12px;border-radius:var(--radius-sm);}
+    .px-label{font-family:var(--font-px);font-size:var(--px-font-size-label);
+      letter-spacing:.08em;text-transform:uppercase;color:var(--t2);}
+    html.casual .px-label{letter-spacing:.04em;}
+    .px-tag{font-family:var(--font-px);font-size:var(--px-font-size-label);
+      padding:3px 8px;border:1px solid;border-radius:var(--radius-xs);}
+
+    .quick-btn{font-family:var(--font-mono);font-size:16px;padding:6px 10px;border:2px solid;
       cursor:pointer;text-align:left;width:100%;background:transparent;
-      transition:filter .05s,transform .05s steps(1);}
-    .quick-btn:hover{filter:brightness(1.4);transform:translateX(3px);}
-    .agent-nav-item{transition:transform .1s steps(2);}
-    .agent-nav-item:hover{transform:translateY(-3px);}
+      border-radius:var(--radius-sm);transition:filter .1s,transform .1s;}
+    html:not(.casual) .quick-btn:hover{filter:brightness(1.4);transform:translateX(3px);}
+    html.casual .quick-btn:hover{filter:brightness(0.95);transform:translateY(-1px);box-shadow:var(--shadow);}
+
+    .agent-nav-item{transition:transform .1s;}
+    html:not(.casual) .agent-nav-item:hover{transform:translateY(-3px);}
+    html.casual .agent-nav-item:hover{transform:translateX(3px);}
+
     .dither-bg{background-image:radial-gradient(circle,rgba(255,255,255,.025) 1px,transparent 1px);background-size:4px 4px;}
+    html.casual .dither-bg{background-image:none;}
+
     .blink{animation:blink 1s step-end infinite;}
     @keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
     .type-dot{animation:tdot 1.2s step-end infinite;}
     .type-dot:nth-child(2){animation-delay:.4s;}
     .type-dot:nth-child(3){animation-delay:.8s;}
     @keyframes tdot{0%,66%,100%{opacity:0;}33%{opacity:1;}}
-    .msg-in{animation:msgIn .1s steps(3) both;}
-    @keyframes msgIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+    html.casual .type-dot{animation:tdot-c 1.4s ease-in-out infinite;border-radius:50%;}
+    @keyframes tdot-c{0%,100%{transform:scale(.6);opacity:.3;}50%{transform:scale(1);opacity:1;}}
+    html.casual .type-dot:nth-child(2){animation-delay:.2s;}
+    html.casual .type-dot:nth-child(3){animation-delay:.4s;}
+
+    .msg-in{animation:msgIn .15s ease both;}
+    @keyframes msgIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+
     .msg-content pre{background:#080810;border:2px solid var(--bd0);border-left:4px solid var(--prp);
-      padding:12px;overflow-x:auto;font-family:'VT323',monospace;font-size:16px;line-height:1.5;
-      margin:8px 0;box-shadow:2px 2px 0 0 rgba(0,0,0,.5);}
+      padding:12px;overflow-x:auto;font-family:var(--font-code);font-size:16px;line-height:1.5;
+      margin:8px 0;box-shadow:var(--shadow);border-radius:var(--radius-xs);}
+    html.casual .msg-content pre{background:#f0e8f8;border-left:4px solid var(--prp);color:#3d2e1e;}
     .msg-content code{background:var(--bg2);border:1px solid var(--bd0);padding:1px 6px;
-      font-family:'VT323',monospace;font-size:16px;color:var(--cyn);}
+      font-family:var(--font-code);font-size:16px;color:var(--cyn);border-radius:var(--radius-xs);}
+    html.casual .msg-content code{color:var(--prp);}
     .msg-content ul{padding-left:20px;margin:6px 0;list-style:square;}
+    html.casual .msg-content ul{list-style:disc;}
     .msg-content li{margin:4px 0;}
     .msg-content strong{color:var(--gld);}
+    html.casual .msg-content strong{color:var(--amb);}
     .msg-content p{margin:4px 0;line-height:1.5;}
+
+    /* Theme toggle button — z-index must exceed scanlines (9999) */
+    .theme-toggle{
+      position:fixed;bottom:24px;right:24px;z-index:100000;
+      width:48px;height:48px;border-radius:50%;
+      border:2px solid var(--bd1);background:var(--bg2);
+      cursor:pointer;font-size:20px;
+      box-shadow:var(--shadow-md);
+      display:flex;align-items:center;justify-content:center;
+      transition:transform .2s,box-shadow .2s,background .3s;
+      outline:none;
+    }
+    .theme-toggle:hover{transform:scale(1.12);box-shadow:var(--shadow-lg);}
+    .theme-toggle:active{transform:scale(0.96);}
+
     #conn-banner{
       position:fixed;top:0;left:0;right:0;z-index:99999;
       background:#ff2244;border-bottom:3px solid #ff6666;
-      font-family:'Press Start 2P',monospace;font-size:8px;
+      font-family:var(--font-px);font-size:8px;
       color:#fff;text-align:center;padding:10px;
       display:none;line-height:2;
     }
+    html.casual #conn-banner{border-radius:0 0 var(--radius-sm) var(--radius-sm);font-size:12px;}
   </style>
 </head>
 <body>
@@ -80,208 +168,265 @@
   <div id="root"></div>
 
   <script>
-    window.onerror = function(msg, src, line, col, err) {
-      var b = document.getElementById('err-banner');
-      b.style.display = 'block';
-      b.textContent = 'JS ERROR: ' + msg + '\nat ' + src + ':' + line + ':' + col;
+    window.onerror = function(msg,src,line,col,err){
+      var b=document.getElementById('err-banner');
+      b.style.display='block';
+      b.textContent='JS ERROR: '+msg+'\nat '+src+':'+line+':'+col;
     };
-    window.onunhandledrejection = function(e) {
-      var b = document.getElementById('err-banner');
-      b.style.display = 'block';
-      b.textContent = 'UNHANDLED PROMISE: ' + (e.reason && (e.reason.message || e.reason));
+    window.onunhandledrejection=function(e){
+      var b=document.getElementById('err-banner');
+      b.style.display='block';
+      b.textContent='UNHANDLED PROMISE: '+(e.reason&&(e.reason.message||e.reason));
     };
   </script>
 
   <script type="text/babel">
     const { useState, useEffect, useRef, useCallback } = React;
 
-    // Falls back to localhost:8000 when opened as file:// (e.g. directly from VS Code/Explorer)
     const API = (
-      window.location.protocol === 'file:' ||
-      window.location.origin === 'null' ||
+      window.location.protocol==='file:'||
+      window.location.origin==='null'||
       !window.location.origin
     ) ? 'http://localhost:8000' : window.location.origin;
 
-    async function checkConnection() {
-      try {
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 4000);
-        const r = await fetch(`${API}/api/tasks`, { signal: ctrl.signal });
+    async function checkConnection(){
+      try{
+        const ctrl=new AbortController();
+        const timer=setTimeout(()=>ctrl.abort(),4000);
+        const r=await fetch(`${API}/api/tasks`,{signal:ctrl.signal});
         clearTimeout(timer);
-        document.getElementById('conn-banner').style.display = r.ok ? 'none' : 'block';
-      } catch(e) {
-        document.getElementById('conn-banner').style.display = 'block';
+        document.getElementById('conn-banner').style.display=r.ok?'none':'block';
+      }catch(e){
+        document.getElementById('conn-banner').style.display='block';
       }
     }
     checkConnection();
-    setInterval(checkConnection, 15000);
+    setInterval(checkConnection,15000);
 
+    // ── CSS variable-based palette (adapts to both themes via CSS) ──────────────
     const P = {
+      bg0:'var(--bg0)',bg1:'var(--bg1)',bg2:'var(--bg2)',bg3:'var(--bg3)',
+      bd0:'var(--bd0)',bd1:'var(--bd1)',
+      t0:'var(--t0)',t1:'var(--t1)',t2:'var(--t2)',
+      grn:'var(--grn)',amb:'var(--amb)',blu:'var(--blu)',
+      prp:'var(--prp)',cyn:'var(--cyn)',gld:'var(--gld)',red:'var(--red)',
+      journal:'var(--journal)',
+    };
+
+    // ── Concrete colors (for SVG sprites + agent palette) ───────────────────────
+    const C_PIXEL = {
       bg0:'#0a0a0f',bg1:'#111118',bg2:'#1a1a28',bg3:'#252538',
       bd0:'#2a2a40',bd1:'#3a3a55',
       t0:'#e8e8f0',t1:'#9090b0',t2:'#505068',
       grn:'#00ff41',amb:'#ffaa00',blu:'#4499ff',
-      prp:'#bb44ff',cyn:'#00ffcc',gld:'#ffcc00',red:'#ff2244',
+      prp:'#bb44ff',cyn:'#00ffcc',gld:'#ffcc00',red:'#ff2244',journal:'#c084fc',
+    };
+    const C_CASUAL = {
+      bg0:'#fdf6ee',bg1:'#fff9f2',bg2:'#f5ede0',bg3:'#ede3d2',
+      bd0:'#e2d4be',bd1:'#cfc0a4',
+      t0:'#3d2e1e',t1:'#7a6248',t2:'#b09070',
+      grn:'#52b04a',amb:'#e8892f',blu:'#4488cc',
+      prp:'#8855bb',cyn:'#3aa898',gld:'#d4a520',red:'#d04f35',journal:'#9b72cf',
     };
 
-    const Sprite = ({ pixels, size = 28 }) => (
-      <svg width={size} height={size} viewBox="0 0 16 16"
-        style={{ imageRendering:'pixelated', display:'block', flexShrink:0 }}>
-        {pixels.map(([x,y,c],i) => <rect key={i} x={x} y={y} width={1} height={1} fill={c}/>)}
-      </svg>
-    );
-
-    const SP = {
-      task:[
-        [3,2,P.grn],[4,2,P.grn],[5,2,P.grn],[6,2,P.grn],[7,2,P.grn],[8,2,P.grn],[9,2,P.grn],[10,2,P.grn],[11,2,P.grn],
-        [3,3,P.grn],[11,3,P.grn],
-        [3,4,P.grn],[9,4,'#00cc33'],[10,4,'#00cc33'],[11,4,P.grn],
-        [3,5,P.grn],[8,5,'#00cc33'],[11,5,P.grn],
-        [3,6,P.grn],[5,6,'#00cc33'],[7,6,'#00cc33'],[11,6,P.grn],
-        [3,7,P.grn],[6,7,'#00cc33'],[11,7,P.grn],
-        [3,8,P.grn],[5,8,P.t1],[6,8,P.t1],[7,8,P.t1],[8,8,P.t1],[11,8,P.grn],
-        [3,9,P.grn],[5,9,P.t1],[11,9,P.grn],
-        [3,10,P.grn],[5,10,P.t1],[6,10,P.t1],[7,10,P.t1],[11,10,P.grn],
-        [3,11,P.grn],[11,11,P.grn],
-        [3,12,P.grn],[4,12,P.grn],[5,12,P.grn],[6,12,P.grn],[7,12,P.grn],[8,12,P.grn],[9,12,P.grn],[10,12,P.grn],[11,12,P.grn],
-      ],
-      notes:[
-        [2,2,P.blu],[3,2,P.blu],[4,2,P.blu],[5,2,P.blu],[6,2,P.blu],[7,2,P.blu],[8,2,P.blu],[9,2,P.blu],
-        [2,3,P.blu],[9,3,P.blu],
-        [2,4,P.blu],[4,4,P.t0],[5,4,P.t0],[6,4,P.t0],[7,4,P.t0],[9,4,P.blu],
-        [2,5,P.blu],[9,5,P.blu],[12,5,P.gld],[13,5,P.gld],
-        [2,6,P.blu],[4,6,P.t0],[5,6,P.t0],[6,6,P.t0],[7,6,P.t0],[9,6,P.blu],[11,6,P.gld],[13,6,P.gld],
-        [2,7,P.blu],[9,7,P.blu],[10,7,P.gld],[13,7,P.gld],
-        [2,8,P.blu],[4,8,P.t0],[5,8,P.t0],[6,8,P.t0],[7,8,P.t0],[9,8,P.blu],[10,8,P.gld],[11,8,P.gld],
-        [2,9,P.blu],[9,9,P.blu],[11,9,P.gld],[12,9,P.gld],
-        [2,10,P.blu],[9,10,P.blu],[12,10,P.gld],[13,10,P.gld],
-        [2,11,P.blu],[9,11,P.blu],
-        [2,12,P.blu],[3,12,P.blu],[4,12,P.blu],[5,12,P.blu],[6,12,P.blu],[7,12,P.blu],[8,12,P.blu],[9,12,P.blu],
-      ],
-      news:[
-        [7,1,P.amb],[8,1,P.amb],
-        [5,2,P.amb],[6,2,P.amb],[9,2,P.amb],[10,2,P.amb],
-        [3,3,P.amb],[4,3,P.amb],[11,3,P.amb],[12,3,P.amb],
-        [2,4,P.amb],[13,4,P.amb],
-        [2,5,'#ff6600'],[7,5,P.amb],[8,5,P.amb],[13,5,'#ff6600'],
-        [3,6,'#ff6600'],[6,6,P.amb],[9,6,P.amb],[12,6,'#ff6600'],
-        [4,7,'#ff6600'],[7,7,P.t0],[8,7,P.t0],[11,7,'#ff6600'],
-        [5,8,'#ff6600'],[6,8,P.t0],[7,8,P.t0],[8,8,P.t0],[9,8,P.t0],[10,8,'#ff6600'],
-        [5,9,'#ff6600'],[6,9,P.t0],[9,9,P.t0],[10,9,'#ff6600'],
-        [6,10,'#ff6600'],[7,10,P.t0],[8,10,P.t0],[9,10,'#ff6600'],
-        [7,11,'#ff6600'],[8,11,'#ff6600'],
-        [7,12,P.t1],[8,12,P.t1],
-        [6,13,P.t1],[7,13,P.t1],[8,13,P.t1],[9,13,P.t1],
-      ],
-      coding:[
-        [5,1,P.prp],[6,1,P.prp],[7,1,P.prp],[8,1,P.prp],[9,1,P.prp],
-        [4,2,P.prp],[10,2,P.prp],
-        [4,3,P.prp],[6,3,P.cyn],[7,3,P.cyn],[10,3,P.prp],
-        [4,4,P.prp],[6,4,P.cyn],[7,4,P.cyn],[10,4,P.prp],
-        [4,5,P.prp],[10,5,P.prp],
-        [3,6,P.prp],[4,6,P.prp],[5,6,P.prp],[6,6,P.prp],[7,6,P.prp],[8,6,P.prp],[9,6,P.prp],[10,6,P.prp],[11,6,P.prp],
-        [3,7,P.prp],[5,7,P.grn],[11,7,P.prp],
-        [3,8,P.prp],[5,8,P.grn],[6,8,P.grn],[7,8,P.grn],[11,8,P.prp],
-        [3,9,P.prp],[11,9,P.prp],
-        [3,10,P.prp],[4,10,P.prp],[5,10,P.prp],[6,10,P.prp],[7,10,P.prp],[8,10,P.prp],[9,10,P.prp],[10,10,P.prp],[11,10,P.prp],
-        [5,11,P.t1],[6,11,P.t1],[9,11,P.t1],[10,11,P.t1],
-        [5,12,P.t1],[6,12,P.t1],[9,12,P.t1],[10,12,P.t1],
-        [4,13,P.t1],[5,13,P.t1],[6,13,P.t1],[9,13,P.t1],[10,13,P.t1],[11,13,P.t1],
-      ],
-      schedule:[
-        [6,1,P.cyn],[7,1,P.cyn],[8,1,P.cyn],
-        [5,2,P.cyn],[9,2,P.cyn],
-        [4,3,P.cyn],[5,3,'#00aaaa'],[6,3,P.t0],[7,3,P.t0],[8,3,P.t0],[9,3,'#00aaaa'],[10,3,P.cyn],
-        [3,4,P.cyn],[4,4,'#00aaaa'],[5,4,P.t0],[7,4,P.cyn],[10,4,'#00aaaa'],[11,4,P.cyn],
-        [3,5,P.cyn],[4,5,'#00aaaa'],[5,5,P.t0],[7,5,P.cyn],[8,5,P.cyn],[10,5,'#00aaaa'],[11,5,P.cyn],
-        [3,6,P.cyn],[4,6,'#00aaaa'],[5,6,P.t0],[6,6,P.t0],[7,6,P.t0],[8,6,P.t0],[9,6,P.t0],[10,6,'#00aaaa'],[11,6,P.cyn],
-        [3,7,P.cyn],[4,7,'#00aaaa'],[5,7,P.t0],[10,7,'#00aaaa'],[11,7,P.cyn],
-        [3,8,P.cyn],[4,8,'#00aaaa'],[5,8,P.t0],[10,8,'#00aaaa'],[11,8,P.cyn],
-        [3,9,P.cyn],[4,9,'#00aaaa'],[5,9,P.t0],[6,9,P.t0],[7,9,P.t0],[8,9,P.t0],[9,9,P.t0],[10,9,'#00aaaa'],[11,9,P.cyn],
-        [4,10,P.cyn],[5,10,'#00aaaa'],[10,10,'#00aaaa'],[11,10,P.cyn],
-        [4,11,P.cyn],[5,11,'#00aaaa'],[6,11,P.t0],[7,11,P.t0],[8,11,P.t0],[9,11,'#00aaaa'],[10,11,P.cyn],
-        [5,12,P.cyn],[9,12,P.cyn],
-        [6,13,P.cyn],[7,13,P.cyn],[8,13,P.cyn],
-      ],
-      budget:[
-        [4,2,P.gld],[5,2,P.gld],[6,2,P.gld],[7,2,P.gld],[8,2,P.gld],[9,2,P.gld],[10,2,P.gld],[11,2,P.gld],
-        [3,3,P.gld],[12,3,P.gld],
-        [3,4,P.gld],[5,4,P.amb],[6,4,P.amb],[7,4,P.amb],[8,4,P.amb],[9,4,P.amb],[10,4,P.amb],[12,4,P.gld],
-        [3,5,P.gld],[4,5,P.amb],[7,5,P.t0],[8,5,P.t0],[11,5,P.amb],[12,5,P.gld],
-        [3,6,P.gld],[4,6,P.amb],[6,6,P.t0],[7,6,P.t0],[8,6,P.t0],[9,6,P.t0],[11,6,P.amb],[12,6,P.gld],
-        [3,7,P.gld],[4,7,P.amb],[7,7,P.t0],[8,7,P.t0],[11,7,P.amb],[12,7,P.gld],
-        [3,8,P.gld],[4,8,P.amb],[5,8,P.amb],[6,8,P.amb],[7,8,P.amb],[8,8,P.amb],[9,8,P.amb],[10,8,P.amb],[11,8,P.amb],[12,8,P.gld],
-        [3,9,P.gld],[12,9,P.gld],
-        [3,10,'#cc9900'],[4,10,'#cc9900'],[5,10,'#cc9900'],[6,10,'#cc9900'],[7,10,'#cc9900'],[8,10,'#cc9900'],[9,10,'#cc9900'],[10,10,'#cc9900'],[11,10,'#cc9900'],[12,10,'#cc9900'],
-        [4,11,P.gld],[5,11,P.gld],[6,11,P.gld],[7,11,P.gld],[8,11,P.gld],[9,11,P.gld],[10,11,P.gld],[11,11,P.gld],
-      ],
-      research:[
-        [7,1,'#00ddff'],[8,1,'#00ddff'],
-        [5,2,'#00ddff'],[6,2,'#00ddff'],[9,2,'#00ddff'],[10,2,'#00ddff'],
-        [4,3,'#00ddff'],[11,3,'#00ddff'],
-        [3,4,'#00ddff'],[5,4,P.t0],[6,4,P.t0],[7,4,P.t0],[8,4,P.t0],[9,4,P.t0],[12,4,'#00ddff'],
-        [3,5,'#00ddff'],[5,5,P.t0],[12,5,'#00ddff'],
-        [3,6,'#00ddff'],[5,6,P.t0],[6,6,P.t0],[7,6,P.t0],[8,6,P.t0],[9,6,P.t0],[12,6,'#00ddff'],
-        [3,7,'#00ddff'],[5,7,P.t0],[12,7,'#00ddff'],
-        [3,8,'#00ddff'],[5,8,P.t0],[6,8,P.t0],[7,8,P.t0],[8,8,P.t0],[9,8,P.t0],[12,8,'#00ddff'],
-        [4,9,'#00ddff'],[11,9,'#00ddff'],
-        [5,10,'#00ddff'],[6,10,'#00ddff'],[9,10,'#00ddff'],[10,10,'#00ddff'],
-        [7,11,'#00ddff'],[8,11,'#00ddff'],
-        [6,12,'#0099bb'],[7,12,'#0099bb'],[8,12,'#0099bb'],[9,12,'#0099bb'],
-      ],
-      fitness:[
-        [7,1,P.red],[8,1,P.red],
-        [6,2,P.red],[7,2,P.red],[8,2,P.red],[9,2,P.red],
-        [5,3,P.red],[6,3,'#cc1133'],[9,3,'#cc1133'],[10,3,P.red],
-        [4,4,P.red],[5,4,'#cc1133'],[10,4,'#cc1133'],[11,4,P.red],
-        [4,5,P.red],[11,5,P.red],
-        [4,6,P.red],[5,6,P.red],[6,6,P.red],[7,6,P.red],[8,6,P.red],[9,6,P.red],[10,6,P.red],[11,6,P.red],
-        [3,7,P.red],[4,7,'#cc1133'],[7,7,P.t0],[8,7,P.t0],[11,7,'#cc1133'],[12,7,P.red],
-        [3,8,P.red],[12,8,P.red],
-        [3,9,P.red],[4,9,P.red],[5,9,P.red],[6,9,P.red],[7,9,P.red],[8,9,P.red],[9,9,P.red],[10,9,P.red],[11,9,P.red],[12,9,P.red],
-        [5,10,P.red],[6,10,P.red],[9,10,P.red],[10,10,P.red],
-        [5,11,'#cc1133'],[6,11,'#cc1133'],[9,11,'#cc1133'],[10,11,'#cc1133'],
-        [5,12,P.t1],[6,12,P.t1],[9,12,P.t1],[10,12,P.t1],
-      ],
+    // ── Layout / typography tokens (updated per theme via useTheme) ──────────────
+    const T_PIXEL = {
+      fontPx:"'Press Start 2P',monospace",
+      fontMono:"'VT323',monospace",
+      fontCode:"'VT323',monospace",
+      radius:'0px', radiusSm:'0px', radiusXs:'0px',
+      shadow:'2px 2px 0 0 rgba(0,0,0,.5)',
+      shadowMd:'3px 3px 0 0 rgba(0,0,0,.4)',
+      pxFs:6, labelFs:5,
+      bodyLineH:1.5, msgFS:18,
+    };
+    const T_CASUAL = {
+      fontPx:"'Nunito',sans-serif",
+      fontMono:"'Nunito',sans-serif",
+      fontCode:"'JetBrains Mono',monospace",
+      radius:'16px', radiusSm:'10px', radiusXs:'6px',
+      shadow:'0 4px 16px rgba(0,0,0,.08)',
+      shadowMd:'0 6px 24px rgba(0,0,0,.1)',
+      pxFs:13, labelFs:11,
+      bodyLineH:1.7, msgFS:15,
     };
 
-    const AGENTS = {
-      task:     { id:'task',     name:'ALFRED',    fullName:'Alfred',         short:'ALFRED',   color:P.grn, dark:'#00aa2a', bg:'rgba(0,255,65,0.08)',   desc:'MISSION TRACKER // DEADLINES & TASKS',   greeting:"> ALFRED AT YOUR SERVICE\n> Your loyal task manager, Commander.\n> Add tasks, list missions, or mark objectives complete." },
-      notes:    { id:'notes',    name:'CICERO',    fullName:'Cicero',         short:'CICERO',   color:P.blu, dark:'#2266cc', bg:'rgba(68,153,255,0.08)', desc:'KNOWLEDGE BASE // NOTES & RESEARCH',     greeting:"> CICERO SPEAKS\n> Scribe of knowledge and keeper of wisdom.\n> What shall I write, record, or summarize for you?" },
-      news:     { id:'news',     name:'NAJWA',     fullName:'Najwa Shihab',   short:'NAJWA',    color:P.amb, dark:'#cc7700', bg:'rgba(255,170,0,0.08)',  desc:'NEWS FEED // 24H BRIEFINGS',             greeting:"> SELAMAT DATANG — INI NAJWA SHIHAB\n> Live intelligence feed aktif. 24 jam terakhir dipantau.\n> Tanyakan topik apapun untuk laporan terkini." },
-      coding:   { id:'coding',   name:'LINUS',     fullName:'Linus Torvalds', short:'LINUS',    color:P.prp, dark:'#8822cc', bg:'rgba(187,68,255,0.08)', desc:'CODE DOJO // PROGRAMMING TUTOR',         greeting:"> LINUS TORVALDS ONLINE\n> Talk is cheap. Show me the code.\n> What programming challenge shall we solve today?" },
-      schedule: { id:'schedule', name:'MIYAMOTO',  fullName:'Miyamoto',       short:'MIYAMOTO', color:P.cyn, dark:'#00aaaa', bg:'rgba(0,255,204,0.08)', desc:'TIME MATRIX // CALENDAR ENGINE',         greeting:"> MIYAMOTO STANDS READY\n> Discipline in time is discipline in life.\n> Calendar synced — how shall we command your schedule?" },
-      budget:   { id:'budget',   name:'MANSA',     fullName:'Mansa Musa',     short:'MANSA',    color:P.gld,       dark:'#ccaa00', bg:'rgba(255,204,0,0.08)',    desc:'FINANCE CORE // BUDGET TRACKER',         greeting:"> MANSA MUSA PRESIDES\n> Keeper of wealth and master of finance.\n> Income, expenses, balance — what shall we audit today?" },
-      research: { id:'research', name:'FERRY',     fullName:'Ferry Irwandi',  short:'FERRY',    color:'#00ddff',   dark:'#0099bb', bg:'rgba(0,221,255,0.08)',    desc:'DEEP RESEARCH // MULTI-SOURCE ANALYSIS', greeting:"> FERRY IRWANDI ONLINE\n> Deep research mode aktif. Semua layer pencarian siap.\n> Topik apa yang ingin kamu investigasi hari ini?" },
-      fitness:  { id:'fitness',  name:'LAVOISER',  fullName:'Lavoiser',       short:'LAVOISER', color:P.red,       dark:'#cc1133', bg:'rgba(255,34,68,0.08)',    desc:'FITNESS CORE // WIKI + LEAN GAIN',       greeting:"> LAVOISER AKTIF\n> Wiki pribadi kamu siap di-scan. Profil: 21 th · lean gain · aktif.\n> Tanya tentang workout, nutrisi, atau buka wiki fitness kamu." },
-    };
-    const AGENT_ORDER = ['task','notes','news','coding','schedule','budget','research','fitness'];
+    // ── Sprite pixel art (uses concrete colors, separate per theme) ──────────────
+    function getSP(C) {
+      return {
+        task:[
+          [3,2,C.grn],[4,2,C.grn],[5,2,C.grn],[6,2,C.grn],[7,2,C.grn],[8,2,C.grn],[9,2,C.grn],[10,2,C.grn],[11,2,C.grn],
+          [3,3,C.grn],[11,3,C.grn],
+          [3,4,C.grn],[9,4,'#00cc33'],[10,4,'#00cc33'],[11,4,C.grn],
+          [3,5,C.grn],[8,5,'#00cc33'],[11,5,C.grn],
+          [3,6,C.grn],[5,6,'#00cc33'],[7,6,'#00cc33'],[11,6,C.grn],
+          [3,7,C.grn],[6,7,'#00cc33'],[11,7,C.grn],
+          [3,8,C.grn],[5,8,C.t1],[6,8,C.t1],[7,8,C.t1],[8,8,C.t1],[11,8,C.grn],
+          [3,9,C.grn],[5,9,C.t1],[11,9,C.grn],
+          [3,10,C.grn],[5,10,C.t1],[6,10,C.t1],[7,10,C.t1],[11,10,C.grn],
+          [3,11,C.grn],[11,11,C.grn],
+          [3,12,C.grn],[4,12,C.grn],[5,12,C.grn],[6,12,C.grn],[7,12,C.grn],[8,12,C.grn],[9,12,C.grn],[10,12,C.grn],[11,12,C.grn],
+        ],
+        notes:[
+          [2,2,C.blu],[3,2,C.blu],[4,2,C.blu],[5,2,C.blu],[6,2,C.blu],[7,2,C.blu],[8,2,C.blu],[9,2,C.blu],
+          [2,3,C.blu],[9,3,C.blu],
+          [2,4,C.blu],[4,4,C.t0],[5,4,C.t0],[6,4,C.t0],[7,4,C.t0],[9,4,C.blu],
+          [2,5,C.blu],[9,5,C.blu],[12,5,C.gld],[13,5,C.gld],
+          [2,6,C.blu],[4,6,C.t0],[5,6,C.t0],[6,6,C.t0],[7,6,C.t0],[9,6,C.blu],[11,6,C.gld],[13,6,C.gld],
+          [2,7,C.blu],[9,7,C.blu],[10,7,C.gld],[13,7,C.gld],
+          [2,8,C.blu],[4,8,C.t0],[5,8,C.t0],[6,8,C.t0],[7,8,C.t0],[9,8,C.blu],[10,8,C.gld],[11,8,C.gld],
+          [2,9,C.blu],[9,9,C.blu],[11,9,C.gld],[12,9,C.gld],
+          [2,10,C.blu],[9,10,C.blu],[12,10,C.gld],[13,10,C.gld],
+          [2,11,C.blu],[9,11,C.blu],
+          [2,12,C.blu],[3,12,C.blu],[4,12,C.blu],[5,12,C.blu],[6,12,C.blu],[7,12,C.blu],[8,12,C.blu],[9,12,C.blu],
+        ],
+        news:[
+          [7,1,C.amb],[8,1,C.amb],
+          [5,2,C.amb],[6,2,C.amb],[9,2,C.amb],[10,2,C.amb],
+          [3,3,C.amb],[4,3,C.amb],[11,3,C.amb],[12,3,C.amb],
+          [2,4,C.amb],[13,4,C.amb],
+          [2,5,'#ff6600'],[7,5,C.amb],[8,5,C.amb],[13,5,'#ff6600'],
+          [3,6,'#ff6600'],[6,6,C.amb],[9,6,C.amb],[12,6,'#ff6600'],
+          [4,7,'#ff6600'],[7,7,C.t0],[8,7,C.t0],[11,7,'#ff6600'],
+          [5,8,'#ff6600'],[6,8,C.t0],[7,8,C.t0],[8,8,C.t0],[9,8,C.t0],[10,8,'#ff6600'],
+          [5,9,'#ff6600'],[6,9,C.t0],[9,9,C.t0],[10,9,'#ff6600'],
+          [6,10,'#ff6600'],[7,10,C.t0],[8,10,C.t0],[9,10,'#ff6600'],
+          [7,11,'#ff6600'],[8,11,'#ff6600'],
+          [7,12,C.t1],[8,12,C.t1],
+          [6,13,C.t1],[7,13,C.t1],[8,13,C.t1],[9,13,C.t1],
+        ],
+        coding:[
+          [5,1,C.prp],[6,1,C.prp],[7,1,C.prp],[8,1,C.prp],[9,1,C.prp],
+          [4,2,C.prp],[10,2,C.prp],
+          [4,3,C.prp],[6,3,C.cyn],[7,3,C.cyn],[10,3,C.prp],
+          [4,4,C.prp],[6,4,C.cyn],[7,4,C.cyn],[10,4,C.prp],
+          [4,5,C.prp],[10,5,C.prp],
+          [3,6,C.prp],[4,6,C.prp],[5,6,C.prp],[6,6,C.prp],[7,6,C.prp],[8,6,C.prp],[9,6,C.prp],[10,6,C.prp],[11,6,C.prp],
+          [3,7,C.prp],[5,7,C.grn],[11,7,C.prp],
+          [3,8,C.prp],[5,8,C.grn],[6,8,C.grn],[7,8,C.grn],[11,8,C.prp],
+          [3,9,C.prp],[11,9,C.prp],
+          [3,10,C.prp],[4,10,C.prp],[5,10,C.prp],[6,10,C.prp],[7,10,C.prp],[8,10,C.prp],[9,10,C.prp],[10,10,C.prp],[11,10,C.prp],
+          [5,11,C.t1],[6,11,C.t1],[9,11,C.t1],[10,11,C.t1],
+          [5,12,C.t1],[6,12,C.t1],[9,12,C.t1],[10,12,C.t1],
+          [4,13,C.t1],[5,13,C.t1],[6,13,C.t1],[9,13,C.t1],[10,13,C.t1],[11,13,C.t1],
+        ],
+        schedule:[
+          [6,1,C.cyn],[7,1,C.cyn],[8,1,C.cyn],
+          [5,2,C.cyn],[9,2,C.cyn],
+          [4,3,C.cyn],[5,3,'#00aaaa'],[6,3,C.t0],[7,3,C.t0],[8,3,C.t0],[9,3,'#00aaaa'],[10,3,C.cyn],
+          [3,4,C.cyn],[4,4,'#00aaaa'],[5,4,C.t0],[7,4,C.cyn],[10,4,'#00aaaa'],[11,4,C.cyn],
+          [3,5,C.cyn],[4,5,'#00aaaa'],[5,5,C.t0],[7,5,C.cyn],[8,5,C.cyn],[10,5,'#00aaaa'],[11,5,C.cyn],
+          [3,6,C.cyn],[4,6,'#00aaaa'],[5,6,C.t0],[6,6,C.t0],[7,6,C.t0],[8,6,C.t0],[9,6,C.t0],[10,6,'#00aaaa'],[11,6,C.cyn],
+          [3,7,C.cyn],[4,7,'#00aaaa'],[5,7,C.t0],[10,7,'#00aaaa'],[11,7,C.cyn],
+          [3,8,C.cyn],[4,8,'#00aaaa'],[5,8,C.t0],[10,8,'#00aaaa'],[11,8,C.cyn],
+          [3,9,C.cyn],[4,9,'#00aaaa'],[5,9,C.t0],[6,9,C.t0],[7,9,C.t0],[8,9,C.t0],[9,9,C.t0],[10,9,'#00aaaa'],[11,9,C.cyn],
+          [4,10,C.cyn],[5,10,'#00aaaa'],[10,10,'#00aaaa'],[11,10,C.cyn],
+          [4,11,C.cyn],[5,11,'#00aaaa'],[6,11,C.t0],[7,11,C.t0],[8,11,C.t0],[9,11,'#00aaaa'],[10,11,C.cyn],
+          [5,12,C.cyn],[9,12,C.cyn],
+          [6,13,C.cyn],[7,13,C.cyn],[8,13,C.cyn],
+        ],
+        budget:[
+          [4,2,C.gld],[5,2,C.gld],[6,2,C.gld],[7,2,C.gld],[8,2,C.gld],[9,2,C.gld],[10,2,C.gld],[11,2,C.gld],
+          [3,3,C.gld],[12,3,C.gld],
+          [3,4,C.gld],[5,4,C.amb],[6,4,C.amb],[7,4,C.amb],[8,4,C.amb],[9,4,C.amb],[10,4,C.amb],[12,4,C.gld],
+          [3,5,C.gld],[4,5,C.amb],[7,5,C.t0],[8,5,C.t0],[11,5,C.amb],[12,5,C.gld],
+          [3,6,C.gld],[4,6,C.amb],[6,6,C.t0],[7,6,C.t0],[8,6,C.t0],[9,6,C.t0],[11,6,C.amb],[12,6,C.gld],
+          [3,7,C.gld],[4,7,C.amb],[7,7,C.t0],[8,7,C.t0],[11,7,C.amb],[12,7,C.gld],
+          [3,8,C.gld],[4,8,C.amb],[5,8,C.amb],[6,8,C.amb],[7,8,C.amb],[8,8,C.amb],[9,8,C.amb],[10,8,C.amb],[11,8,C.amb],[12,8,C.gld],
+          [3,9,C.gld],[12,9,C.gld],
+          [3,10,'#cc9900'],[4,10,'#cc9900'],[5,10,'#cc9900'],[6,10,'#cc9900'],[7,10,'#cc9900'],[8,10,'#cc9900'],[9,10,'#cc9900'],[10,10,'#cc9900'],[11,10,'#cc9900'],[12,10,'#cc9900'],
+          [4,11,C.gld],[5,11,C.gld],[6,11,C.gld],[7,11,C.gld],[8,11,C.gld],[9,11,C.gld],[10,11,C.gld],[11,11,C.gld],
+        ],
+        research:[
+          [7,1,'#00ddff'],[8,1,'#00ddff'],
+          [5,2,'#00ddff'],[6,2,'#00ddff'],[9,2,'#00ddff'],[10,2,'#00ddff'],
+          [4,3,'#00ddff'],[11,3,'#00ddff'],
+          [3,4,'#00ddff'],[5,4,C.t0],[6,4,C.t0],[7,4,C.t0],[8,4,C.t0],[9,4,C.t0],[12,4,'#00ddff'],
+          [3,5,'#00ddff'],[5,5,C.t0],[12,5,'#00ddff'],
+          [3,6,'#00ddff'],[5,6,C.t0],[6,6,C.t0],[7,6,C.t0],[8,6,C.t0],[9,6,C.t0],[12,6,'#00ddff'],
+          [3,7,'#00ddff'],[5,7,C.t0],[12,7,'#00ddff'],
+          [3,8,'#00ddff'],[5,8,C.t0],[6,8,C.t0],[7,8,C.t0],[8,8,C.t0],[9,8,C.t0],[12,8,'#00ddff'],
+          [4,9,'#00ddff'],[11,9,'#00ddff'],
+          [5,10,'#00ddff'],[6,10,'#00ddff'],[9,10,'#00ddff'],[10,10,'#00ddff'],
+          [7,11,'#00ddff'],[8,11,'#00ddff'],
+          [6,12,'#0099bb'],[7,12,'#0099bb'],[8,12,'#0099bb'],[9,12,'#0099bb'],
+        ],
+        fitness:[
+          [7,1,C.red],[8,1,C.red],
+          [6,2,C.red],[7,2,C.red],[8,2,C.red],[9,2,C.red],
+          [5,3,C.red],[6,3,'#cc1133'],[9,3,'#cc1133'],[10,3,C.red],
+          [4,4,C.red],[5,4,'#cc1133'],[10,4,'#cc1133'],[11,4,C.red],
+          [4,5,C.red],[11,5,C.red],
+          [4,6,C.red],[5,6,C.red],[6,6,C.red],[7,6,C.red],[8,6,C.red],[9,6,C.red],[10,6,C.red],[11,6,C.red],
+          [3,7,C.red],[4,7,'#cc1133'],[7,7,C.t0],[8,7,C.t0],[11,7,'#cc1133'],[12,7,C.red],
+          [3,8,C.red],[12,8,C.red],
+          [3,9,C.red],[4,9,C.red],[5,9,C.red],[6,9,C.red],[7,9,C.red],[8,9,C.red],[9,9,C.red],[10,9,C.red],[11,9,C.red],[12,9,C.red],
+          [5,10,C.red],[6,10,C.red],[9,10,C.red],[10,10,C.red],
+          [5,11,'#cc1133'],[6,11,'#cc1133'],[9,11,'#cc1133'],[10,11,'#cc1133'],
+          [5,12,C.t1],[6,12,C.t1],[9,12,C.t1],[10,12,C.t1],
+        ],
+        // Journal / diary sprite — open book with quill
+        journal:[
+          [3,3,C.journal],[4,3,C.journal],[5,3,C.journal],[6,3,C.journal],[7,3,C.journal],[8,3,C.journal],[9,3,C.journal],[10,3,C.journal],[11,3,C.journal],[12,3,C.journal],
+          [3,4,C.journal],[12,4,C.journal],
+          [3,5,C.journal],[5,5,C.t0],[6,5,C.t0],[7,5,C.t0],[8,5,C.t0],[9,5,C.t0],[10,5,C.t0],[12,5,C.journal],
+          [3,6,C.journal],[12,6,C.journal],
+          [3,7,C.journal],[5,7,C.t0],[6,7,C.t0],[7,7,C.t0],[8,7,C.t0],[9,7,C.t0],[10,7,C.t0],[12,7,C.journal],
+          [3,8,C.journal],[12,8,C.journal],
+          [3,9,C.journal],[5,9,C.t0],[6,9,C.t0],[7,9,C.t0],[12,9,C.journal],
+          [3,10,C.journal],[12,10,C.journal],
+          [3,11,C.journal],[4,11,C.journal],[5,11,C.journal],[6,11,C.journal],[7,11,C.journal],[8,11,C.journal],[9,11,C.journal],[10,11,C.journal],[11,11,C.journal],[12,11,C.journal],
+          // quill
+          [13,2,C.gld],[14,2,C.gld],
+          [13,3,C.gld],[14,3,C.t0],
+          [13,4,C.gld],
+          [12,5,C.gld],
+        ],
+      };
+    }
 
-    function formatRp(n) { return 'Rp ' + Number(n).toLocaleString('id-ID'); }
+    // ── Agent definitions (accent colors adapt via C_PIXEL / C_CASUAL) ───────────
+    function getAgents(C) {
+      return {
+        task:     { id:'task',     name:'ALFRED',      fullName:'Alfred',          short:'ALFRED',      color:C.grn,     dark:'#00aa2a', bg:`rgba(0,255,65,0.08)`,    desc:'MISSION TRACKER // DEADLINES & TASKS',    greeting:"> ALFRED AT YOUR SERVICE\n> Your loyal task manager, Commander.\n> Add tasks, list missions, or mark objectives complete." },
+        notes:    { id:'notes',    name:'CICERO',      fullName:'Cicero',          short:'CICERO',      color:C.blu,     dark:'#2266cc', bg:`rgba(68,153,255,0.08)`,  desc:'KNOWLEDGE BASE // NOTES & RESEARCH',      greeting:"> CICERO SPEAKS\n> Scribe of knowledge and keeper of wisdom.\n> What shall I write, record, or summarize for you?" },
+        news:     { id:'news',     name:'NAJWA',       fullName:'Najwa Shihab',    short:'NAJWA',       color:C.amb,     dark:'#cc7700', bg:`rgba(255,170,0,0.08)`,   desc:'NEWS FEED // 24H BRIEFINGS',              greeting:"> SELAMAT DATANG — INI NAJWA SHIHAB\n> Live intelligence feed aktif. 24 jam terakhir dipantau.\n> Tanyakan topik apapun untuk laporan terkini." },
+        coding:   { id:'coding',   name:'LINUS',       fullName:'Linus Torvalds',  short:'LINUS',       color:C.prp,     dark:'#8822cc', bg:`rgba(187,68,255,0.08)`,  desc:'CODE DOJO // PROGRAMMING TUTOR',          greeting:"> LINUS TORVALDS ONLINE\n> Talk is cheap. Show me the code.\n> What programming challenge shall we solve today?" },
+        schedule: { id:'schedule', name:'MIYAMOTO',    fullName:'Miyamoto',        short:'MIYAMOTO',    color:C.cyn,     dark:'#00aaaa', bg:`rgba(0,255,204,0.08)`,   desc:'TIME MATRIX // CALENDAR ENGINE',          greeting:"> MIYAMOTO STANDS READY\n> Discipline in time is discipline in life.\n> Calendar synced — how shall we command your schedule?" },
+        budget:   { id:'budget',   name:'MANSA',       fullName:'Mansa Musa',      short:'MANSA',       color:C.gld,     dark:'#ccaa00', bg:`rgba(255,204,0,0.08)`,   desc:'FINANCE CORE // BUDGET TRACKER',          greeting:"> MANSA MUSA PRESIDES\n> Keeper of wealth and master of finance.\n> Income, expenses, balance — what shall we audit today?" },
+        research: { id:'research', name:'FERRY',       fullName:'Ferry Irwandi',   short:'FERRY',       color:'#00ddff', dark:'#0099bb', bg:`rgba(0,221,255,0.08)`,   desc:'DEEP RESEARCH // MULTI-SOURCE ANALYSIS',  greeting:"> FERRY IRWANDI ONLINE\n> Deep research mode aktif. Semua layer pencarian siap.\n> Topik apa yang ingin kamu investigasi hari ini?" },
+        fitness:  { id:'fitness',  name:'LAVOISER',    fullName:'Lavoiser',        short:'LAVOISER',    color:C.red,     dark:'#cc1133', bg:`rgba(255,34,68,0.08)`,   desc:'FITNESS CORE // WIKI + LEAN GAIN',        greeting:"> LAVOISER AKTIF\n> Wiki pribadi kamu siap di-scan. Profil: 21 th · lean gain · aktif.\n> Tanya tentang workout, nutrisi, atau buka wiki fitness kamu." },
+        journal:  { id:'journal',  name:'DOSTYEVSKY',  fullName:'Dostoyevsky',     short:'DOSTYEVSKY',  color:C.journal, dark:'#7a44aa', bg:`rgba(192,132,252,0.08)`, desc:'PERSONAL JOURNAL // MOOD & REFLECTION',   greeting:"> DOSTOYEVSKY DI SINI\n> Ruang jurnalmu yang aman. Tanpa penilaian.\n> Ceritakan apa saja — aku di sini untuk mendengarkan dan mencatatnya bersamamu." },
+      };
+    }
 
-    function renderContent(text) {
-      if (text === null || text === undefined || text === '') return null;
-      if (typeof text !== 'string') text = String(text);
-      const blocks = text.split(/(```[\s\S]*?```)/g);
-      return blocks.map((block, i) => {
-        if (!block) return null;
-        if (block.startsWith('```') && block.endsWith('```')) {
-          const inner = block.slice(3,-3).replace(/^[a-z]+\n/,'');
+    const AGENT_ORDER = ['task','notes','news','coding','schedule','budget','research','fitness','journal'];
+
+    function formatRp(n){ return 'Rp '+Number(n).toLocaleString('id-ID'); }
+
+    function renderContent(text){
+      if(text===null||text===undefined||text==='')return null;
+      if(typeof text!=='string')text=String(text);
+      const blocks=text.split(/(```[\s\S]*?```)/g);
+      return blocks.map((block,i)=>{
+        if(!block)return null;
+        if(block.startsWith('```')&&block.endsWith('```')){
+          const inner=block.slice(3,-3).replace(/^[a-z]+\n/,'');
           return <pre key={i}>{inner}</pre>;
         }
-        const lines = block.split('\n');
-        return (
+        const lines=block.split('\n');
+        return(
           <span key={i}>
-            {lines.map((line,j) => {
-              const parts = line.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
-              return (
+            {lines.map((line,j)=>{
+              const parts=line.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+              return(
                 <React.Fragment key={j}>
-                  {parts.map((p,k) => {
-                    if (p.startsWith('**') && p.endsWith('**')) return <strong key={k}>{p.slice(2,-2)}</strong>;
-                    if (p.startsWith('`') && p.endsWith('`')) return <code key={k}>{p.slice(1,-1)}</code>;
+                  {parts.map((p,k)=>{
+                    if(p.startsWith('**')&&p.endsWith('**'))return<strong key={k}>{p.slice(2,-2)}</strong>;
+                    if(p.startsWith('`')&&p.endsWith('`'))return<code key={k}>{p.slice(1,-1)}</code>;
                     return p;
                   })}
-                  {j < lines.length-1 && <br/>}
+                  {j<lines.length-1&&<br/>}
                 </React.Fragment>
               );
             })}
@@ -290,70 +435,83 @@
       });
     }
 
-    function Avatar({ id, size=32 }) {
-      const a = AGENTS[id];
-      const [imgOk, setImgOk] = useState(true);
-      useEffect(() => { setImgOk(true); }, [id]);
-      return (
-        <div style={{ width:size, height:size, flexShrink:0,
-          border:`2px solid ${a.dark}`, background:a.bg,
-          display:'flex', alignItems:'center', justifyContent:'center',
-          boxShadow:`2px 2px 0 0 rgba(0,0,0,.6), inset 0 0 8px ${a.bg}`,
-          overflow:'hidden', imageRendering:'pixelated' }}>
+    // ── Sprite component ──────────────────────────────────────────────────────────
+    const Sprite=({pixels,size=28})=>(
+      <svg width={size} height={size} viewBox="0 0 16 16"
+        style={{imageRendering:'pixelated',display:'block',flexShrink:0}}>
+        {pixels.map(([x,y,c],i)=><rect key={i} x={x} y={y} width={1} height={1} fill={c}/>)}
+      </svg>
+    );
+
+    // ── Avatar ────────────────────────────────────────────────────────────────────
+    function Avatar({id,size=32,AGENTS,SP,T}){
+      const a=AGENTS[id];
+      const [imgOk,setImgOk]=useState(true);
+      useEffect(()=>{setImgOk(true);},[id]);
+      return(
+        <div style={{width:size,height:size,flexShrink:0,
+          border:`2px solid ${a.dark}`,background:a.bg,
+          borderRadius:T.radiusSm,
+          display:'flex',alignItems:'center',justifyContent:'center',
+          boxShadow:T.shadow,
+          overflow:'hidden',imageRendering:'pixelated'}}>
           {imgOk
-            ? <img key={id} src={`/static/avatars/${id}.jpg`} alt={a.name}
-                onError={() => setImgOk(false)}
-                style={{ width:'100%', height:'100%', objectFit:'cover', display:'block',
-                  imageRendering:'auto', filter:`drop-shadow(0 0 4px ${a.dark})` }}/>
-            : <Sprite pixels={SP[id]} size={size - 8}/>
+            ?<img key={id} src={`/static/avatars/${id}.jpg`} alt={a.name}
+                onError={()=>setImgOk(false)}
+                style={{width:'100%',height:'100%',objectFit:'cover',display:'block',
+                  imageRendering:'auto',filter:`drop-shadow(0 0 4px ${a.dark})`}}/>
+            :<Sprite pixels={SP[id]} size={size-8}/>
           }
         </div>
       );
     }
 
-    function Sidebar({ active, onSelect }) {
-      return (
-        <aside style={{ width:196, minWidth:196, background:P.bg1,
-          borderRight:`2px solid ${P.bd0}`, display:'flex', flexDirection:'column',
-          boxShadow:`2px 0 0 0 ${P.bd1}` }}>
-          <div className="dither-bg" style={{ padding:'14px 12px',
-            borderBottom:`2px solid ${P.bd0}`, background:P.bg2 }}>
-            <div style={{ fontFamily:"'Press Start 2P',monospace", fontSize:9, color:P.cyn, marginBottom:5 }}>
+    // ── Sidebar ───────────────────────────────────────────────────────────────────
+    function Sidebar({active,onSelect,AGENTS,SP,T}){
+      return(
+        <aside style={{width:196,minWidth:196,background:P.bg1,
+          borderRight:`2px solid ${P.bd0}`,display:'flex',flexDirection:'column',
+          boxShadow:`2px 0 0 0 ${P.bd1}`}}>
+          <div className="dither-bg" style={{padding:'14px 12px',
+            borderBottom:`2px solid ${P.bd0}`,background:P.bg2}}>
+            <div style={{fontFamily:T.fontPx,fontSize:T.pxFs+3,color:P.cyn,marginBottom:5}}>
               ▶ CassanovaL
             </div>
-            <div style={{ fontFamily:"'Press Start 2P',monospace", fontSize:5, color:P.t2 }}>
+            <div style={{fontFamily:T.fontPx,fontSize:T.pxFs-1,color:P.t2}}>
               COMMAND CENTER v2.0
             </div>
-            <div style={{ marginTop:8, display:'flex', alignItems:'center', gap:5 }}>
-              <div className="blink" style={{ width:6, height:6, background:P.grn }}/>
-              <span style={{ fontFamily:"'Press Start 2P',monospace", fontSize:6, color:P.grn }}>SYSTEMS ONLINE</span>
+            <div style={{marginTop:8,display:'flex',alignItems:'center',gap:5}}>
+              <div className="blink" style={{width:6,height:6,background:P.grn,borderRadius:'50%'}}/>
+              <span style={{fontFamily:T.fontPx,fontSize:T.pxFs-1,color:P.grn}}>SYSTEMS ONLINE</span>
             </div>
           </div>
-          <div style={{ padding:'6px 0', flex:1, overflowY:'auto' }}>
-            <div className="px-label" style={{ padding:'8px 12px 6px', display:'block' }}>// AGENTS</div>
-            {AGENT_ORDER.map(id => {
-              const a = AGENTS[id]; const on = active === id;
-              return (
-                <button key={id} className="agent-nav-item" onClick={() => onSelect(id)}
-                  style={{ width:'100%', display:'flex', alignItems:'center', gap:8,
-                    padding:'7px 10px', border:'none', cursor:'pointer',
-                    background: on ? a.bg : 'transparent',
-                    borderLeft:`3px solid ${on ? a.color : 'transparent'}`,
-                    color: on ? a.color : P.t1 }}>
-                  <Avatar id={id} size={26}/>
+          <div style={{padding:'6px 0',flex:1,overflowY:'auto'}}>
+            <div className="px-label" style={{padding:'8px 12px 6px',display:'block'}}>// AGENTS</div>
+            {AGENT_ORDER.map(id=>{
+              const a=AGENTS[id]; const on=active===id;
+              return(
+                <button key={id} className="agent-nav-item" onClick={()=>onSelect(id)}
+                  style={{width:'100%',display:'flex',alignItems:'center',gap:8,
+                    padding:'7px 10px',border:'none',cursor:'pointer',
+                    borderRadius:T.radiusXs,
+                    background:on?a.bg:'transparent',
+                    borderLeft:`3px solid ${on?a.color:'transparent'}`,
+                    color:on?a.color:P.t1}}>
+                  <Avatar id={id} size={26} AGENTS={AGENTS} SP={SP} T={T}/>
                   <div>
-                    <div style={{ fontFamily:"'Press Start 2P',monospace", fontSize:7,
-                      color: on ? a.color : P.t1, marginBottom:2 }}>{a.short}</div>
-                    <div style={{ fontFamily:"'VT323',monospace", fontSize:14,
-                      color: on ? a.color : P.t2 }}>{a.fullName}</div>
+                    <div style={{fontFamily:T.fontPx,fontSize:T.pxFs,
+                      color:on?a.color:P.t1,marginBottom:2}}>{a.short}</div>
+                    <div style={{fontFamily:T.fontMono,fontSize:14,
+                      color:on?a.color:P.t2}}>{a.fullName}</div>
                   </div>
-                  {on && <div className="blink" style={{ marginLeft:'auto', width:5, height:5, background:a.color, flexShrink:0 }}/>}
+                  {on&&<div className="blink" style={{marginLeft:'auto',width:5,height:5,
+                    background:a.color,flexShrink:0,borderRadius:'50%'}}/>}
                 </button>
               );
             })}
           </div>
-          <div style={{ padding:'10px 12px', borderTop:`2px solid ${P.bd0}`, background:P.bg2, textAlign:'center' }}>
-            <div style={{ fontFamily:"'Press Start 2P',monospace", fontSize:5, color:P.t2, lineHeight:1.9 }}>
+          <div style={{padding:'10px 12px',borderTop:`2px solid ${P.bd0}`,background:P.bg2,textAlign:'center'}}>
+            <div style={{fontFamily:T.fontPx,fontSize:T.pxFs-1,color:P.t2,lineHeight:1.9}}>
               CREATED BY<br/>CassanovaL
             </div>
           </div>
@@ -361,50 +519,55 @@
       );
     }
 
-    function TypingIndicator({ agent:id }) {
-      const a = AGENTS[id];
-      return (
-        <div className="msg-in" style={{ display:'flex', gap:10, alignItems:'flex-start', padding:'6px 0' }}>
-          <Avatar id={id} size={32}/>
-          <div style={{ background:P.bg2, border:`2px solid ${P.bd0}`,
-            borderLeft:`3px solid ${a.dark}`, padding:'10px 14px',
-            display:'flex', gap:6, alignItems:'center', boxShadow:`2px 2px 0 0 rgba(0,0,0,.5)` }}>
-            {[0,1,2].map(i => (
-              <span key={i} className="type-dot" style={{ width:8, height:8, background:a.color,
-                display:'inline-block', boxShadow:`1px 1px 0 0 ${a.dark}` }}/>
+    // ── Typing indicator ──────────────────────────────────────────────────────────
+    function TypingIndicator({agent:id,AGENTS,SP,T}){
+      const a=AGENTS[id];
+      return(
+        <div className="msg-in" style={{display:'flex',gap:10,alignItems:'flex-start',padding:'6px 0'}}>
+          <Avatar id={id} size={32} AGENTS={AGENTS} SP={SP} T={T}/>
+          <div style={{background:P.bg2,border:`2px solid ${P.bd0}`,
+            borderLeft:`3px solid ${a.dark}`,padding:'10px 14px',
+            borderRadius:T.radius,
+            display:'flex',gap:6,alignItems:'center',boxShadow:T.shadow}}>
+            {[0,1,2].map(i=>(
+              <span key={i} className="type-dot" style={{width:8,height:8,background:a.color,
+                display:'inline-block',boxShadow:`1px 1px 0 0 ${a.dark}`,borderRadius:T.radiusXs}}/>
             ))}
           </div>
         </div>
       );
     }
 
-    function Bubble({ msg }) {
-      const isUser = msg.role === 'user';
-      const a = AGENTS[msg.agent] || AGENTS.task;
-      if (isUser) return (
-        <div className="msg-in" style={{ display:'flex', justifyContent:'flex-end', padding:'4px 0' }}>
-          <div style={{ maxWidth:'72%', background:P.bg3, border:`2px solid ${P.bd1}`,
-            borderRight:`3px solid ${P.t1}`, padding:'10px 14px',
-            fontFamily:"'VT323',monospace", fontSize:18, lineHeight:1.5, color:P.t0,
-            boxShadow:`2px 2px 0 0 rgba(0,0,0,.5)` }}>
-            <div className="px-label" style={{ marginBottom:6 }}>YOU // {msg.time}</div>
+    // ── Message bubble ────────────────────────────────────────────────────────────
+    function Bubble({msg,AGENTS,SP,T}){
+      const isUser=msg.role==='user';
+      const a=AGENTS[msg.agent]||AGENTS.task;
+      if(isUser)return(
+        <div className="msg-in" style={{display:'flex',justifyContent:'flex-end',padding:'4px 0'}}>
+          <div style={{maxWidth:'72%',background:P.bg3,border:`2px solid ${P.bd1}`,
+            borderRight:`3px solid ${P.t1}`,padding:'10px 14px',
+            borderRadius:T.radius,
+            fontFamily:T.fontMono,fontSize:T.msgFS,lineHeight:T.bodyLineH,color:P.t0,
+            boxShadow:T.shadow}}>
+            <div className="px-label" style={{marginBottom:6}}>YOU // {msg.time}</div>
             {msg.content}
           </div>
         </div>
       );
-      return (
-        <div className="msg-in" style={{ display:'flex', gap:10, alignItems:'flex-start', padding:'4px 0' }}>
-          <Avatar id={msg.agent || 'task'} size={32}/>
-          <div style={{ maxWidth:'78%' }}>
-            <div style={{ fontFamily:"'Press Start 2P',monospace", fontSize:6,
-              color:a.color, marginBottom:6, display:'flex', alignItems:'center', gap:8 }}>
+      return(
+        <div className="msg-in" style={{display:'flex',gap:10,alignItems:'flex-start',padding:'4px 0'}}>
+          <Avatar id={msg.agent||'task'} size={32} AGENTS={AGENTS} SP={SP} T={T}/>
+          <div style={{maxWidth:'78%'}}>
+            <div style={{fontFamily:T.fontPx,fontSize:T.pxFs,
+              color:a.color,marginBottom:6,display:'flex',alignItems:'center',gap:8}}>
               {a.name}
-              <span style={{ color:P.t2 }}>// {msg.time}</span>
+              <span style={{color:P.t2}}>// {msg.time}</span>
             </div>
-            <div className="msg-content" style={{ background:P.bg2, border:`2px solid ${P.bd0}`,
-              borderLeft:`3px solid ${a.dark}`, padding:'10px 14px',
-              fontFamily:"'VT323',monospace", fontSize:18, lineHeight:1.5, color:P.t0,
-              boxShadow:`2px 2px 0 0 rgba(0,0,0,.5)` }}>
+            <div className="msg-content" style={{background:P.bg2,border:`2px solid ${P.bd0}`,
+              borderLeft:`3px solid ${a.dark}`,padding:'10px 14px',
+              borderRadius:T.radius,
+              fontFamily:T.fontMono,fontSize:T.msgFS,lineHeight:T.bodyLineH,color:P.t0,
+              boxShadow:T.shadow}}>
               {renderContent(msg.content)}
             </div>
           </div>
@@ -412,49 +575,49 @@
       );
     }
 
-    function ReceiptPanel({ receipt, onConfirm, onCancel, activeAgent }) {
-      if (!receipt) return null;
-      const a = AGENTS[activeAgent];
-      const isIncome = receipt.type === 'income';
-      const typeColor = isIncome ? P.grn : P.red;
-      return (
-        <div style={{ margin:'0 16px 8px', border:`2px solid ${P.gld}`,
-          background:'rgba(255,204,0,0.06)', boxShadow:`2px 2px 0 0 rgba(0,0,0,.5)`,
-          padding:'12px 14px' }}>
-          <div style={{ fontFamily:"'Press Start 2P',monospace", fontSize:7,
-            color:P.gld, marginBottom:10, display:'flex', alignItems:'center', gap:8 }}>
+    // ── Receipt panel ─────────────────────────────────────────────────────────────
+    function ReceiptPanel({receipt,onConfirm,onCancel,T}){
+      if(!receipt)return null;
+      const isIncome=receipt.type==='income';
+      const typeColor=isIncome?P.grn:P.red;
+      return(
+        <div style={{margin:'0 16px 8px',border:`2px solid ${P.gld}`,
+          background:'rgba(255,204,0,0.06)',boxShadow:T.shadow,borderRadius:T.radius,
+          padding:'12px 14px'}}>
+          <div style={{fontFamily:T.fontPx,fontSize:T.pxFs,
+            color:P.gld,marginBottom:10,display:'flex',alignItems:'center',gap:8}}>
             <span>RECEIPT DETECTED</span>
-            <div className="blink" style={{ width:5, height:5, background:P.gld }}/>
+            <div className="blink" style={{width:5,height:5,background:P.gld,borderRadius:'50%'}}/>
           </div>
-          {receipt.imageUrl && (
+          {receipt.imageUrl&&(
             <img src={receipt.imageUrl} alt="receipt"
-              style={{ width:'100%', maxHeight:120, objectFit:'cover',
-                border:`1px solid ${P.bd1}`, marginBottom:10, imageRendering:'auto' }}/>
+              style={{width:'100%',maxHeight:120,objectFit:'cover',
+                border:`1px solid ${P.bd1}`,borderRadius:T.radiusXs,marginBottom:10,imageRendering:'auto'}}/>
           )}
-          <div style={{ display:'grid', gridTemplateColumns:'auto 1fr', gap:'5px 12px',
-            fontFamily:"'VT323',monospace", fontSize:17, marginBottom:12 }}>
-            <span style={{ color:P.t2, fontFamily:"'Press Start 2P',monospace", fontSize:6 }}>TYPE</span>
-            <span style={{ color:typeColor }}>{receipt.type.toUpperCase()}</span>
-            <span style={{ color:P.t2, fontFamily:"'Press Start 2P',monospace", fontSize:6 }}>AMOUNT</span>
-            <span style={{ color:typeColor, fontFamily:"'Press Start 2P',monospace", fontSize:9 }}>
+          <div style={{display:'grid',gridTemplateColumns:'auto 1fr',gap:'5px 12px',
+            fontFamily:T.fontMono,fontSize:17,marginBottom:12}}>
+            <span style={{color:P.t2,fontFamily:T.fontPx,fontSize:T.pxFs}}>TYPE</span>
+            <span style={{color:typeColor}}>{receipt.type.toUpperCase()}</span>
+            <span style={{color:P.t2,fontFamily:T.fontPx,fontSize:T.pxFs}}>AMOUNT</span>
+            <span style={{color:typeColor,fontFamily:T.fontPx,fontSize:T.pxFs+3}}>
               Rp {Number(receipt.amount).toLocaleString('id-ID')}
             </span>
-            <span style={{ color:P.t2, fontFamily:"'Press Start 2P',monospace", fontSize:6 }}>CATEGORY</span>
-            <span style={{ color:P.t0 }}>{receipt.category}</span>
-            <span style={{ color:P.t2, fontFamily:"'Press Start 2P',monospace", fontSize:6 }}>DESC</span>
-            <span style={{ color:P.t0 }}>{receipt.description || '-'}</span>
-            <span style={{ color:P.t2, fontFamily:"'Press Start 2P',monospace", fontSize:6 }}>DATE</span>
-            <span style={{ color:P.t1 }}>{receipt.date}</span>
+            <span style={{color:P.t2,fontFamily:T.fontPx,fontSize:T.pxFs}}>CATEGORY</span>
+            <span style={{color:P.t0}}>{receipt.category}</span>
+            <span style={{color:P.t2,fontFamily:T.fontPx,fontSize:T.pxFs}}>DESC</span>
+            <span style={{color:P.t0}}>{receipt.description||'-'}</span>
+            <span style={{color:P.t2,fontFamily:T.fontPx,fontSize:T.pxFs}}>DATE</span>
+            <span style={{color:P.t1}}>{receipt.date}</span>
           </div>
-          <div style={{ display:'flex', gap:8 }}>
+          <div style={{display:'flex',gap:8}}>
             <button onClick={onConfirm} className="px-btn"
-              style={{ flex:1, background:'rgba(0,255,65,0.1)', borderColor:P.grn,
-                color:P.grn, padding:'7px 12px' }}>
+              style={{flex:1,background:'rgba(0,255,65,0.1)',borderColor:P.grn,
+                color:P.grn,padding:'7px 12px'}}>
               ✓ CONFIRM &amp; SAVE
             </button>
             <button onClick={onCancel} className="px-btn"
-              style={{ background:'rgba(255,34,68,0.1)', borderColor:P.red,
-                color:P.red, padding:'7px 12px' }}>
+              style={{background:'rgba(255,34,68,0.1)',borderColor:P.red,
+                color:P.red,padding:'7px 12px'}}>
               ✗ CANCEL
             </button>
           </div>
@@ -462,100 +625,104 @@
       );
     }
 
-    function ChatInput({ onSend, onReceiptSelect, isLoading, activeAgent }) {
-      const [value, setValue] = useState('');
-      const textRef = useRef(null);
-      const fileRef = useRef(null);
-      const a = AGENTS[activeAgent];
-      function submit() {
-        const v = value.trim(); if (!v || isLoading) return;
-        onSend(v); setValue(''); textRef.current?.focus();
+    // ── Chat input ────────────────────────────────────────────────────────────────
+    function ChatInput({onSend,onReceiptSelect,isLoading,activeAgent,AGENTS,T}){
+      const [value,setValue]=useState('');
+      const textRef=useRef(null);
+      const fileRef=useRef(null);
+      const a=AGENTS[activeAgent];
+      function submit(){
+        const v=value.trim();if(!v||isLoading)return;
+        onSend(v);setValue('');textRef.current?.focus();
       }
-      function handleFile(e) {
-        const file = e.target.files?.[0];
-        if (file) { onReceiptSelect(file); e.target.value = ''; }
+      function handleFile(e){
+        const file=e.target.files?.[0];
+        if(file){onReceiptSelect(file);e.target.value='';}
       }
-      return (
-        <div style={{ padding:'12px 16px', borderTop:`2px solid ${P.bd0}`,
-          background:P.bg1, boxShadow:`0 -2px 0 0 ${P.bd1}` }}>
-          <div style={{ display:'flex', gap:8, alignItems:'flex-end',
-            background:P.bg0, border:`2px solid ${value ? a.dark : P.bd0}`,
+      return(
+        <div style={{padding:'12px 16px',borderTop:`2px solid ${P.bd0}`,
+          background:P.bg1,boxShadow:`0 -2px 0 0 ${P.bd1}`}}>
+          <div style={{display:'flex',gap:8,alignItems:'flex-end',
+            background:P.bg0,border:`2px solid ${value?a.dark:P.bd0}`,
+            borderRadius:T.radiusSm,
             padding:'8px 10px',
-            boxShadow: value ? `0 0 10px ${a.bg}` : 'none' }}>
-            <span style={{ fontFamily:"'Press Start 2P',monospace", fontSize:10,
-              color:a.color, flexShrink:0, paddingBottom:2 }}>{'>'}</span>
+            boxShadow:value?`0 0 12px ${a.bg}`:'none',
+            transition:'border-color .2s,box-shadow .2s'}}>
+            <span style={{fontFamily:T.fontPx,fontSize:T.pxFs+4,
+              color:a.color,flexShrink:0,paddingBottom:2}}>{'>'}</span>
             <textarea ref={textRef} value={value}
-              onChange={e => { setValue(e.target.value); e.target.style.height='auto'; e.target.style.height=Math.min(e.target.scrollHeight,120)+'px'; }}
-              onKeyDown={e => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();submit();} }}
+              onChange={e=>{setValue(e.target.value);e.target.style.height='auto';e.target.style.height=Math.min(e.target.scrollHeight,120)+'px';}}
+              onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();submit();}}}
               placeholder={`SEND COMMAND TO ${a.name}... [ENTER]`}
               disabled={isLoading}
-              style={{ flex:1, background:'transparent', border:'none', outline:'none',
-                resize:'none', color:P.t0, fontFamily:"'VT323',monospace",
-                fontSize:18, lineHeight:1.4, minHeight:24, maxHeight:120, overflow:'hidden' }}
+              style={{flex:1,background:'transparent',border:'none',outline:'none',
+                resize:'none',color:P.t0,fontFamily:T.fontMono,
+                fontSize:T.msgFS,lineHeight:1.4,minHeight:24,maxHeight:120,overflow:'hidden'}}
               rows={1}/>
-            {activeAgent === 'budget' && (
+            {activeAgent==='budget'&&(
               <>
                 <input ref={fileRef} type="file" accept="image/*" capture="environment"
-                  style={{ display:'none' }} onChange={handleFile}/>
-                <button onClick={() => fileRef.current?.click()} disabled={isLoading}
+                  style={{display:'none'}} onChange={handleFile}/>
+                <button onClick={()=>fileRef.current?.click()} disabled={isLoading}
                   className="px-btn" title="Scan receipt"
-                  style={{ background:isLoading ? P.bg3 : 'rgba(255,204,0,0.1)',
-                    borderColor:isLoading ? P.bd0 : P.gld,
-                    color:isLoading ? P.t2 : P.gld, padding:'6px 10px', fontSize:14 }}>
+                  style={{background:isLoading?P.bg3:'rgba(255,204,0,0.1)',
+                    borderColor:isLoading?P.bd0:P.gld,
+                    color:isLoading?P.t2:P.gld,padding:'6px 10px',fontSize:14}}>
                   📷
                 </button>
               </>
             )}
             <button onClick={submit} disabled={!value.trim()||isLoading} className="px-btn"
-              style={{ background: value.trim()&&!isLoading ? a.dark : P.bg3,
-                borderColor: value.trim()&&!isLoading ? a.color : P.bd0,
-                color: value.trim()&&!isLoading ? a.color : P.t2, padding:'6px 12px',
-                boxShadow: value.trim()&&!isLoading ? `2px 2px 0 0 rgba(0,0,0,.6)` : 'none' }}>
+              style={{background:value.trim()&&!isLoading?a.dark:P.bg3,
+                borderColor:value.trim()&&!isLoading?a.color:P.bd0,
+                color:value.trim()&&!isLoading?a.color:P.t2,padding:'6px 12px',
+                boxShadow:value.trim()&&!isLoading?T.shadow:'none'}}>
               SEND
             </button>
           </div>
-          <div style={{ fontFamily:"'Press Start 2P',monospace", fontSize:5, color:P.t2,
-            marginTop:6, textAlign:'center' }}>
+          <div style={{fontFamily:T.fontPx,fontSize:T.pxFs-1,color:P.t2,
+            marginTop:6,textAlign:'center'}}>
             [ENTER] SEND // [SHIFT+ENTER] NEWLINE // ROUTED TO {a.name}
-            {activeAgent === 'budget' && <span style={{ color:P.gld }}> // 📷 SCAN RECEIPT</span>}
+            {activeAgent==='budget'&&<span style={{color:P.gld}}> // 📷 SCAN RECEIPT</span>}
           </div>
         </div>
       );
     }
 
-    function TaskWidget({ data }) {
-      const { tasks=[], stats={} } = data;
-      const pending = tasks.filter(t => t.status==='pending').slice(0,6);
-      return (
+    // ── Widgets ───────────────────────────────────────────────────────────────────
+    function TaskWidget({data,T}){
+      const{tasks=[],stats={}}=data;
+      const pending=tasks.filter(t=>t.status==='pending').slice(0,6);
+      return(
         <div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:12 }}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:12}}>
             {[['TOTAL',stats.total||0,P.t1],['ACTIVE',stats.pending||0,P.amb],
               ['DONE',stats.completed||0,P.grn],['HIGH!',stats.high_priority||0,P.red]
-            ].map(([l,v,c]) => (
+            ].map(([l,v,c])=>(
               <div key={l} className="px-stat">
-                <div style={{ fontFamily:"'Press Start 2P',monospace", fontSize:14, color:c }}>{v}</div>
-                <div className="px-label" style={{ marginTop:4 }}>{l}</div>
+                <div style={{fontFamily:T.fontPx,fontSize:T.pxFs+8,color:c}}>{v}</div>
+                <div className="px-label" style={{marginTop:4}}>{l}</div>
               </div>
             ))}
           </div>
-          {pending.length > 0 ? (
+          {pending.length>0?(
             <>
-              <div className="px-label" style={{ marginBottom:8 }}>// ACTIVE QUESTS</div>
-              {pending.map(t => (
-                <div key={t.id} style={{ display:'flex', gap:8, alignItems:'flex-start',
-                  padding:'6px 0', borderBottom:`1px solid ${P.bd0}` }}>
-                  <div style={{ width:8, height:8,
-                    background: t.priority==='high' ? P.red : t.priority==='medium' ? P.amb : P.t2,
-                    marginTop:4, flexShrink:0 }}/>
-                  <div style={{ fontFamily:"'VT323',monospace", fontSize:16, color:P.t0,
-                    overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 }}>
+              <div className="px-label" style={{marginBottom:8}}>// ACTIVE QUESTS</div>
+              {pending.map(t=>(
+                <div key={t.id} style={{display:'flex',gap:8,alignItems:'flex-start',
+                  padding:'6px 0',borderBottom:`1px solid ${P.bd0}`}}>
+                  <div style={{width:8,height:8,
+                    background:t.priority==='high'?P.red:t.priority==='medium'?P.amb:P.t2,
+                    marginTop:4,flexShrink:0,borderRadius:'50%'}}/>
+                  <div style={{fontFamily:T.fontMono,fontSize:16,color:P.t0,
+                    overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>
                     {t.title}
                   </div>
                 </div>
               ))}
             </>
-          ) : (
-            <div style={{ fontFamily:"'VT323',monospace", fontSize:18, color:P.grn, textAlign:'center', padding:'16px 0' }}>
+          ):(
+            <div style={{fontFamily:T.fontMono,fontSize:18,color:P.grn,textAlign:'center',padding:'16px 0'}}>
               ALL QUESTS COMPLETE!
             </div>
           )}
@@ -563,25 +730,25 @@
       );
     }
 
-    function NotesWidget({ data }) {
-      const { notes=[], total=0 } = data;
-      return (
+    function NotesWidget({data,T}){
+      const{notes=[],total=0}=data;
+      return(
         <div>
-          <div style={{ fontFamily:"'VT323',monospace", fontSize:16, color:P.t1, marginBottom:10 }}>
+          <div style={{fontFamily:T.fontMono,fontSize:16,color:P.t1,marginBottom:10}}>
             {total} ENTRIES IN DATABASE
           </div>
-          {notes.slice(0,5).map(n => (
-            <div key={n.id} style={{ padding:'7px 0', borderBottom:`1px solid ${P.bd0}` }}>
-              <div style={{ fontFamily:"'VT323',monospace", fontSize:17, color:P.t0,
-                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginBottom:2 }}>
+          {notes.slice(0,5).map(n=>(
+            <div key={n.id} style={{padding:'7px 0',borderBottom:`1px solid ${P.bd0}`}}>
+              <div style={{fontFamily:T.fontMono,fontSize:17,color:P.t0,
+                overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:2}}>
                 {n.title}
               </div>
               <div className="px-label">{n.updated_at?.slice(0,10)}</div>
-              {n.tags?.length > 0 && (
-                <div style={{ display:'flex', gap:4, flexWrap:'wrap', marginTop:4 }}>
-                  {n.tags.slice(0,3).map(tag => (
+              {n.tags?.length>0&&(
+                <div style={{display:'flex',gap:4,flexWrap:'wrap',marginTop:4}}>
+                  {n.tags.slice(0,3).map(tag=>(
                     <span key={tag} className="px-tag"
-                      style={{ background:'rgba(68,153,255,0.1)', color:P.blu, borderColor:'#2266cc' }}>
+                      style={{background:'rgba(68,153,255,0.1)',color:P.blu,borderColor:'#2266cc'}}>
                       #{tag}
                     </span>
                   ))}
@@ -589,8 +756,8 @@
               )}
             </div>
           ))}
-          {notes.length===0 && (
-            <div style={{ fontFamily:"'VT323',monospace", fontSize:17, color:P.t2, textAlign:'center', padding:'16px 0' }}>
+          {notes.length===0&&(
+            <div style={{fontFamily:T.fontMono,fontSize:17,color:P.t2,textAlign:'center',padding:'16px 0'}}>
               NO ENTRIES YET. COMMAND ME TO CREATE ONE.
             </div>
           )}
@@ -598,47 +765,48 @@
       );
     }
 
-    function BudgetWidget({ data }) {
-      const { balance=0, monthly_income=0, monthly_expense=0, recent_transactions=[] } = data;
-      const pos = balance >= 0;
-      return (
+    function BudgetWidget({data,T}){
+      const{balance=0,monthly_income=0,monthly_expense=0,recent_transactions=[]}=data;
+      const pos=balance>=0;
+      return(
         <div>
-          <div style={{ background: pos?'rgba(0,255,65,.06)':'rgba(255,34,68,.06)',
-            border:`2px solid ${pos?'#00aa2a':P.red}`, boxShadow:`2px 2px 0 0 rgba(0,0,0,.5)`,
-            padding:'12px', marginBottom:10, textAlign:'center' }}>
-            <div className="px-label" style={{ marginBottom:5 }}>// NET BALANCE</div>
-            <div style={{ fontFamily:"'Press Start 2P',monospace", fontSize:11, color: pos?P.grn:P.red }}>
+          <div style={{background:pos?'rgba(0,255,65,.06)':'rgba(255,34,68,.06)',
+            border:`2px solid ${pos?'#00aa2a':P.red}`,boxShadow:T.shadow,
+            borderRadius:T.radius,
+            padding:'12px',marginBottom:10,textAlign:'center'}}>
+            <div className="px-label" style={{marginBottom:5}}>// NET BALANCE</div>
+            <div style={{fontFamily:T.fontPx,fontSize:T.pxFs+5,color:pos?P.grn:P.red}}>
               {formatRp(balance)}
             </div>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:10 }}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:10}}>
             <div className="px-stat">
-              <div className="px-label" style={{ marginBottom:4 }}>IN</div>
-              <div style={{ fontFamily:"'VT323',monospace", fontSize:16, color:P.grn }}>+{formatRp(monthly_income)}</div>
+              <div className="px-label" style={{marginBottom:4}}>IN</div>
+              <div style={{fontFamily:T.fontMono,fontSize:16,color:P.grn}}>+{formatRp(monthly_income)}</div>
             </div>
             <div className="px-stat">
-              <div className="px-label" style={{ marginBottom:4 }}>OUT</div>
-              <div style={{ fontFamily:"'VT323',monospace", fontSize:16, color:P.red }}>-{formatRp(monthly_expense)}</div>
+              <div className="px-label" style={{marginBottom:4}}>OUT</div>
+              <div style={{fontFamily:T.fontMono,fontSize:16,color:P.red}}>-{formatRp(monthly_expense)}</div>
             </div>
           </div>
-          {recent_transactions.length > 0 ? (
+          {recent_transactions.length>0?(
             <>
-              <div className="px-label" style={{ marginBottom:8 }}>// RECENT LEDGER</div>
-              {recent_transactions.map(t => (
-                <div key={t.id} style={{ display:'flex', justifyContent:'space-between',
-                  alignItems:'center', padding:'5px 0', borderBottom:`1px solid ${P.bd0}` }}>
+              <div className="px-label" style={{marginBottom:8}}>// RECENT LEDGER</div>
+              {recent_transactions.map(t=>(
+                <div key={t.id} style={{display:'flex',justifyContent:'space-between',
+                  alignItems:'center',padding:'5px 0',borderBottom:`1px solid ${P.bd0}`}}>
                   <div>
-                    <div style={{ fontFamily:"'VT323',monospace", fontSize:15, color:P.t0 }}>{t.description||t.category}</div>
+                    <div style={{fontFamily:T.fontMono,fontSize:15,color:P.t0}}>{t.description||t.category}</div>
                     <div className="px-label">{t.date}</div>
                   </div>
-                  <div style={{ fontFamily:"'Press Start 2P',monospace", fontSize:7, color: t.type==='income'?P.grn:P.red }}>
+                  <div style={{fontFamily:T.fontPx,fontSize:T.pxFs,color:t.type==='income'?P.grn:P.red}}>
                     {t.type==='income'?'+':'-'}{formatRp(t.amount)}
                   </div>
                 </div>
               ))}
             </>
-          ) : (
-            <div style={{ fontFamily:"'VT323',monospace", fontSize:17, color:P.t2, textAlign:'center', padding:'12px 0' }}>
+          ):(
+            <div style={{fontFamily:T.fontMono,fontSize:17,color:P.t2,textAlign:'center',padding:'12px 0'}}>
               VAULT EMPTY. NO TRANSACTIONS.
             </div>
           )}
@@ -646,18 +814,18 @@
       );
     }
 
-    function NewsWidget({ onQuickAsk }) {
-      const topics = ['Tech & AI','Indonesia','Business','Science','Crypto','Sports'];
-      return (
+    function NewsWidget({onQuickAsk,T}){
+      const topics=['Tech & AI','Indonesia','Business','Science','Crypto','Sports'];
+      return(
         <div>
-          <div style={{ fontFamily:"'VT323',monospace", fontSize:16, color:P.t1, marginBottom:12 }}>
+          <div style={{fontFamily:T.fontMono,fontSize:16,color:P.t1,marginBottom:12}}>
             LIVE INTEL ACTIVE. SELECT A CHANNEL:
           </div>
-          <div className="px-label" style={{ marginBottom:8 }}>// CHANNELS</div>
-          <div style={{ display:'flex', flexWrap:'wrap', gap:5 }}>
-            {topics.map(t => (
-              <button key={t} className="quick-btn" style={{ width:'auto', borderColor:P.amb, color:P.amb }}
-                onClick={() => onQuickAsk(`What's the latest news about ${t}?`)}>
+          <div className="px-label" style={{marginBottom:8}}>// CHANNELS</div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
+            {topics.map(t=>(
+              <button key={t} className="quick-btn" style={{width:'auto',borderColor:P.amb,color:P.amb}}
+                onClick={()=>onQuickAsk(`What's the latest news about ${t}?`)}>
                 {t}
               </button>
             ))}
@@ -666,8 +834,8 @@
       );
     }
 
-    function CodingWidget({ onQuickAsk }) {
-      const topics = [
+    function CodingWidget({onQuickAsk,T}){
+      const topics=[
         {label:'Python basics',q:'Teach me Python basics'},
         {label:'JavaScript async',q:'Explain async/await in JavaScript'},
         {label:'React hooks',q:'How do React hooks work?'},
@@ -675,16 +843,16 @@
         {label:'Git workflow',q:'Explain the Git workflow'},
         {label:'REST APIs',q:'How do I build a REST API?'},
       ];
-      return (
+      return(
         <div>
-          <div style={{ fontFamily:"'VT323',monospace", fontSize:16, color:P.t1, marginBottom:12 }}>
+          <div style={{fontFamily:T.fontMono,fontSize:16,color:P.t1,marginBottom:12}}>
             SELECT TRAINING MODULE:
           </div>
-          <div className="px-label" style={{ marginBottom:8 }}>// CURRICULUM</div>
-          <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
-            {topics.map(t => (
-              <button key={t.label} className="quick-btn" style={{ borderColor:P.prp, color:P.prp }}
-                onClick={() => onQuickAsk(t.q)}>
+          <div className="px-label" style={{marginBottom:8}}>// CURRICULUM</div>
+          <div style={{display:'flex',flexDirection:'column',gap:5}}>
+            {topics.map(t=>(
+              <button key={t.label} className="quick-btn" style={{borderColor:P.prp,color:P.prp}}
+                onClick={()=>onQuickAsk(t.q)}>
                 {t.label}
               </button>
             ))}
@@ -693,22 +861,22 @@
       );
     }
 
-    function ScheduleWidget({ onQuickAsk }) {
-      const actions = [
-        {label:"Today's schedule", q:"What's on my schedule today?"},
-        {label:'Next 7 days', q:'Show my events for the next 7 days'},
-        {label:'Create event', q:'Help me create a new calendar event'},
+    function ScheduleWidget({onQuickAsk,T}){
+      const actions=[
+        {label:"Today's schedule",q:"What's on my schedule today?"},
+        {label:'Next 7 days',q:'Show my events for the next 7 days'},
+        {label:'Create event',q:'Help me create a new calendar event'},
       ];
-      return (
+      return(
         <div>
-          <div style={{ fontFamily:"'VT323',monospace", fontSize:16, color:P.t1, marginBottom:12 }}>
+          <div style={{fontFamily:T.fontMono,fontSize:16,color:P.t1,marginBottom:12}}>
             CALENDAR SYNCED.
           </div>
-          <div className="px-label" style={{ marginBottom:8 }}>// QUICK ACTIONS</div>
-          <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
-            {actions.map(a => (
-              <button key={a.label} className="quick-btn" style={{ borderColor:P.cyn, color:P.cyn }}
-                onClick={() => onQuickAsk(a.q)}>
+          <div className="px-label" style={{marginBottom:8}}>// QUICK ACTIONS</div>
+          <div style={{display:'flex',flexDirection:'column',gap:5}}>
+            {actions.map(a=>(
+              <button key={a.label} className="quick-btn" style={{borderColor:P.cyn,color:P.cyn}}
+                onClick={()=>onQuickAsk(a.q)}>
                 {a.label}
               </button>
             ))}
@@ -717,37 +885,71 @@
       );
     }
 
-    function DataPanel({ activeAgent, data, onQuickAsk, onRefresh }) {
-      const a = AGENTS[activeAgent];
-      return (
-        <aside style={{ width:244, minWidth:244, background:P.bg1,
-          borderLeft:`2px solid ${P.bd0}`, display:'flex', flexDirection:'column',
-          boxShadow:`-2px 0 0 0 ${P.bd1}` }}>
-          <div style={{ padding:'11px 14px', borderBottom:`2px solid ${P.bd0}`,
-            background:P.bg2, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+    function JournalWidget({onQuickAsk,T}){
+      const prompts=[
+        {label:'Apa yang aku rasakan hari ini?',q:'Aku ingin merefleksikan perasaanku hari ini'},
+        {label:'Tulis rasa syukur hari ini',q:'Bantu aku nulis gratitude hari ini'},
+        {label:'Lihat jurnal terbaru',q:'Tampilkan jurnal aku minggu ini'},
+        {label:'Cek riwayat mood',q:'Bagaimana pola mood aku belakangan ini?'},
+        {label:'Refleksi bebas',q:'Aku mau nulis jurnal bebas sekarang'},
+      ];
+      return(
+        <div>
+          <div style={{fontFamily:T.fontMono,fontSize:16,color:P.t1,marginBottom:6,lineHeight:1.6}}>
+            Ruang amanmu. Ceritakan apa saja.
+          </div>
+          <div style={{fontFamily:T.fontPx,fontSize:T.pxFs,color:P.journal,
+            marginBottom:10,opacity:.8}}>
+            💜 DOSTOYEVSKY SIAP MENDENGARKAN
+          </div>
+          <div className="px-label" style={{marginBottom:8}}>// MULAI DARI SINI</div>
+          <div style={{display:'flex',flexDirection:'column',gap:5}}>
+            {prompts.map(p=>(
+              <button key={p.label} className="quick-btn"
+                style={{borderColor:P.journal,color:P.journal}}
+                onClick={()=>onQuickAsk(p.q)}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // ── Data panel ────────────────────────────────────────────────────────────────
+    function DataPanel({activeAgent,data,onQuickAsk,onRefresh,AGENTS,T}){
+      const a=AGENTS[activeAgent];
+      return(
+        <aside style={{width:244,minWidth:244,background:P.bg1,
+          borderLeft:`2px solid ${P.bd0}`,display:'flex',flexDirection:'column',
+          boxShadow:`-2px 0 0 0 ${P.bd1}`}}>
+          <div style={{padding:'11px 14px',borderBottom:`2px solid ${P.bd0}`,
+            background:P.bg2,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
             <div>
-              <div style={{ fontFamily:"'Press Start 2P',monospace", fontSize:8, color:a.color, marginBottom:3 }}>{a.name}</div>
+              <div style={{fontFamily:T.fontPx,fontSize:T.pxFs+2,color:a.color,marginBottom:3}}>{a.name}</div>
               <div className="px-label">PANEL DATA</div>
             </div>
             <button onClick={onRefresh} className="px-btn" title="Refresh"
-              style={{ background:P.bg3, borderColor:P.bd1, color:P.t1, padding:'5px 8px' }}>
+              style={{background:P.bg3,borderColor:P.bd1,color:P.t1,padding:'5px 8px'}}>
               ↺
             </button>
           </div>
-          <div style={{ padding:'12px 14px', flex:1, overflowY:'auto' }}>
-            {activeAgent==='task'     && <TaskWidget data={data.tasks||{}}/>}
-            {activeAgent==='notes'    && <NotesWidget data={data.notes||{}}/>}
-            {activeAgent==='budget'   && <BudgetWidget data={data.budget||{}}/>}
-            {activeAgent==='news'     && <NewsWidget onQuickAsk={onQuickAsk}/>}
-            {activeAgent==='coding'   && <CodingWidget onQuickAsk={onQuickAsk}/>}
-            {activeAgent==='schedule' && <ScheduleWidget onQuickAsk={onQuickAsk}/>}
+          <div style={{padding:'12px 14px',flex:1,overflowY:'auto'}}>
+            {activeAgent==='task'     &&<TaskWidget    data={data.tasks||{}}     T={T}/>}
+            {activeAgent==='notes'    &&<NotesWidget   data={data.notes||{}}     T={T}/>}
+            {activeAgent==='budget'   &&<BudgetWidget  data={data.budget||{}}    T={T}/>}
+            {activeAgent==='news'     &&<NewsWidget     onQuickAsk={onQuickAsk}  T={T}/>}
+            {activeAgent==='coding'   &&<CodingWidget   onQuickAsk={onQuickAsk}  T={T}/>}
+            {activeAgent==='schedule' &&<ScheduleWidget onQuickAsk={onQuickAsk}  T={T}/>}
+            {activeAgent==='journal'  &&<JournalWidget  onQuickAsk={onQuickAsk}  T={T}/>}
           </div>
-          <div style={{ padding:'8px 14px', borderTop:`2px solid ${P.bd0}`, background:P.bg2 }}>
-            <div style={{ display:'flex', gap:4, justifyContent:'center' }}>
-              {AGENT_ORDER.map(id => (
-                <div key={id} style={{ width:8, height:8,
-                  background: activeAgent===id ? AGENTS[id].color : P.bd0,
-                  boxShadow: activeAgent===id ? `0 0 6px ${AGENTS[id].color}` : 'none' }}/>
+          <div style={{padding:'8px 14px',borderTop:`2px solid ${P.bd0}`,background:P.bg2}}>
+            <div style={{display:'flex',gap:4,justifyContent:'center',flexWrap:'wrap'}}>
+              {AGENT_ORDER.map(id=>(
+                <div key={id} style={{width:8,height:8,
+                  background:activeAgent===id?AGENTS[id].color:P.bd0,
+                  borderRadius:'50%',
+                  boxShadow:activeAgent===id?`0 0 6px ${AGENTS[id].color}`:'none'}}/>
               ))}
             </div>
           </div>
@@ -755,227 +957,264 @@
       );
     }
 
-    function todayISO() { return new Date().toISOString().slice(0,10); }
+    // ── Helpers ───────────────────────────────────────────────────────────────────
+    function todayISO(){return new Date().toISOString().slice(0,10);}
 
-    function groupByDate(msgs) {
-      const groups = [];
-      for (const msg of msgs) {
-        const d = msg.date || todayISO();
-        if (!groups.length || groups[groups.length-1].date !== d) {
-          groups.push({ date: d, msgs: [msg] });
-        } else {
+    function groupByDate(msgs){
+      const groups=[];
+      for(const msg of msgs){
+        const d=msg.date||todayISO();
+        if(!groups.length||groups[groups.length-1].date!==d){
+          groups.push({date:d,msgs:[msg]});
+        }else{
           groups[groups.length-1].msgs.push(msg);
         }
       }
       return groups;
     }
 
-    function formatDateLabel(iso) {
-      const today = todayISO();
-      const yesterday = new Date(Date.now()-86400000).toISOString().slice(0,10);
-      if (iso === today) return 'HARI INI';
-      if (iso === yesterday) return 'KEMARIN';
-      const d = new Date(iso + 'T00:00:00');
+    function formatDateLabel(iso){
+      const today=todayISO();
+      const yesterday=new Date(Date.now()-86400000).toISOString().slice(0,10);
+      if(iso===today)return'HARI INI';
+      if(iso===yesterday)return'KEMARIN';
+      const d=new Date(iso+'T00:00:00');
       return d.toLocaleDateString('id-ID',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
     }
 
-    function App() {
-      const [activeAgent, setActiveAgent] = useState('task');
-      const [messagesByAgent, setMessagesByAgent] = useState(() => {
-        const init = {};
-        AGENT_ORDER.forEach(id => {
-          init[id] = [{
-            id: Date.now()+id, role:'agent', agent:id,
-            content: AGENTS[id].greeting,
-            time: new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}),
-            date: todayISO(),
+    // ── Theme toggle button (rendered via portal → always on top, never clipped) ──
+    function ThemeToggle({theme,onToggle}){
+      const btn=(
+        <button
+          className="theme-toggle"
+          onClick={onToggle}
+          title={theme==='pixel'?'Switch to Casual theme 🌸':'Switch to Pixel theme 👾'}
+        >
+          {theme==='pixel'?'🌸':'👾'}
+        </button>
+      );
+      // Portal renders directly into document.body — escapes every overflow:hidden
+      return ReactDOM.createPortal(btn, document.body);
+    }
+
+    // ── App ───────────────────────────────────────────────────────────────────────
+    function App(){
+      const [theme,setTheme]=useState(()=>localStorage.getItem('cassanoval-theme')||'pixel');
+      const [activeAgent,setActiveAgent]=useState('task');
+      const T=theme==='pixel'?T_PIXEL:T_CASUAL;
+      const C=theme==='pixel'?C_PIXEL:C_CASUAL;
+      const AGENTS=getAgents(C);
+      const SP=getSP(C);
+
+      // Apply theme class to <html>
+      useEffect(()=>{
+        document.documentElement.className=theme==='casual'?'casual':'';
+        localStorage.setItem('cassanoval-theme',theme);
+      },[theme]);
+
+      const [messagesByAgent,setMessagesByAgent]=useState(()=>{
+        const init={};
+        AGENT_ORDER.forEach(id=>{
+          const agents=getAgents(C_PIXEL);
+          init[id]=[{
+            id:Date.now()+id,role:'agent',agent:id,
+            content:agents[id].greeting,
+            time:new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}),
+            date:todayISO(),
           }];
         });
         return init;
       });
-      const [isLoading, setIsLoading] = useState(false);
-      const [panelData, setPanelData] = useState({tasks:{},notes:{},budget:{}});
-      const [pendingReceipt, setPendingReceipt] = useState(null);
-      const [isScanningReceipt, setIsScanningReceipt] = useState(false);
-      const bottomRef = useRef(null);
-      const messages = messagesByAgent[activeAgent] || [];
 
-      useEffect(() => { bottomRef.current?.scrollIntoView({behavior:'smooth'}); }, [messages, isLoading]);
+      const [isLoading,setIsLoading]=useState(false);
+      const [panelData,setPanelData]=useState({tasks:{},notes:{},budget:{}});
+      const [pendingReceipt,setPendingReceipt]=useState(null);
+      const [isScanningReceipt,setIsScanningReceipt]=useState(false);
+      const bottomRef=useRef(null);
+      const messages=messagesByAgent[activeAgent]||[];
 
-      const fetchPanelData = useCallback(async (agent) => {
-        try {
-          if (agent==='task') {
-            const d = await (await fetch(`${API}/api/tasks`)).json();
-            setPanelData(p => ({...p, tasks:d}));
-          } else if (agent==='notes') {
-            const d = await (await fetch(`${API}/api/notes`)).json();
-            setPanelData(p => ({...p, notes:d}));
-          } else if (agent==='budget') {
-            const d = await (await fetch(`${API}/api/budget/summary`)).json();
-            setPanelData(p => ({...p, budget:d}));
+      useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:'smooth'});},[messages,isLoading]);
+
+      const fetchPanelData=useCallback(async(agent)=>{
+        try{
+          if(agent==='task'){
+            const d=await(await fetch(`${API}/api/tasks`)).json();
+            setPanelData(p=>({...p,tasks:d}));
+          }else if(agent==='notes'){
+            const d=await(await fetch(`${API}/api/notes`)).json();
+            setPanelData(p=>({...p,notes:d}));
+          }else if(agent==='budget'){
+            const d=await(await fetch(`${API}/api/budget/summary`)).json();
+            setPanelData(p=>({...p,budget:d}));
           }
-        } catch(e) { console.error('Panel fetch failed:', e); }
-      }, []);
+        }catch(e){console.error('Panel fetch failed:',e);}
+      },[]);
 
-      useEffect(() => { fetchPanelData(activeAgent); }, [activeAgent, fetchPanelData]);
+      useEffect(()=>{fetchPanelData(activeAgent);},[activeAgent,fetchPanelData]);
 
-      async function sendMessage(text) {
-        if (isLoading) return;
-        const userMsg = { id:Date.now(), role:'user', content:text,
+      async function sendMessage(text){
+        if(isLoading)return;
+        const userMsg={id:Date.now(),role:'user',content:text,
           time:new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}),
-          date:todayISO() };
-        setMessagesByAgent(prev => ({...prev, [activeAgent]:[...(prev[activeAgent]||[]), userMsg]}));
+          date:todayISO()};
+        setMessagesByAgent(prev=>({...prev,[activeAgent]:[...(prev[activeAgent]||[]),userMsg]}));
         setIsLoading(true);
-        try {
-          const res = await fetch(`${API}/api/chat`, {
+        try{
+          const res=await fetch(`${API}/api/chat`,{
             method:'POST',
             headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({message:text, agent:activeAgent}),
+            body:JSON.stringify({message:text,agent:activeAgent}),
           });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.detail || 'Server error');
-          const agentMsg = { id:Date.now()+1, role:'agent',
-            agent:data.agent||activeAgent, content:data.response,
+          const data=await res.json();
+          if(!res.ok)throw new Error(data.detail||'Server error');
+          const agentMsg={id:Date.now()+1,role:'agent',
+            agent:data.agent||activeAgent,content:data.response,
             time:new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}),
-            date:todayISO() };
-          setMessagesByAgent(prev => ({...prev, [activeAgent]:[...(prev[activeAgent]||[]), agentMsg]}));
+            date:todayISO()};
+          setMessagesByAgent(prev=>({...prev,[activeAgent]:[...(prev[activeAgent]||[]),agentMsg]}));
           await fetchPanelData(activeAgent);
-          document.getElementById('conn-banner').style.display = 'none';
-        } catch(err) {
-          const isNet = err instanceof TypeError && err.message.toLowerCase().includes('fetch');
-          const errMsg = { id:Date.now()+1, role:'agent', agent:activeAgent,
-            content: isNet
-              ? `> NETWORK ERROR: Cannot reach backend.\n> Make sure server is running:\n>   python server.py\n> Then visit: http://localhost:8000`
-              : `> ERROR: ${err.message}`,
+          document.getElementById('conn-banner').style.display='none';
+        }catch(err){
+          const isNet=err instanceof TypeError&&err.message.toLowerCase().includes('fetch');
+          const errMsg={id:Date.now()+1,role:'agent',agent:activeAgent,
+            content:isNet
+              ?`> NETWORK ERROR: Cannot reach backend.\n> Make sure server is running:\n>   python server.py\n> Then visit: http://localhost:8000`
+              :`> ERROR: ${err.message}`,
             time:new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}),
-            date:todayISO() };
-          setMessagesByAgent(prev => ({...prev, [activeAgent]:[...(prev[activeAgent]||[]), errMsg]}));
-          document.getElementById('conn-banner').style.display = 'block';
-        } finally { setIsLoading(false); }
+            date:todayISO()};
+          setMessagesByAgent(prev=>({...prev,[activeAgent]:[...(prev[activeAgent]||[]),errMsg]}));
+          document.getElementById('conn-banner').style.display='block';
+        }finally{setIsLoading(false);}
       }
 
-      async function scanReceipt(file) {
+      async function scanReceipt(file){
         setPendingReceipt(null);
         setIsScanningReceipt(true);
-        const imageUrl = URL.createObjectURL(file);
-        const time = new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'});
-        // Show scanning message in chat
-        const scanMsg = { id: Date.now(), role:'agent', agent:'budget',
+        const imageUrl=URL.createObjectURL(file);
+        const time=new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'});
+        const scanMsg={id:Date.now(),role:'agent',agent:'budget',
           content:'> SCANNING RECEIPT...\n> Memproses gambar dengan Pixtral Vision AI...',
-          time };
-        setMessagesByAgent(prev => ({...prev, budget:[...(prev.budget||[]), scanMsg]}));
-        try {
-          const formData = new FormData();
-          formData.append('file', file);
-          const res = await fetch(`${API}/api/budget/scan-receipt`, { method:'POST', body:formData });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.detail || 'Scan failed');
-          setPendingReceipt({ ...data, imageUrl });
-          // Replace scan message with result prompt
-          const doneMsg = { id: Date.now()+1, role:'agent', agent:'budget',
+          time};
+        setMessagesByAgent(prev=>({...prev,budget:[...(prev.budget||[]),scanMsg]}));
+        try{
+          const formData=new FormData();
+          formData.append('file',file);
+          const res=await fetch(`${API}/api/budget/scan-receipt`,{method:'POST',body:formData});
+          const data=await res.json();
+          if(!res.ok)throw new Error(data.detail||'Scan failed');
+          setPendingReceipt({...data,imageUrl});
+          const doneMsg={id:Date.now()+1,role:'agent',agent:'budget',
             content:'> RECEIPT SCAN COMPLETE!\n> Periksa detail di bawah lalu klik CONFIRM untuk menyimpan.',
-            time };
-          setMessagesByAgent(prev => ({
+            time};
+          setMessagesByAgent(prev=>({
             ...prev,
-            budget: [...(prev.budget||[]).filter(m => m.id !== scanMsg.id), doneMsg]
+            budget:[...(prev.budget||[]).filter(m=>m.id!==scanMsg.id),doneMsg]
           }));
-        } catch(err) {
-          const errMsg = { id: Date.now()+1, role:'agent', agent:'budget',
+        }catch(err){
+          const errMsg={id:Date.now()+1,role:'agent',agent:'budget',
             content:`> SCAN FAILED: ${err.message}\n> Pastikan foto struk jelas dan coba lagi.`,
-            time };
-          setMessagesByAgent(prev => ({
+            time};
+          setMessagesByAgent(prev=>({
             ...prev,
-            budget: [...(prev.budget||[]).filter(m => m.id !== scanMsg.id), errMsg]
+            budget:[...(prev.budget||[]).filter(m=>m.id!==scanMsg.id),errMsg]
           }));
-        } finally { setIsScanningReceipt(false); }
+        }finally{setIsScanningReceipt(false);}
       }
 
-      function confirmReceipt() {
-        if (!pendingReceipt) return;
-        const r = pendingReceipt;
-        const msg = `Tambah ${r.type === 'income' ? 'pemasukan' : 'pengeluaran'}: ${r.amount} kategori ${r.category} deskripsi "${r.description}" tanggal ${r.date}`;
+      function confirmReceipt(){
+        if(!pendingReceipt)return;
+        const r=pendingReceipt;
+        const msg=`Tambah ${r.type==='income'?'pemasukan':'pengeluaran'}: ${r.amount} kategori ${r.category} deskripsi "${r.description}" tanggal ${r.date}`;
         setPendingReceipt(null);
         sendMessage(msg);
       }
 
-      const a = AGENTS[activeAgent];
-      return (
-        <div style={{ display:'flex', height:'100vh', overflow:'hidden', background:P.bg0 }}>
-          <Sidebar active={activeAgent} onSelect={setActiveAgent}/>
-          <div style={{ flex:1, display:'flex', flexDirection:'column', minWidth:0, overflow:'hidden' }}>
-            <div className="dither-bg" style={{ padding:'10px 16px',
-              borderBottom:`2px solid ${P.bd0}`, background:P.bg1,
-              display:'flex', alignItems:'center', gap:12, flexShrink:0,
-              boxShadow:`0 2px 0 0 ${P.bd1}` }}>
-              <Avatar id={activeAgent} size={36}/>
-              <div style={{ flex:1 }}>
-                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-                  <span style={{ fontFamily:"'Press Start 2P',monospace", fontSize:10, color:a.color }}>{a.name}</span>
-                  <div className="blink" style={{ width:6, height:6, background:P.grn }}/>
+      const a=AGENTS[activeAgent];
+      return(
+        <div style={{display:'flex',height:'100vh',overflow:'hidden',background:P.bg0}}>
+          <Sidebar active={activeAgent} onSelect={setActiveAgent} AGENTS={AGENTS} SP={SP} T={T}/>
+          <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,overflow:'hidden'}}>
+            {/* Header */}
+            <div className="dither-bg" style={{padding:'10px 16px',
+              borderBottom:`2px solid ${P.bd0}`,background:P.bg1,
+              display:'flex',alignItems:'center',gap:12,flexShrink:0,
+              boxShadow:`0 2px 0 0 ${P.bd1}`}}>
+              <Avatar id={activeAgent} size={36} AGENTS={AGENTS} SP={SP} T={T}/>
+              <div style={{flex:1}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
+                  <span style={{fontFamily:T.fontPx,fontSize:T.pxFs+4,color:a.color}}>{a.name}</span>
+                  <div className="blink" style={{width:6,height:6,background:P.grn,borderRadius:'50%'}}/>
                 </div>
-                <div style={{ fontFamily:"'Press Start 2P',monospace", fontSize:5, color:P.t2 }}>{a.desc}</div>
+                <div style={{fontFamily:T.fontPx,fontSize:T.pxFs-1,color:P.t2}}>{a.desc}</div>
               </div>
-              <div style={{ display:'flex', gap:5 }}>
-                {AGENT_ORDER.map(id => (
-                  <button key={id} onClick={() => setActiveAgent(id)} title={AGENTS[id].name}
-                    style={{ width:10, height:10, border:'none', cursor:'pointer',
-                      background: activeAgent===id ? AGENTS[id].color : P.bd0,
-                      boxShadow: activeAgent===id ? `0 0 6px ${AGENTS[id].color}` : 'none' }}/>
+              <div style={{display:'flex',gap:5,alignItems:'center'}}>
+                {AGENT_ORDER.map(id=>(
+                  <button key={id} onClick={()=>setActiveAgent(id)} title={AGENTS[id].name}
+                    style={{width:10,height:10,border:'none',cursor:'pointer',
+                      borderRadius:'50%',
+                      background:activeAgent===id?AGENTS[id].color:P.bd0,
+                      boxShadow:activeAgent===id?`0 0 6px ${AGENTS[id].color}`:'none'}}/>
                 ))}
               </div>
             </div>
-            <div style={{ flex:1, overflowY:'auto', padding:'16px', background:P.bg0 }}>
-              {groupByDate(messages).map((group, gi) => (
+
+            {/* Chat area */}
+            <div style={{flex:1,overflowY:'auto',padding:'16px',background:P.bg0}}>
+              {groupByDate(messages).map((group,gi)=>(
                 <div key={group.date}>
-                  {/* ── Date separator ── */}
-                  <div style={{ display:'flex', alignItems:'center', gap:8, margin:`${gi===0?0:18}px 0 10px` }}>
-                    <div style={{ flex:1, height:1, background:P.bd1 }}/>
-                    <span style={{ fontFamily:"'Press Start 2P',monospace", fontSize:5,
-                      color:P.t2, padding:'3px 10px',
-                      border:`1px solid ${P.bd1}`, background:P.bg0,
-                      letterSpacing:'.12em' }}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,margin:`${gi===0?0:18}px 0 10px`}}>
+                    <div style={{flex:1,height:1,background:P.bd1}}/>
+                    <span style={{fontFamily:T.fontPx,fontSize:T.pxFs-1,
+                      color:P.t2,padding:'3px 10px',
+                      border:`1px solid ${P.bd1}`,borderRadius:T.radiusSm,background:P.bg0,
+                      letterSpacing:'.1em'}}>
                       {formatDateLabel(group.date)}
                     </span>
-                    <div style={{ flex:1, height:1, background:P.bd1 }}/>
+                    <div style={{flex:1,height:1,background:P.bd1}}/>
                   </div>
-                  {/* ── Day box ── */}
                   <div style={{
                     border:`2px solid ${P.bd0}`,
                     borderTop:`3px solid ${AGENTS[activeAgent].dark}`,
                     background:P.bg1,
+                    borderRadius:T.radius,
                     padding:'10px 8px 6px',
-                    boxShadow:`3px 3px 0 0 rgba(0,0,0,.35)`,
+                    boxShadow:T.shadowMd,
                     marginBottom:4,
                   }}>
-                    {group.msgs.map(msg => <Bubble key={msg.id} msg={msg}/>)}
+                    {group.msgs.map(msg=><Bubble key={msg.id} msg={msg} AGENTS={AGENTS} SP={SP} T={T}/>)}
                   </div>
                 </div>
               ))}
-              {isLoading && <TypingIndicator agent={activeAgent}/>}
+              {isLoading&&<TypingIndicator agent={activeAgent} AGENTS={AGENTS} SP={SP} T={T}/>}
               <div ref={bottomRef}/>
             </div>
-            {activeAgent === 'budget' && pendingReceipt && (
+
+            {activeAgent==='budget'&&pendingReceipt&&(
               <ReceiptPanel
                 receipt={pendingReceipt}
                 onConfirm={confirmReceipt}
-                onCancel={() => setPendingReceipt(null)}
-                activeAgent={activeAgent}/>
+                onCancel={()=>setPendingReceipt(null)}
+                T={T}/>
             )}
             <ChatInput onSend={sendMessage} onReceiptSelect={scanReceipt}
-              isLoading={isLoading || isScanningReceipt} activeAgent={activeAgent}/>
+              isLoading={isLoading||isScanningReceipt} activeAgent={activeAgent}
+              AGENTS={AGENTS} T={T}/>
           </div>
           <DataPanel activeAgent={activeAgent} data={panelData}
-            onQuickAsk={sendMessage} onRefresh={() => fetchPanelData(activeAgent)}/>
+            onQuickAsk={sendMessage} onRefresh={()=>fetchPanelData(activeAgent)}
+            AGENTS={AGENTS} T={T}/>
+
+          <ThemeToggle theme={theme} onToggle={()=>setTheme(t=>t==='pixel'?'casual':'pixel')}/>
         </div>
       );
     }
 
-    try {
+    try{
       ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
-    } catch(e) {
-      const b = document.getElementById('err-banner');
-      b.style.display = 'block';
-      b.textContent = 'REACT RENDER ERROR: ' + e.message + '\n' + (e.stack||'');
+    }catch(e){
+      const b=document.getElementById('err-banner');
+      b.style.display='block';
+      b.textContent='REACT RENDER ERROR: '+e.message+'\n'+(e.stack||'');
     }
   </script>
 </body>
