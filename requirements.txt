@@ -13,3 +13,4 @@ google-auth-oauthlib
 fastapi
 uvicorn[standard]
 python-multipart
+discord.py>=2.3
