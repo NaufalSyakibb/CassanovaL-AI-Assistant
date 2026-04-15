@@ -21,7 +21,7 @@
       --t0:#e8e8f0;  --t1:#9090b0;  --t2:#505068;
       --grn:#00ff41; --amb:#ffaa00; --blu:#4499ff;
       --prp:#bb44ff; --cyn:#00ffcc; --gld:#ffcc00; --red:#ff2244;
-      --journal:#c084fc;
+      --journal:#c084fc; --davinci:#ff9900;
       /* layout */
       --font-px:'Press Start 2P',monospace;
       --font-mono:'VT323',monospace;
@@ -41,7 +41,7 @@
       --t0:#3d2e1e;  --t1:#7a6248;  --t2:#b09070;
       --grn:#52b04a; --amb:#e8892f; --blu:#4488cc;
       --prp:#8855bb; --cyn:#3aa898; --gld:#d4a520; --red:#d04f35;
-      --journal:#9b72cf;
+      --journal:#9b72cf; --davinci:#cc7700;
       /* layout */
       --font-px:'Nunito',sans-serif;
       --font-mono:'Nunito',sans-serif;
@@ -211,6 +211,7 @@
       grn:'var(--grn)',amb:'var(--amb)',blu:'var(--blu)',
       prp:'var(--prp)',cyn:'var(--cyn)',gld:'var(--gld)',red:'var(--red)',
       journal:'var(--journal)',
+      davinci:'var(--davinci)',
     };
 
     // ── Concrete colors (for SVG sprites + agent palette) ───────────────────────
@@ -219,14 +220,14 @@
       bd0:'#2a2a40',bd1:'#3a3a55',
       t0:'#e8e8f0',t1:'#9090b0',t2:'#505068',
       grn:'#00ff41',amb:'#ffaa00',blu:'#4499ff',
-      prp:'#bb44ff',cyn:'#00ffcc',gld:'#ffcc00',red:'#ff2244',journal:'#c084fc',
+      prp:'#bb44ff',cyn:'#00ffcc',gld:'#ffcc00',red:'#ff2244',journal:'#c084fc',davinci:'#ff9900',
     };
     const C_CASUAL = {
       bg0:'#fdf6ee',bg1:'#fff9f2',bg2:'#f5ede0',bg3:'#ede3d2',
       bd0:'#e2d4be',bd1:'#cfc0a4',
       t0:'#3d2e1e',t1:'#7a6248',t2:'#b09070',
       grn:'#52b04a',amb:'#e8892f',blu:'#4488cc',
-      prp:'#8855bb',cyn:'#3aa898',gld:'#d4a520',red:'#d04f35',journal:'#9b72cf',
+      prp:'#8855bb',cyn:'#3aa898',gld:'#d4a520',red:'#d04f35',journal:'#9b72cf',davinci:'#cc7700',
     };
 
     // ── Layout / typography tokens (updated per theme via useTheme) ──────────────
@@ -382,6 +383,22 @@
           [13,4,C.gld],
           [12,5,C.gld],
         ],
+        // Da Vinci — gear + lightbulb (inventor/creative)
+        davinci:[
+          [7,1,C.davinci],[8,1,C.davinci],
+          [6,2,C.davinci],[7,2,C.t0],[8,2,C.t0],[9,2,C.davinci],
+          [5,3,C.davinci],[6,3,C.t0],[7,3,C.davinci],[8,3,C.davinci],[9,3,C.t0],[10,3,C.davinci],
+          [5,4,C.davinci],[6,4,C.t0],[9,4,C.t0],[10,4,C.davinci],
+          [4,5,C.davinci],[5,5,C.davinci],[6,5,C.t0],[7,5,C.t0],[8,5,C.t0],[9,5,C.t0],[10,5,C.davinci],[11,5,C.davinci],
+          [4,6,C.davinci],[6,6,C.t0],[7,6,C.davinci],[8,6,C.davinci],[9,6,C.t0],[11,6,C.davinci],
+          [4,7,C.davinci],[5,7,C.davinci],[6,7,C.t0],[7,7,C.t0],[8,7,C.t0],[9,7,C.t0],[10,7,C.davinci],[11,7,C.davinci],
+          [5,8,C.davinci],[6,8,C.t0],[9,8,C.t0],[10,8,C.davinci],
+          [5,9,C.davinci],[6,9,C.t0],[7,9,C.davinci],[8,9,C.davinci],[9,9,C.t0],[10,9,C.davinci],
+          [6,10,C.davinci],[7,10,C.t0],[8,10,C.t0],[9,10,C.davinci],
+          [7,11,C.davinci],[8,11,C.davinci],
+          // center dot
+          [7,6,C.davinci],[8,6,C.davinci],
+        ],
       };
     }
 
@@ -396,11 +413,12 @@
         budget:   { id:'budget',   name:'MANSA',       fullName:'Mansa Musa',      short:'MANSA',       color:C.gld,     dark:'#ccaa00', bg:`rgba(255,204,0,0.08)`,   desc:'FINANCE CORE // BUDGET TRACKER',          greeting:"> MANSA MUSA PRESIDES\n> Keeper of wealth and master of finance.\n> Income, expenses, balance — what shall we audit today?" },
         research: { id:'research', name:'FERRY',       fullName:'Ferry Irwandi',   short:'FERRY',       color:'#00ddff', dark:'#0099bb', bg:`rgba(0,221,255,0.08)`,   desc:'DEEP RESEARCH // MULTI-SOURCE ANALYSIS',  greeting:"> FERRY IRWANDI ONLINE\n> Deep research mode aktif. Semua layer pencarian siap.\n> Topik apa yang ingin kamu investigasi hari ini?" },
         fitness:  { id:'fitness',  name:'LAVOISER',    fullName:'Lavoiser',        short:'LAVOISER',    color:C.red,     dark:'#cc1133', bg:`rgba(255,34,68,0.08)`,   desc:'FITNESS CORE // WIKI + LEAN GAIN',        greeting:"> LAVOISER AKTIF\n> Wiki pribadi kamu siap di-scan. Profil: 21 th · lean gain · aktif.\n> Tanya tentang workout, nutrisi, atau buka wiki fitness kamu." },
-        journal:  { id:'journal',  name:'DOSTYEVSKY',  fullName:'Dostoyevsky',     short:'DOSTYEVSKY',  color:C.journal, dark:'#7a44aa', bg:`rgba(192,132,252,0.08)`, desc:'PERSONAL JOURNAL // MOOD & REFLECTION',   greeting:"> DOSTOYEVSKY DI SINI\n> Ruang jurnalmu yang aman. Tanpa penilaian.\n> Ceritakan apa saja — aku di sini untuk mendengarkan dan mencatatnya bersamamu." },
+        journal:  { id:'journal',  name:'DOSTYEVSKY',  fullName:'Dostoyevsky',     short:'DOSTYEVSKY',  color:C.journal,  dark:'#7a44aa', bg:`rgba(192,132,252,0.08)`, desc:'PERSONAL JOURNAL // MOOD & REFLECTION',   greeting:"> DOSTOYEVSKY DI SINI\n> Ruang jurnalmu yang aman. Tanpa penilaian.\n> Ceritakan apa saja — aku di sini untuk mendengarkan dan mencatatnya bersamamu." },
+        davinci:  { id:'davinci',  name:'DA VINCI',    fullName:'Leonardo da Vinci', short:'DA VINCI',   color:C.davinci,  dark:'#aa5500', bg:`rgba(255,153,0,0.08)`,   desc:'IDEA LAB // BRAINSTORM & CREATIVE VAULT', greeting:"> LEONARDO DA VINCI HADIR\n> Tidak ada yang mustahil — hanya yang belum ditemukan caranya.\n> Ide apa yang ingin kita lahirkan hari ini?" },
       };
     }
 
-    const AGENT_ORDER = ['task','notes','news','coding','schedule','budget','research','fitness','journal'];
+    const AGENT_ORDER = ['task','notes','news','coding','schedule','budget','research','fitness','journal','davinci'];
 
     function formatRp(n){ return 'Rp '+Number(n).toLocaleString('id-ID'); }
 
