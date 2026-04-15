@@ -84,15 +84,15 @@ def create_clipping(url: str, title: str, body: str, tags: list[str] | None = No
 
 # Routing table: agent_name → (vault subfolder, filename prefix, display title)
 _AGENT_HISTORY_CONFIG: dict[str, tuple[str, str, str]] = {
-    "news":     ("AI Data/Najwa Agent",    "News",      "Najwa News Log"),
-    "budget":   ("AI Data/Mansa Agent",    "Financial", "Mansa Financial Log"),
-    "research": ("AI Data/Ferry Agent",    "Research",  "Ferry Research Log"),
-    "fitness":  ("AI Data/Lavoiser Agent",    "Makanan",   "Lavoiser Food & Fitness Log"),
-    "task":     ("AI Data/TaskCore Agent",   "Tasks",     "TaskCore Log"),
-    "notes":    ("AI Data/Notes Agent",      "Notes",     "Notes Log"),
-    "coding":   ("AI Data/Linus Agent",      "Code",      "Linus Code Log"),
-    "schedule": ("AI Data/CalCore Agent",    "Schedule",  "CalCore Schedule Log"),
-    "journal":  ("AI Data/Dostoyevsky Agent","Journal",   "Dostoyevsky Journal Log"),
+    "news":     ("Najwa Agent",       "News",      "Najwa News Log"),
+    "budget":   ("Mansa Agent",       "Financial", "Mansa Financial Log"),
+    "research": ("Ferry Agent",       "Research",  "Ferry Research Log"),
+    "fitness":  ("Lavoiser Agent",    "Makanan",   "Lavoiser Food & Fitness Log"),
+    "task":     ("Alfred Agent",      "Tasks",     "Alfred Task Log"),
+    "notes":    ("Cicero Agent",      "Notes",     "Cicero Notes Log"),
+    "coding":   ("Linus Agent",       "Code",      "Linus Code Log"),
+    "schedule": ("CalCore Agent",     "Schedule",  "CalCore Schedule Log"),
+    "journal":  ("Dostoyevsky Agent", "Journal",   "Dostoyevsky Journal Log"),
 }
 
 
@@ -101,10 +101,10 @@ def append_to_history(agent_name: str, user_msg: str, ai_response: str) -> None:
     Append one conversation turn to the agent's daily file in Obsidian.
 
     Agent-specific routing:
-      news     → AI Data/Najwa Agent/News_YYYY-MM-DD.md
-      budget   → AI Data/Mansa Agent/Financial_YYYY-MM-DD.md
-      research → AI Data/Ferry Agent/Research_YYYY-MM-DD.md
-      fitness  → AI Data/Lavoiser Agent/Makanan_YYYY-MM-DD.md
+      news     → Najwa Agent/News_YYYY-MM-DD.md
+      budget   → Mansa Agent/Financial_YYYY-MM-DD.md
+      research → Ferry Agent/Research_YYYY-MM-DD.md
+      fitness  → Lavoiser Agent/Makanan_YYYY-MM-DD.md
       others   → AI Chat History/YYYY-MM-DD.md
     """
     vault_path = os.getenv("OBSIDIAN_VAULT_PATH", "").strip()
@@ -119,11 +119,27 @@ def append_to_history(agent_name: str, user_msg: str, ai_response: str) -> None:
             folder, prefix, display_title = _AGENT_HISTORY_CONFIG[agent_name]
             target_dir = vault / folder
             history_file = target_dir / f"{prefix}_{today}.md"
-            header = f"# {display_title} — {today}\n\n---"
+            header = (
+                f"---\n"
+                f"date: {today}\n"
+                f"agent: {display_title.split()[0]}\n"
+                f"tags: [{agent_name}, log, ai-chat]\n"
+                f"---\n\n"
+                f"# {display_title} — {today}\n\n"
+                f"[[Home]] | [[{display_title.split()[0]} Agent]]\n\n---"
+            )
         else:
             target_dir = vault / "AI Chat History"
             history_file = target_dir / f"{today}.md"
-            header = f"# AI Chat History — {today}\n\n---"
+            header = (
+                f"---\n"
+                f"date: {today}\n"
+                f"agent: {agent_name}\n"
+                f"tags: [{agent_name}, log, ai-chat]\n"
+                f"---\n\n"
+                f"# AI Chat History — {today}\n\n"
+                f"[[Home]]\n\n---"
+            )
 
         target_dir.mkdir(parents=True, exist_ok=True)
 

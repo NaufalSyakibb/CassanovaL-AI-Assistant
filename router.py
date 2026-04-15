@@ -20,6 +20,7 @@ AGENT_REGISTRY = {
     "research": "Deep research, investigating topics, summarizing papers or articles, multi-source analysis, autonomous research reports",
     "fitness":  "Fitness, workout, gym, exercise, nutrition, protein, muscle, lean gain, diet, supplement, training program, body composition",
     "journal":  "Personal diary, daily journaling, reflection, mood tracking, gratitude writing, personal feelings, thoughts and emotions, jurnal harian, refleksi diri, perasaan, curhat, cerita pribadi",
+    "davinci":  "Creative brainstorming, out-of-the-box ideas, innovation, ideation, wild ideas, creative thinking, new concepts, invention, inspiration, ide kreatif, brainstorm, ide gila, inovasi, konsep baru, ekspansi ide",
 }
 
 CLASSIFY_PROMPT = """You are a routing assistant. Based on the user's message, decide which specialist agent should handle it.
@@ -52,6 +53,12 @@ Examples of correct routing:
 - "mau refleksi diri sebentar" → journal
 - "ceritain perasaanku hari ini" → journal
 - "lihat jurnal aku minggu lalu" → journal
+- "aku punya ide gila tentang aplikasi baru" → davinci
+- "brainstorm ide untuk startup" → davinci
+- "bantu aku kembangkan ide ini" → davinci
+- "ide out of the box untuk konten" → davinci
+- "lihat semua ide yang sudah aku simpan" → davinci
+- "ekspansi ide tentang machine learning" → davinci
 
 Reply with ONLY the agent name (one word, lowercase). Choose the most relevant one.
 If the message is ambiguous or a general greeting, choose 'task' as default.
@@ -104,6 +111,9 @@ class SupervisorRouter:
             elif name == "journal":
                 from agents.dostyevsky_agent import create_dostyevsky_agent
                 self._agents[name] = create_dostyevsky_agent()
+            elif name == "davinci":
+                from agents.davinci_agent import create_davinci_agent
+                self._agents[name] = create_davinci_agent()
         return self._agents[name]
 
     @staticmethod

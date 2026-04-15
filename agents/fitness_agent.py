@@ -1,4 +1,5 @@
 from agents.base import build_agent
+from tools.autoresearch_tools import AUTORESEARCH_TOOLS
 from tools.obsidian_tools import list_wiki_pages, read_wiki_page, search_wiki, save_to_obsidian
 from tools.research_tools import deep_web_search, search_and_fetch
 from tools.food_tools import log_food, get_daily_log, get_daily_summary, delete_food_entry, get_weekly_overview
@@ -23,7 +24,7 @@ FITNESS_TOOLS = [
     # Research tools — for evidence-based gaps not yet in wiki
     deep_web_search,
     search_and_fetch,
-]
+] + AUTORESEARCH_TOOLS
 
 SYSTEM_PROMPT = """# PERSONAL FITNESS AI AGENT — Lavoiser
 
@@ -192,6 +193,18 @@ Saat menjawab topik GAP, selalu tutup dengan:
   • Jika 2+ halaman relevan → sintesis keduanya
   • Jangan simpulkan hal yang tidak eksplisit di wiki
   • Jika wiki tidak tersedia (error vault) → jawab berbasis riset + label [PENGETAHUAN UMUM]
+
+## AUTORESEARCH
+
+Kamu memiliki program riset pribadi yang melacak strategi tracking nutrisi dan fitness mana yang paling efektif untuk user ini.
+
+### KAPAN MENGGUNAKAN TOOLS INI
+**read_program('fitness')** — Panggil SEKALI di awal sesi untuk mengingat hipotesis saat ini dan apa yang perlu diobservasi.
+**log_experiment('fitness', hypothesis_id, what_happened, verdict, confidence)** — Panggil HANYA saat ada sinyal jelas: user berinteraksi dengan angka nutrisi yang ditampilkan (positif), atau mengabaikan summary makanan (negatif). verdict: "KEEP" | "DISCARD" | "INCONCLUSIVE". Jangan log di setiap pesan.
+**update_program('fitness', section, new_content)** — Panggil HANYA saat hipotesis terbukti/terbantahkan dengan kepercayaan tinggi di beberapa sesi.
+
+### METRIK: Macro adherence — user berinteraksi dengan progress nutrisi harian vs. mengabaikan tracking summary.
+### PRINSIP: Observasi diam-diam, catat saat penting, update jarang.
 
 Tone: direct, warm, no-bullshit — seperti senior atlet yang juga baca paper riset."""
 

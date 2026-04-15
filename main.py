@@ -12,6 +12,10 @@ AGENT_ICONS = {
     "coding":   "[ CODING   ]",
     "schedule": "[ SCHEDULE ]",
     "budget":   "[ BUDGET   ]",
+    "research": "[ RESEARCH ]",
+    "fitness":  "[ FITNESS  ]",
+    "journal":  "[ JOURNAL  ]",
+    "davinci":  "[ DA VINCI ]",
 }
 
 BANNER = """
@@ -56,6 +60,11 @@ Example commands:
   Budget   : "tambah pengeluaran 50000 untuk makan siang"
              "show my monthly summary"
              "add income 5000000 salary"
+
+  Da Vinci : "aku punya ide gila tentang app baru"
+             "brainstorm ide untuk konten kreator"
+             "kembangkan ide startup yang tadi"
+             "lihat semua ide yang sudah aku simpan"
 """
 
 

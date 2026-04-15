@@ -30,7 +30,7 @@ def _save(data: list):
 
 
 def _mirror(transactions: list) -> None:
-    """Mirror monthly budget to Obsidian AI Data/Budget/YYYY-MM.md"""
+    """Mirror monthly budget to Obsidian AI Data/Mansa Agent/Budget_YYYY-MM.md"""
     # Group by month
     months: dict[str, list] = {}
     for t in transactions:
@@ -53,6 +53,8 @@ def _mirror(transactions: list) -> None:
             f"expenses: {total_ex:.0f}",
             f"net: {net:.0f}",
             f"updated: {updated}",
+            "tags: [budget, mansa, finance]",
+            "agent: Mansa",
             "---",
             "",
             f"# Budget — {month}",
@@ -80,7 +82,8 @@ def _mirror(transactions: list) -> None:
             f"|-----------|-------------|-----|",
             f"| +Rp {total_in:,.0f} | -Rp {total_ex:,.0f} | {'🟢' if net >= 0 else '🔴'} Rp {net:+,.0f} |",
         ]
-        mirror_to_obsidian("AI Data/Budget", f"{month}.md", "\n".join(lines))
+        lines.append("\n\n---\n[[Home]] | [[Mansa Agent]]")
+        mirror_to_obsidian("Mansa Agent", f"Budget_{month}.md", "\n".join(lines))
 
 
 @tool

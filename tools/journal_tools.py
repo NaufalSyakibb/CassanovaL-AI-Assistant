@@ -9,7 +9,7 @@ from pathlib import Path
 from datetime import datetime
 from langchain.tools import tool
 
-JOURNAL_FOLDER = "AI Data/Dostoyevsky Agent"
+JOURNAL_FOLDER = "Dostoyevsky Agent"
 
 
 def _vault() -> Path:

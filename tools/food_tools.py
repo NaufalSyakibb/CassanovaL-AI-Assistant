@@ -35,7 +35,7 @@ def _save(data: dict):
 
 
 def _mirror(data: dict) -> None:
-    """Mirror each day's food log to Obsidian AI Data/Food Log/YYYY-MM-DD.md"""
+    """Mirror each day's food log to Obsidian AI Data/Lavoiser Agent/FoodSummary_YYYY-MM-DD.md"""
     for day, entries in data.items():
         if not entries:
             continue
@@ -53,9 +53,11 @@ def _mirror(data: dict) -> None:
             f"carbs_g: {round(total_carb, 1)}",
             f"fiber_g: {round(total_fib, 1)}",
             f"fat_g: {round(total_fat, 1)}",
+            "tags: [food, nutrition, lavoiser, fitness]",
+            "agent: Lavoiser",
             "---",
             "",
-            f"# Food Log — {day}",
+            f"# Lavoiser Food Summary — {day}",
             "",
         ]
 
@@ -84,7 +86,8 @@ def _mirror(data: dict) -> None:
             "|---------|-------|-------|-------|--------|",
             f"| {round(total_pro,1)}g | {round(total_carb,1)}g | {round(total_fib,1)}g | {round(total_fat,1)}g | {round(total_cal)} kkal |",
         ]
-        mirror_to_obsidian("AI Data/Food Log", f"{day}.md", "\n".join(lines))
+        lines.append("\n\n---\n[[Home]] | [[Lavoiser Agent]]")
+        mirror_to_obsidian("Lavoiser Agent", f"FoodSummary_{day}.md", "\n".join(lines))
 
 
 def _today() -> str:

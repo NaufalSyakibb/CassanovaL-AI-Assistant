@@ -63,7 +63,7 @@ def _mirror(tasks: list) -> None:
         for t in completed[-10:]:  # last 10 only
             lines.append(f"- [x] {t['title']} `{t['id']}`")
 
-    mirror_to_obsidian("AI Data/Tasks", "Active Tasks.md", "\n".join(lines))
+    mirror_to_obsidian("Alfred Agent", "Active Tasks.md", "\n".join(lines))
 
 
 @tool
