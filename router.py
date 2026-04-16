@@ -3,11 +3,57 @@ Supervisor router that classifies the user's intent and delegates
 to the correct specialist agent.
 """
 import os
+import time
+import logging
 from dotenv import load_dotenv
 from langchain_mistralai import ChatMistralAI
 from langchain_core.messages import HumanMessage, AIMessage
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception,
+    before_sleep_log,
+)
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
+
+
+def _is_rate_limit(exc: BaseException) -> bool:
+    """Return True for any 429 / rate-limit error so tenacity retries it."""
+    msg = str(exc).lower()
+    return "429" in msg or "rate limit" in msg or "rate_limited" in msg or "1300" in msg
+
+
+def _invoke_with_retry(agent, messages: list, recursion_limit: int) -> dict:
+    """Invoke a LangGraph agent with tenacity retry on 429 rate-limit errors."""
+    @retry(
+        retry=retry_if_exception(_is_rate_limit),
+        wait=wait_exponential(multiplier=2, min=4, max=60),
+        stop=stop_after_attempt(5),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
+        reraise=True,
+    )
+    def _call():
+        return agent.invoke({"messages": messages}, {"recursion_limit": recursion_limit})
+
+    return _call()
+
+# Max tool-call loops per agent (LangGraph default is 25 — too slow for most tasks)
+_RECURSION_LIMITS = {
+    "task":     8,
+    "notes":    8,
+    "news":     6,
+    "coding":   10,
+    "schedule": 8,
+    "budget":   8,
+    "fitness":  10,
+    "journal":  6,
+    "davinci":  8,
+}
+_DEFAULT_RECURSION = 8
 
 # Agent labels and their descriptions for the classifier
 AGENT_REGISTRY = {
@@ -17,7 +63,6 @@ AGENT_REGISTRY = {
     "coding":   "Programming help, code explanation, debugging, tutorials, tech questions",
     "schedule": "Calendar, meetings, events, appointments, schedule management",
     "budget":   "Money, expenses, income, spending, finance, budget, cashflow",
-    "research": "Deep research, investigating topics, summarizing papers or articles, multi-source analysis, autonomous research reports",
     "fitness":  "Fitness, workout, gym, exercise, nutrition, protein, muscle, lean gain, diet, supplement, training program, body composition",
     "journal":  "Personal diary, daily journaling, reflection, mood tracking, gratitude writing, personal feelings, thoughts and emotions, jurnal harian, refleksi diri, perasaan, curhat, cerita pribadi",
     "davinci":  "Creative brainstorming, out-of-the-box ideas, innovation, ideation, wild ideas, creative thinking, new concepts, invention, inspiration, ide kreatif, brainstorm, ide gila, inovasi, konsep baru, ekspansi ide",
@@ -41,8 +86,6 @@ Examples of correct routing:
 - "what did I write about machine learning?" → notes
 - "I spent 50k on food this week" → budget
 - "show me my monthly expenses" → budget
-- "research the history of quantum computing" → research
-- "deep dive into climate change solutions" → research
 - "berapa protein yang harus aku makan untuk lean gain?" → fitness
 - "workout split terbaik untuk hypertrophy?" → fitness
 - "apakah creatine bagus untuk muscle gain?" → fitness
@@ -77,9 +120,12 @@ class SupervisorRouter:
             model="mistral-small-latest",   # fast model for routing (cheaper + quicker)
             temperature=0.0,
             api_key=api_key,
+            max_retries=6,
+            timeout=30,
         )
         self._agents: dict = {}
         self._chat_histories: dict = {name: [] for name in AGENT_REGISTRY}
+
 
     def _load_agent(self, name: str):
         """Lazy-load agents on first use."""
@@ -102,9 +148,6 @@ class SupervisorRouter:
             elif name == "budget":
                 from agents.budget_agent import create_budget_agent
                 self._agents[name] = create_budget_agent()
-            elif name == "research":
-                from agents.research_agent import create_research_agent
-                self._agents[name] = create_research_agent()
             elif name == "fitness":
                 from agents.fitness_agent import create_fitness_agent
                 self._agents[name] = create_fitness_agent()
@@ -152,15 +195,16 @@ class SupervisorRouter:
         history = self._chat_histories[agent_name]
 
         messages = history + [HumanMessage(content=user_message)]
-        response = agent.invoke({"messages": messages})
+        limit = _RECURSION_LIMITS.get(agent_name, _DEFAULT_RECURSION)
+        response = _invoke_with_retry(agent, messages, limit)
 
         answer = self._extract_content(response["messages"][-1].content)
 
-        # Update this agent's chat history
+        # Update this agent's chat history (keep last 20 messages)
         history.append(HumanMessage(content=user_message))
         history.append(AIMessage(content=answer))
-        if len(history) > 30:
-            self._chat_histories[agent_name] = history[-30:]
+        if len(history) > 20:
+            self._chat_histories[agent_name] = history[-20:]
 
         # Auto-save to Obsidian history (silently skipped if vault not configured)
         try:
@@ -179,14 +223,15 @@ class SupervisorRouter:
         history = self._chat_histories[agent_name]
 
         messages = history + [HumanMessage(content=user_message)]
-        response = agent.invoke({"messages": messages})
+        limit = _RECURSION_LIMITS.get(agent_name, _DEFAULT_RECURSION)
+        response = _invoke_with_retry(agent, messages, limit)
 
         answer = self._extract_content(response["messages"][-1].content)
 
         history.append(HumanMessage(content=user_message))
         history.append(AIMessage(content=answer))
-        if len(history) > 30:
-            self._chat_histories[agent_name] = history[-30:]
+        if len(history) > 20:
+            self._chat_histories[agent_name] = history[-20:]
 
         # Auto-save to Obsidian history (silently skipped if vault not configured)
         try:

@@ -32,7 +32,8 @@ _AGENT_FOLDER_MAP: dict[str, str] = {
     "research": "Ferry Agent",
     "fitness":  "Lavoiser Agent",
     "journal":  "Dostoyevsky Agent",
-    "davinci":  "Da Vinci Agent",
+    "davinci":      "Da Vinci Agent",
+    "dataanalyst":  "DataAnalyst Agent",
 }
 
 # ── Internal helper ───────────────────────────────────────────────────────────

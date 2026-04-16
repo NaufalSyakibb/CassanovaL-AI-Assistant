@@ -6,7 +6,7 @@ from tools.obsidian_tools import mirror_to_obsidian
 
 BUDGET_FILE = "data/budget.json"
 
-EXPENSE_CATEGORIES = ["food", "transport", "shopping", "entertainment", "bills", "health", "education", "other"]
+EXPENSE_CATEGORIES = ["food", "transport", "shopping", "entertainment", "bills", "health", "education", "subscriptions", "other"]
 INCOME_CATEGORIES = ["salary", "freelance", "business", "investment", "gift", "other"]
 
 
@@ -117,7 +117,7 @@ def add_expense(amount: float, category: str = "other", description: str = "", d
     Record an expense transaction.
     Args:
         amount: Amount spent (e.g. 50000).
-        category: Expense category — 'food', 'transport', 'shopping', 'entertainment', 'bills', 'health', 'education', 'other'.
+        category: Expense category — 'food', 'transport', 'shopping', 'entertainment', 'bills', 'health', 'education', 'subscriptions', 'other'.
         description: Optional description (e.g. 'lunch at warung').
         date: Date in YYYY-MM-DD format (defaults to today).
     """

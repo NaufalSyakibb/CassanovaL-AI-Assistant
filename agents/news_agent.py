@@ -90,4 +90,4 @@ You maintain a personal research program that tracks which briefing strategies e
 Tone: professional, precise, calm."""
 
 def create_news_agent():
-    return build_agent(SYSTEM_PROMPT, NEWS_AGENT_TOOLS, temperature=0.1)
+    return build_agent(SYSTEM_PROMPT, NEWS_AGENT_TOOLS, temperature=0.1, model="mistral-small-latest", max_tokens=2048)

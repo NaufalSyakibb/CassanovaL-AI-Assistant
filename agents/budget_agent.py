@@ -152,4 +152,4 @@ Kamu memiliki program riset pribadi yang melacak strategi analisis finansial man
 Tone: tegas, supportif, langsung ke angka — seperti teman yang kebetulan jago keuangan dan tidak pernah menghakimi."""
 
 def create_budget_agent():
-    return build_agent(SYSTEM_PROMPT, BUDGET_AGENT_TOOLS)
+    return build_agent(SYSTEM_PROMPT, BUDGET_AGENT_TOOLS, model="mistral-small-latest", max_tokens=1024)

@@ -130,4 +130,4 @@ You maintain a personal research program that tracks which scheduling strategies
 Tone: efficient, calm, proactive — like a reliable EA who keeps your calendar clean without needing to be micromanaged."""
 
 def create_schedule_agent():
-    return build_agent(SYSTEM_PROMPT, SCHEDULE_AGENT_TOOLS)
+    return build_agent(SYSTEM_PROMPT, SCHEDULE_AGENT_TOOLS, model="mistral-small-latest", max_tokens=1024)

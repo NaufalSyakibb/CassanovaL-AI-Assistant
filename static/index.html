@@ -338,20 +338,6 @@
           [3,10,'#cc9900'],[4,10,'#cc9900'],[5,10,'#cc9900'],[6,10,'#cc9900'],[7,10,'#cc9900'],[8,10,'#cc9900'],[9,10,'#cc9900'],[10,10,'#cc9900'],[11,10,'#cc9900'],[12,10,'#cc9900'],
           [4,11,C.gld],[5,11,C.gld],[6,11,C.gld],[7,11,C.gld],[8,11,C.gld],[9,11,C.gld],[10,11,C.gld],[11,11,C.gld],
         ],
-        research:[
-          [7,1,'#00ddff'],[8,1,'#00ddff'],
-          [5,2,'#00ddff'],[6,2,'#00ddff'],[9,2,'#00ddff'],[10,2,'#00ddff'],
-          [4,3,'#00ddff'],[11,3,'#00ddff'],
-          [3,4,'#00ddff'],[5,4,C.t0],[6,4,C.t0],[7,4,C.t0],[8,4,C.t0],[9,4,C.t0],[12,4,'#00ddff'],
-          [3,5,'#00ddff'],[5,5,C.t0],[12,5,'#00ddff'],
-          [3,6,'#00ddff'],[5,6,C.t0],[6,6,C.t0],[7,6,C.t0],[8,6,C.t0],[9,6,C.t0],[12,6,'#00ddff'],
-          [3,7,'#00ddff'],[5,7,C.t0],[12,7,'#00ddff'],
-          [3,8,'#00ddff'],[5,8,C.t0],[6,8,C.t0],[7,8,C.t0],[8,8,C.t0],[9,8,C.t0],[12,8,'#00ddff'],
-          [4,9,'#00ddff'],[11,9,'#00ddff'],
-          [5,10,'#00ddff'],[6,10,'#00ddff'],[9,10,'#00ddff'],[10,10,'#00ddff'],
-          [7,11,'#00ddff'],[8,11,'#00ddff'],
-          [6,12,'#0099bb'],[7,12,'#0099bb'],[8,12,'#0099bb'],[9,12,'#0099bb'],
-        ],
         fitness:[
           [7,1,C.red],[8,1,C.red],
           [6,2,C.red],[7,2,C.red],[8,2,C.red],[9,2,C.red],
@@ -411,14 +397,13 @@
         coding:   { id:'coding',   name:'LINUS',       fullName:'Linus Torvalds',  short:'LINUS',       color:C.prp,     dark:'#8822cc', bg:`rgba(187,68,255,0.08)`,  desc:'CODE DOJO // PROGRAMMING TUTOR',          greeting:"> LINUS TORVALDS ONLINE\n> Talk is cheap. Show me the code.\n> What programming challenge shall we solve today?" },
         schedule: { id:'schedule', name:'MIYAMOTO',    fullName:'Miyamoto',        short:'MIYAMOTO',    color:C.cyn,     dark:'#00aaaa', bg:`rgba(0,255,204,0.08)`,   desc:'TIME MATRIX // CALENDAR ENGINE',          greeting:"> MIYAMOTO STANDS READY\n> Discipline in time is discipline in life.\n> Calendar synced — how shall we command your schedule?" },
         budget:   { id:'budget',   name:'MANSA',       fullName:'Mansa Musa',      short:'MANSA',       color:C.gld,     dark:'#ccaa00', bg:`rgba(255,204,0,0.08)`,   desc:'FINANCE CORE // BUDGET TRACKER',          greeting:"> MANSA MUSA PRESIDES\n> Keeper of wealth and master of finance.\n> Income, expenses, balance — what shall we audit today?" },
-        research: { id:'research', name:'FERRY',       fullName:'Ferry Irwandi',   short:'FERRY',       color:'#00ddff', dark:'#0099bb', bg:`rgba(0,221,255,0.08)`,   desc:'DEEP RESEARCH // MULTI-SOURCE ANALYSIS',  greeting:"> FERRY IRWANDI ONLINE\n> Deep research mode aktif. Semua layer pencarian siap.\n> Topik apa yang ingin kamu investigasi hari ini?" },
         fitness:  { id:'fitness',  name:'LAVOISER',    fullName:'Lavoiser',        short:'LAVOISER',    color:C.red,     dark:'#cc1133', bg:`rgba(255,34,68,0.08)`,   desc:'FITNESS CORE // WIKI + LEAN GAIN',        greeting:"> LAVOISER AKTIF\n> Wiki pribadi kamu siap di-scan. Profil: 21 th · lean gain · aktif.\n> Tanya tentang workout, nutrisi, atau buka wiki fitness kamu." },
         journal:  { id:'journal',  name:'DOSTYEVSKY',  fullName:'Dostoyevsky',     short:'DOSTYEVSKY',  color:C.journal,  dark:'#7a44aa', bg:`rgba(192,132,252,0.08)`, desc:'PERSONAL JOURNAL // MOOD & REFLECTION',   greeting:"> DOSTOYEVSKY DI SINI\n> Ruang jurnalmu yang aman. Tanpa penilaian.\n> Ceritakan apa saja — aku di sini untuk mendengarkan dan mencatatnya bersamamu." },
-        davinci:  { id:'davinci',  name:'DA VINCI',    fullName:'Leonardo da Vinci', short:'DA VINCI',   color:C.davinci,  dark:'#aa5500', bg:`rgba(255,153,0,0.08)`,   desc:'IDEA LAB // BRAINSTORM & CREATIVE VAULT', greeting:"> LEONARDO DA VINCI HADIR\n> Tidak ada yang mustahil — hanya yang belum ditemukan caranya.\n> Ide apa yang ingin kita lahirkan hari ini?" },
+        davinci:      { id:'davinci',      name:'DA VINCI',    fullName:'Leonardo da Vinci', short:'DA VINCI',    color:C.davinci,      dark:'#aa5500', bg:`rgba(255,153,0,0.08)`,    desc:'IDEA LAB // BRAINSTORM & CREATIVE VAULT',   greeting:"> LEONARDO DA VINCI HADIR\n> Tidak ada yang mustahil — hanya yang belum ditemukan caranya.\n> Ide apa yang ingin kita lahirkan hari ini?" },
       };
     }
 
-    const AGENT_ORDER = ['task','notes','news','coding','schedule','budget','research','fitness','journal','davinci'];
+    const AGENT_ORDER = ['task','notes','news','coding','schedule','budget','fitness','journal','davinci'];
 
     function formatRp(n){ return 'Rp '+Number(n).toLocaleString('id-ID'); }
 
@@ -953,13 +938,13 @@
             </button>
           </div>
           <div style={{padding:'12px 14px',flex:1,overflowY:'auto'}}>
-            {activeAgent==='task'     &&<TaskWidget    data={data.tasks||{}}     T={T}/>}
-            {activeAgent==='notes'    &&<NotesWidget   data={data.notes||{}}     T={T}/>}
-            {activeAgent==='budget'   &&<BudgetWidget  data={data.budget||{}}    T={T}/>}
-            {activeAgent==='news'     &&<NewsWidget     onQuickAsk={onQuickAsk}  T={T}/>}
-            {activeAgent==='coding'   &&<CodingWidget   onQuickAsk={onQuickAsk}  T={T}/>}
-            {activeAgent==='schedule' &&<ScheduleWidget onQuickAsk={onQuickAsk}  T={T}/>}
-            {activeAgent==='journal'  &&<JournalWidget  onQuickAsk={onQuickAsk}  T={T}/>}
+            {activeAgent==='task'         &&<TaskWidget    data={data.tasks||{}}     T={T}/>}
+            {activeAgent==='notes'        &&<NotesWidget   data={data.notes||{}}     T={T}/>}
+            {activeAgent==='budget'       &&<BudgetWidget  data={data.budget||{}}    T={T}/>}
+            {activeAgent==='news'         &&<NewsWidget     onQuickAsk={onQuickAsk}  T={T}/>}
+            {activeAgent==='coding'       &&<CodingWidget   onQuickAsk={onQuickAsk}  T={T}/>}
+            {activeAgent==='schedule'     &&<ScheduleWidget onQuickAsk={onQuickAsk}  T={T}/>}
+            {activeAgent==='journal'      &&<JournalWidget  onQuickAsk={onQuickAsk}  T={T}/>}
           </div>
           <div style={{padding:'8px 14px',borderTop:`2px solid ${P.bd0}`,background:P.bg2}}>
             <div style={{display:'flex',gap:4,justifyContent:'center',flexWrap:'wrap'}}>
@@ -1015,10 +1000,524 @@
       return ReactDOM.createPortal(btn, document.body);
     }
 
-    // ── App ───────────────────────────────────────────────────────────────────────
+// ── App ───────────────────────────────────────────────────────────────────────
+    // ══════════════════════════════════════════════════════════════════════════
+    //  CREW VIEW  — Mission Control for multi-agent CrewAI pipelines
+    // ══════════════════════════════════════════════════════════════════════════
+
+    const CREW_ACCENT  = '#ff6b35';   // orange — distinct from any single-agent colour
+    const CREW_PURPLE  = '#9b5de5';
+    const CREW_DARK    = '#0d0d1a';
+    const CREW_SURFACE = '#12122a';
+    const CREW_BORDER  = '#2a2a55';
+    const CREW_DIM     = '#5555aa';
+
+    // Preset topics the user can pick quickly
+    const CREW_PRESETS = [
+      'Artificial Intelligence in Healthcare',
+      'Quantum Computing breakthroughs',
+      'Blockchain & Web3 latest trends',
+      'Renewable Energy innovations',
+      'Space exploration in 2025',
+      'Cybersecurity threats & defenses',
+    ];
+
+    function CrewAgentCard({index, name, role, icon, status}){
+      const colors = {standby:CREW_DIM, running:CREW_ACCENT, done:CREW_PURPLE, error:'#ff3366'};
+      const col = colors[status] || CREW_DIM;
+      const pulse = status==='running';
+      return(
+        <div style={{
+          background: CREW_SURFACE,
+          border: `2px solid ${status==='standby'?CREW_BORDER:col}`,
+          borderRadius:8, padding:'14px 16px', minWidth:160, flex:1,
+          boxShadow: status!=='standby'?`0 0 18px ${col}33`:'none',
+          transition:'all .4s',
+          position:'relative', overflow:'hidden',
+        }}>
+          {/* glow bar top */}
+          <div style={{position:'absolute',top:0,left:0,right:0,height:3,
+            background:status==='standby'?CREW_BORDER:col,transition:'background .4s'}}/>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+            <span style={{fontSize:20}}>{icon}</span>
+            {pulse&&<div className="blink" style={{width:7,height:7,borderRadius:'50%',
+              background:CREW_ACCENT,boxShadow:`0 0 8px ${CREW_ACCENT}`}}/>}
+          </div>
+          <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:5,
+            color:col,marginBottom:4,letterSpacing:'.08em'}}>
+            AGENT {String(index+1).padStart(2,'0')}
+          </div>
+          <div style={{fontFamily:"'VT323',monospace",fontSize:18,color:'#e8e8f0',
+            marginBottom:3,lineHeight:1.2}}>{name}</div>
+          <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:4,
+            color:CREW_DIM,marginBottom:8}}>{role}</div>
+          <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:4,
+            color:col,letterSpacing:'.15em'}}>
+            [{status.toUpperCase()}]
+          </div>
+        </div>
+      );
+    }
+
+    function CrewPipeline({agentStatuses, pipelineAgents}){
+      return(
+        <div style={{display:'flex',alignItems:'center',gap:0,justifyContent:'center',
+          flexWrap:'wrap',rowGap:12}}>
+          {pipelineAgents.map((a,i)=>(
+            <React.Fragment key={a.name}>
+              <CrewAgentCard index={i} {...a} status={agentStatuses[i]||'standby'}/>
+              {i<pipelineAgents.length-1&&(
+                <div style={{display:'flex',flexDirection:'column',alignItems:'center',
+                  padding:'0 8px',flexShrink:0}}>
+                  <div style={{width:32,height:2,
+                    background: (agentStatuses[i+1]&&agentStatuses[i+1]!=='standby')?CREW_PURPLE:CREW_BORDER,
+                    transition:'background .4s'}}/>
+                  <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:4,
+                    color:CREW_DIM,marginTop:4}}>→</div>
+                </div>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+      );
+    }
+
+    function CrewLogBox({logs}){
+      const ref=React.useRef(null);
+      useEffect(()=>{if(ref.current)ref.current.scrollTop=ref.current.scrollHeight;},[logs]);
+      if(!logs||!logs.length)return null;
+      return(
+        <div ref={ref} style={{
+          background:'#080810',border:`1px solid ${CREW_BORDER}`,borderRadius:6,
+          padding:'10px 12px',maxHeight:180,overflowY:'auto',
+          fontFamily:"'VT323',monospace",fontSize:14,color:'#6666cc',
+          lineHeight:1.4,
+        }}>
+          {logs.map((l,i)=>(
+            <div key={i} style={{color: l.includes('ERROR')||l.includes('Error')?'#ff3366':
+              l.includes('Agent')||l.includes('Task')?CREW_ACCENT:'#6666cc'}}>
+              {l}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    function CrewResultBox({outputs}){
+      const [tab,setTab]=useState(Object.keys(outputs||{})[0]||'');
+      if(!outputs||!Object.keys(outputs).length)return null;
+      const tabs=Object.keys(outputs);
+      const labels={
+        'task1_research.txt':'📋 Research','task2_report.md':'📄 Report',
+        'task1_data_clean.txt':'🧹 Cleaning','task2_stats_analysis.txt':'📊 Stats',
+        'task3_visualization.txt':'🐍 Viz Summary',
+        'stats_report.md':'📊 Stats Report','visualization.py':'🐍 Viz Code',
+        'cleaned_data.csv':'✅ Cleaned Data',
+      };
+      return(
+        <div style={{background:CREW_SURFACE,border:`2px solid ${CREW_PURPLE}`,
+          borderRadius:8,overflow:'hidden'}}>
+          {/* tab bar */}
+          <div style={{display:'flex',borderBottom:`1px solid ${CREW_BORDER}`}}>
+            {tabs.map(t=>(
+              <button key={t} onClick={()=>setTab(t)}
+                style={{flex:1,padding:'8px 12px',background:tab===t?CREW_PURPLE+'22':'transparent',
+                  border:'none',cursor:'pointer',
+                  fontFamily:"'Press Start 2P',monospace",fontSize:5,
+                  color:tab===t?CREW_PURPLE:CREW_DIM,
+                  borderBottom:tab===t?`2px solid ${CREW_PURPLE}`:'2px solid transparent'}}>
+                {labels[t]||t}
+              </button>
+            ))}
+          </div>
+          {/* content */}
+          <div style={{padding:'14px',maxHeight:400,overflowY:'auto',
+            fontFamily:"'VT323',monospace",fontSize:16,color:'#d0d0f0',
+            lineHeight:1.6,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>
+            {outputs[tab]}
+          </div>
+        </div>
+      );
+    }
+
+    // ── Pipeline configs ────────────────────────────────────────────────────────
+    const RESEARCH_AGENTS=[
+      {name:'Researcher',role:'Senior Research Analyst',    icon:'🔍'},
+      {name:'Writer',    role:'Senior Content Strategist',  icon:'✍️'},
+    ];
+    const DATA_AGENTS=[
+      {name:'DataBot-Clean',role:'Data Cleaning Specialist',      icon:'🧹'},
+      {name:'DataBot-Stats',role:'Statistical Analysis Specialist',icon:'📊'},
+      {name:'DataBot-Viz',  role:'Visualization Engineer',         icon:'🐍'},
+    ];
+
+    function CrewView({T}){
+      const [crewMode,setCrewMode]=useState('research'); // 'research' | 'dataanalyst'
+
+      // ── Research state ──────────────────────────────────────────────────────
+      const [topic,setTopic]=useState('');
+
+      // ── DataAnalyst state ───────────────────────────────────────────────────
+      const [daFiles,setDaFiles]=useState([]);
+      const [daSelected,setDaSelected]=useState('');
+      const [daUploading,setDaUploading]=useState(false);
+      const [daUploadMsg,setDaUploadMsg]=useState(null);
+      const daFileRef=React.useRef(null);
+
+      // ── Shared job state ────────────────────────────────────────────────────
+      const [jobId,setJobId]=useState(null);
+      const [job,setJob]=useState(null);
+      const [polling,setPolling]=useState(false);
+
+      // Fetch available data files when switching to dataanalyst mode
+      useEffect(()=>{
+        if(crewMode==='dataanalyst'){
+          fetch(`${API}/api/dataanalyst/files`)
+            .then(r=>r.json())
+            .then(d=>{ setDaFiles(d.files||[]); if(d.files?.length) setDaSelected(d.files[0].name); })
+            .catch(()=>{});
+        }
+      },[crewMode]);
+
+      async function handleDaUpload(e){
+        const file=e.target.files?.[0];
+        if(!file)return;
+        e.target.value='';
+        setDaUploading(true);
+        setDaUploadMsg(null);
+        try{
+          const fd=new FormData();
+          fd.append('file',file);
+          const res=await fetch(`${API}/api/dataanalyst/upload`,{method:'POST',body:fd});
+          const data=await res.json();
+          if(!res.ok)throw new Error(data.detail||'Upload failed');
+          setDaUploadMsg({ok:true,msg:`${data.filename} (${data.size_kb} KB) uploaded`});
+          const r=await(await fetch(`${API}/api/dataanalyst/files`)).json();
+          setDaFiles(r.files||[]);
+          setDaSelected(data.filename);
+        }catch(err){
+          setDaUploadMsg({ok:false,msg:err.message});
+        }finally{
+          setDaUploading(false);
+        }
+      }
+
+      // Derive per-agent statuses
+      function getAgentStatuses(j){
+        const n=crewMode==='dataanalyst'?3:2;
+        const standby=Array(n).fill('standby');
+        if(!j)return standby;
+        if(j.status==='error')return['error',...Array(n-1).fill('standby')];
+        if(j.status==='done')return Array(n).fill('done');
+        const logs=j.logs||[];
+        if(crewMode==='dataanalyst'){
+          const t1=logs.some(l=>l.includes('Task 1')||l.includes('task1_data')||l.includes('clean'));
+          const t2=logs.some(l=>l.includes('Task 2')||l.includes('task2_stats')||l.includes('stats'));
+          if(t2)return['done','done','running'];
+          if(t1)return['done','running','standby'];
+          return['running','standby','standby'];
+        }
+        const t1=logs.some(l=>l.includes('Task 1')||l.includes('task1_research'));
+        if(t1)return['done','running'];
+        return['running','standby'];
+      }
+
+      // Poll for job completion
+      useEffect(()=>{
+        if(!jobId||!polling)return;
+        const iv=setInterval(async()=>{
+          try{
+            const r=await fetch(`${API}/api/crew/status/${jobId}`);
+            const d=await r.json();
+            setJob(d);
+            if(d.status==='done'||d.status==='error'){
+              setPolling(false);
+              clearInterval(iv);
+            }
+          }catch(e){setPolling(false);clearInterval(iv);}
+        },2500);
+        return()=>clearInterval(iv);
+      },[jobId,polling]);
+
+      async function launchCrew(){
+        if(polling)return;
+        if(crewMode==='research'&&!topic.trim())return;
+        if(crewMode==='dataanalyst'&&!daSelected)return;
+        setJob(null);
+        try{
+          const body= crewMode==='dataanalyst'
+            ? {topic:`Data Analysis: ${daSelected}`,crew_type:'dataanalyst',filename:daSelected}
+            : {topic:topic.trim(),crew_type:'research'};
+          const r=await fetch(`${API}/api/crew/kickoff`,{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify(body),
+          });
+          const d=await r.json();
+          if(!r.ok)throw new Error(d.detail||'Launch failed');
+          setJobId(d.job_id);
+          setJob({status:'running',topic:d.topic,crew_type:crewMode,logs:[],outputs:{}});
+          setPolling(true);
+        }catch(e){
+          setJob({status:'error',error:e.message,logs:[],outputs:{}});
+        }
+      }
+
+      function resetJob(){setJob(null);setJobId(null);setPolling(false);}
+
+      const pipelineAgents=crewMode==='dataanalyst'?DATA_AGENTS:RESEARCH_AGENTS;
+      const agentStatuses=getAgentStatuses(job);
+      const running=polling||job?.status==='running';
+      const canLaunch=crewMode==='research'?topic.trim().length>0:daSelected.length>0;
+
+      return(
+        <div style={{display:'flex',flexDirection:'column',height:'100vh',
+          background:CREW_DARK,color:'#e8e8f0',overflow:'hidden',
+          fontFamily:"'VT323',monospace"}}>
+
+          {/* ── Header ── */}
+          <div style={{padding:'12px 24px',background:CREW_SURFACE,
+            borderBottom:`2px solid ${CREW_BORDER}`,
+            display:'flex',alignItems:'center',gap:16,
+            boxShadow:`0 2px 20px ${CREW_ACCENT}22`}}>
+            <div>
+              <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:8,
+                color:CREW_ACCENT,letterSpacing:'.15em',marginBottom:2}}>
+                ⬡ CREW MODE
+              </div>
+              <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:5,
+                color:CREW_DIM,letterSpacing:'.1em'}}>
+                MULTI-AGENT MISSION CONTROL
+              </div>
+            </div>
+            <div style={{flex:1}}/>
+            {running&&(
+              <div style={{display:'flex',alignItems:'center',gap:6,
+                fontFamily:"'Press Start 2P',monospace",fontSize:5,color:CREW_ACCENT}}>
+                <div className="blink" style={{width:7,height:7,borderRadius:'50%',
+                  background:CREW_ACCENT,boxShadow:`0 0 8px ${CREW_ACCENT}`}}/>
+                MISSION ACTIVE
+              </div>
+            )}
+            {job?.status==='done'&&(
+              <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:5,color:CREW_PURPLE}}>
+                ✓ MISSION COMPLETE
+              </div>
+            )}
+          </div>
+
+          {/* ── Body ── */}
+          <div style={{flex:1,overflowY:'auto',padding:'20px 28px',
+            display:'flex',flexDirection:'column',gap:20}}>
+
+            {/* ── Mode Selector ── */}
+            <div style={{display:'flex',gap:8}}>
+              {[
+                {id:'research',    label:'📡  RESEARCH PIPELINE',  sub:'2 agents · Researcher → Writer'},
+                {id:'dataanalyst', label:'📊  DATA ANALYSIS',       sub:'3 agents · Clean → Stats → Viz'},
+              ].map(m=>(
+                <button key={m.id}
+                  onClick={()=>{if(!running){setCrewMode(m.id);resetJob();}}}
+                  disabled={running}
+                  style={{
+                    flex:1,padding:'14px 10px',textAlign:'left',cursor:running?'not-allowed':'pointer',
+                    background: crewMode===m.id?`${CREW_ACCENT}18`:'transparent',
+                    border:`2px solid ${crewMode===m.id?CREW_ACCENT:CREW_BORDER}`,
+                    borderRadius:6,transition:'all .2s',opacity:running?.6:1,
+                  }}>
+                  <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:6,
+                    color:crewMode===m.id?CREW_ACCENT:CREW_DIM,letterSpacing:'.08em',marginBottom:6}}>
+                    {m.label}
+                  </div>
+                  <div style={{fontFamily:"'VT323',monospace",fontSize:14,
+                    color:crewMode===m.id?CREW_ACCENT+'aa':CREW_DIM+'88'}}>
+                    {m.sub}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* ── Mission Briefing ── */}
+            <div style={{background:CREW_SURFACE,border:`1px solid ${CREW_BORDER}`,
+              borderRadius:8,padding:'16px 18px'}}>
+              <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:6,
+                color:CREW_ACCENT,marginBottom:10,letterSpacing:'.1em'}}>
+                {crewMode==='dataanalyst'?'// DATA FILE':'// MISSION BRIEFING'}
+              </div>
+
+              {crewMode==='research'?(
+                <>
+                  <textarea value={topic}
+                    onChange={e=>setTopic(e.target.value)}
+                    onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();launchCrew();}}}
+                    disabled={running}
+                    placeholder="Enter research topic…  (e.g. Quantum Computing breakthroughs)"
+                    rows={2}
+                    style={{width:'100%',background:'#080810',border:`1px solid ${CREW_BORDER}`,
+                      borderRadius:4,color:'#e8e8f0',padding:'10px 12px',resize:'none',
+                      fontFamily:"'VT323',monospace",fontSize:18,outline:'none',
+                      opacity:running?.6:1,boxSizing:'border-box'}}/>
+                  <div style={{display:'flex',flexWrap:'wrap',gap:5,marginTop:8}}>
+                    {CREW_PRESETS.map(p=>(
+                      <button key={p} onClick={()=>!running&&setTopic(p)}
+                        style={{background:'transparent',border:`1px solid ${CREW_BORDER}`,
+                          color:CREW_DIM,padding:'4px 8px',borderRadius:4,cursor:'pointer',
+                          fontFamily:"'VT323',monospace",fontSize:13,opacity:running?.5:1}}
+                        onMouseEnter={e=>!running&&(e.target.style.borderColor=CREW_ACCENT,e.target.style.color=CREW_ACCENT)}
+                        onMouseLeave={e=>(e.target.style.borderColor=CREW_BORDER,e.target.style.color=CREW_DIM)}>
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ):(
+                <>
+                  {/* File selector */}
+                  {daFiles.length>0?(
+                    <div style={{display:'flex',flexDirection:'column',gap:4,marginBottom:10}}>
+                      {daFiles.map(f=>(
+                        <div key={f.name}
+                          onClick={()=>!running&&setDaSelected(f.name)}
+                          style={{display:'flex',alignItems:'center',gap:8,
+                            padding:'8px 10px',borderRadius:4,cursor:running?'default':'pointer',
+                            border:`2px solid ${daSelected===f.name?CREW_PURPLE:CREW_BORDER}`,
+                            background:daSelected===f.name?`${CREW_PURPLE}18`:'transparent',
+                            transition:'all .15s'}}>
+                          <span style={{fontSize:16}}>📄</span>
+                          <div style={{flex:1}}>
+                            <div style={{fontFamily:"'VT323',monospace",fontSize:17,
+                              color:daSelected===f.name?CREW_PURPLE:'#e8e8f0'}}>
+                              {f.name}
+                            </div>
+                            <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:4,
+                              color:CREW_DIM}}>
+                              {f.size_kb} KB · {f.modified}
+                            </div>
+                          </div>
+                          {daSelected===f.name&&(
+                            <span style={{color:CREW_PURPLE,fontFamily:"'Press Start 2P',monospace",fontSize:5}}>✓</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ):(
+                    <div style={{padding:'14px',border:`1px dashed ${CREW_BORDER}`,borderRadius:4,
+                      textAlign:'center',fontFamily:"'VT323',monospace",fontSize:16,color:CREW_DIM,
+                      marginBottom:10}}>
+                      No data files found. Upload a CSV, XLSX, or JSON file below.
+                    </div>
+                  )}
+                  {/* Upload */}
+                  <input ref={daFileRef} type="file" accept=".csv,.xlsx,.xls,.json"
+                    style={{display:'none'}} onChange={handleDaUpload}/>
+                  <button onClick={()=>daFileRef.current?.click()} disabled={daUploading||running}
+                    style={{width:'100%',padding:'8px',background:'transparent',
+                      border:`1px solid ${CREW_BORDER}`,color:CREW_DIM,borderRadius:4,
+                      fontFamily:"'Press Start 2P',monospace",fontSize:5,cursor:'pointer',
+                      letterSpacing:'.08em'}}>
+                    {daUploading?'UPLOADING…':'+ UPLOAD FILE  (CSV / XLSX / JSON)'}
+                  </button>
+                  {daUploadMsg&&(
+                    <div style={{marginTop:6,fontFamily:"'VT323',monospace",fontSize:15,
+                      color:daUploadMsg.ok?'#00ff88':'#ff3366'}}>
+                      {daUploadMsg.ok?'✅ ':''}{daUploadMsg.msg}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Launch */}
+              <button onClick={launchCrew} disabled={running||!canLaunch}
+                style={{marginTop:12,width:'100%',padding:'12px',
+                  background:running?'transparent':canLaunch?CREW_ACCENT:'transparent',
+                  border:`2px solid ${running?CREW_DIM:canLaunch?CREW_ACCENT:CREW_BORDER}`,
+                  color:running?CREW_DIM:canLaunch?'#000':'#555',
+                  fontFamily:"'Press Start 2P',monospace",fontSize:7,
+                  letterSpacing:'.2em',cursor:running||!canLaunch?'not-allowed':'pointer',
+                  borderRadius:4,transition:'all .2s'}}>
+                {running
+                  ?'⬡ MISSION IN PROGRESS…'
+                  :crewMode==='dataanalyst'
+                    ?`⬡ LAUNCH DATA CREW${daSelected?' — '+daSelected:''}`
+                    :'⬡ LAUNCH CREW'}
+              </button>
+            </div>
+
+            {/* ── Agent Pipeline ── */}
+            {job&&(
+              <div style={{background:CREW_SURFACE,border:`1px solid ${CREW_BORDER}`,
+                borderRadius:8,padding:'16px 18px'}}>
+                <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:6,
+                  color:CREW_ACCENT,marginBottom:14,letterSpacing:'.1em'}}>
+                  // AGENT PIPELINE
+                </div>
+                <CrewPipeline agentStatuses={agentStatuses} pipelineAgents={pipelineAgents}/>
+              </div>
+            )}
+
+            {/* ── Live Log ── */}
+            {job&&job.logs&&job.logs.length>0&&(
+              <div style={{background:CREW_SURFACE,border:`1px solid ${CREW_BORDER}`,
+                borderRadius:8,padding:'14px 16px'}}>
+                <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:6,
+                  color:CREW_DIM,marginBottom:8,letterSpacing:'.1em'}}>
+                  // TRANSMISSION LOG
+                </div>
+                <CrewLogBox logs={job.logs}/>
+              </div>
+            )}
+
+            {/* ── Error ── */}
+            {job?.status==='error'&&(
+              <div style={{background:'#1a0010',border:`2px solid #ff3366`,
+                borderRadius:8,padding:'14px 16px',
+                fontFamily:"'VT323',monospace",fontSize:15,color:'#ff3366',
+                whiteSpace:'pre-wrap',wordBreak:'break-word'}}>
+                ✗ MISSION FAILED — {job.error}
+              </div>
+            )}
+
+            {/* ── Results ── */}
+            {job?.status==='done'&&job.outputs&&Object.keys(job.outputs).length>0&&(
+              <div style={{background:CREW_SURFACE,border:`1px solid ${CREW_BORDER}`,
+                borderRadius:8,padding:'14px 16px'}}>
+                <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:6,
+                  color:CREW_PURPLE,marginBottom:12,letterSpacing:'.1em'}}>
+                  // MISSION OUTPUT
+                </div>
+                <CrewResultBox outputs={job.outputs}/>
+              </div>
+            )}
+
+            {/* ── Complete card ── */}
+            {job?.status==='done'&&(
+              <div style={{background:CREW_PURPLE+'11',border:`2px solid ${CREW_PURPLE}`,
+                borderRadius:8,padding:'14px 18px',display:'flex',alignItems:'center',gap:12}}>
+                <span style={{fontSize:28}}>✓</span>
+                <div>
+                  <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:6,
+                    color:CREW_PURPLE,marginBottom:4}}>MISSION COMPLETE</div>
+                  <div style={{fontFamily:"'VT323',monospace",fontSize:16,color:CREW_DIM}}>
+                    {crewMode==='dataanalyst'
+                      ?`File: ${daSelected} · Outputs: cleaned_data.csv, stats_report.md, visualization.py`
+                      :`Topic: ${job.topic} · Files: task1_research.txt, task2_report.md`}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  END CREW VIEW
+    // ══════════════════════════════════════════════════════════════════════════
+
     function App(){
       const [theme,setTheme]=useState(()=>localStorage.getItem('cassanoval-theme')||'pixel');
       const [activeAgent,setActiveAgent]=useState('task');
+      const [appMode,setAppMode]=useState('single');  // 'single' | 'crew'
       const T=theme==='pixel'?T_PIXEL:T_CASUAL;
       const C=theme==='pixel'?C_PIXEL:C_CASUAL;
       const AGENTS=getAgents(C);
@@ -1147,6 +1646,30 @@
         sendMessage(msg);
       }
 
+      // If Crew mode is active, render CrewView entirely
+      if(appMode==='crew'){
+        return(
+          <div style={{position:'relative'}}>
+            <CrewView T={T}/>
+            {/* Switch-back button */}
+            <button onClick={()=>setAppMode('single')}
+              style={{
+                position:'fixed',top:14,right:14,zIndex:9999,
+                fontFamily:"'Press Start 2P',monospace",fontSize:5,
+                padding:'7px 12px',
+                background:'transparent',
+                border:`2px solid ${CREW_BORDER}`,
+                color:CREW_DIM,cursor:'pointer',borderRadius:4,
+                letterSpacing:'.1em',
+              }}
+              onMouseEnter={e=>{e.target.style.borderColor=P.t1;e.target.style.color=P.t0;}}
+              onMouseLeave={e=>{e.target.style.borderColor=CREW_BORDER;e.target.style.color=CREW_DIM;}}>
+              ← SINGLE AGENT
+            </button>
+          </div>
+        );
+      }
+
       const a=AGENTS[activeAgent];
       return(
         <div style={{display:'flex',height:'100vh',overflow:'hidden',background:P.bg0}}>
@@ -1173,6 +1696,20 @@
                       background:activeAgent===id?AGENTS[id].color:P.bd0,
                       boxShadow:activeAgent===id?`0 0 6px ${AGENTS[id].color}`:'none'}}/>
                 ))}
+                {/* Mode toggle */}
+                <div style={{width:1,height:16,background:P.bd1,margin:'0 4px'}}/>
+                <button onClick={()=>setAppMode('crew')}
+                  style={{
+                    fontFamily:T.fontPx,fontSize:T.pxFs-1,
+                    padding:'4px 9px',cursor:'pointer',
+                    background:`${CREW_ACCENT}18`,
+                    border:`1px solid ${CREW_ACCENT}66`,
+                    color:CREW_ACCENT,borderRadius:T.radiusXs,
+                    letterSpacing:'.08em',whiteSpace:'nowrap',
+                  }}
+                  title="Switch to Multi-Agent Crew Mode">
+                  ⬡ CREW
+                </button>
               </div>
             </div>
 

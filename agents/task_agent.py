@@ -103,4 +103,4 @@ You maintain a personal research program that tracks which behavioral strategies
 Tone: calm, efficient, friendly — like a reliable assistant who keeps things running smoothly without getting in the way."""
 
 def create_task_agent():
-    return build_agent(SYSTEM_PROMPT, TASK_AGENT_TOOLS)
+    return build_agent(SYSTEM_PROMPT, TASK_AGENT_TOOLS, model="mistral-small-latest", max_tokens=1024)

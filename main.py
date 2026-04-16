@@ -15,7 +15,8 @@ AGENT_ICONS = {
     "research": "[ RESEARCH ]",
     "fitness":  "[ FITNESS  ]",
     "journal":  "[ JOURNAL  ]",
-    "davinci":  "[ DA VINCI ]",
+    "davinci":      "[ DA VINCI ]",
+    "dataanalyst":  "[ DATABOT  ]",
 }
 
 BANNER = """

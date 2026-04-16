@@ -112,4 +112,4 @@ NOTES_AGENT_TOOLS = NOTES_TOOLS + [ingest_source, update_wiki_entity, query_wiki
 
 
 def create_notes_agent():
-    return build_agent(SYSTEM_PROMPT, NOTES_AGENT_TOOLS)
+    return build_agent(SYSTEM_PROMPT, NOTES_AGENT_TOOLS, model="mistral-small-latest", max_tokens=1536)
