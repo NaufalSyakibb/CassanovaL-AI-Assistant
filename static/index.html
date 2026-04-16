@@ -1,1776 +1,1377 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
-  <title>CassanovaL</title>
-  <!-- Pixel fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <title>CassanovaL — AI Workspace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
-    /* ── PIXEL THEME (default) ─────────────────────────────── */
     :root {
-      --bg0:#0a0a0f; --bg1:#111118; --bg2:#1a1a28; --bg3:#252538;
-      --bd0:#2a2a40; --bd1:#3a3a55;
-      --t0:#e8e8f0;  --t1:#9090b0;  --t2:#505068;
-      --grn:#00ff41; --amb:#ffaa00; --blu:#4499ff;
-      --prp:#bb44ff; --cyn:#00ffcc; --gld:#ffcc00; --red:#ff2244;
-      --journal:#c084fc; --davinci:#ff9900;
-      /* layout */
-      --font-px:'Press Start 2P',monospace;
-      --font-mono:'VT323',monospace;
-      --font-code:'VT323',monospace;
-      --radius:0px; --radius-sm:0px; --radius-xs:0px;
-      --shadow:2px 2px 0 0 rgba(0,0,0,.5);
-      --shadow-md:3px 3px 0 0 rgba(0,0,0,.4);
-      --shadow-lg:4px 4px 0 0 rgba(0,0,0,.6);
-      --px-font-size-px:6px;
-      --px-font-size-label:5px;
+      --bg: #0e0e10; --surface: #19191c; --surface-lo: #131316;
+      --surface-hi: #1f1f23; --surface-hx: #25252a;
+      --primary: #4ae176; --primary-d: #38d36a;
+      --secondary: #adc6ff; --tertiary: #c180ff;
+      --outline: #76757a; --outline-v: #48474c;
+      --text: #e7e4ea; --text-v: #acaab0;
+      --black: #000000; --accent: #4ae176;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    #root { height: 100vh; overflow: hidden; }
+
+    /* Scrollbar */
+    .scroll::-webkit-scrollbar { width: 4px; }
+    .scroll::-webkit-scrollbar-track { background: transparent; }
+    .scroll::-webkit-scrollbar-thumb { background: var(--surface-hx); border-radius: 10px; }
+
+    /* Animations */
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    @keyframes scaleIn {
+      from{opacity:0;transform:scale(0.95) translateY(20px)}
+      to{opacity:1;transform:scale(1) translateY(0)}
+    }
+    @keyframes slideInRight {
+      from{transform:translateX(100%)} to{transform:translateX(0)}
+    }
+    @keyframes msgIn {
+      from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)}
+    }
+    @keyframes dotBounce {
+      0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-5px)}
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+
+    /* Layout */
+    .app { display:flex; height:100vh; width:100%; overflow:hidden; background:var(--bg); }
+
+    /* Sidebar */
+    .sidebar {
+      position:fixed; left:0; top:0; height:100%; width:64px;
+      background:var(--black); display:flex; flex-direction:column;
+      align-items:center; padding:16px 0; z-index:50;
+      border-right:1px solid rgba(72,71,76,0.15);
+    }
+    .sidebar-logo {
+      color:var(--primary); font-weight:900; font-size:20px;
+      letter-spacing:-0.05em; margin-bottom:20px;
+    }
+    .sidebar-agents {
+      display:flex; flex-direction:column; gap:4px; flex:1;
+      width:100%; align-items:center; overflow-y:auto; padding:0 8px;
+    }
+    .sidebar-agents::-webkit-scrollbar { display:none; }
+    .sidebar-btn {
+      position:relative; width:44px; height:44px; border-radius:12px;
+      border:none; background:transparent; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      font-size:19px; color:var(--outline);
+      transition:color 0.15s, background 0.15s;
+    }
+    .sidebar-btn:hover { color:white; background:rgba(255,255,255,0.06); }
+    .sidebar-btn.active { color:white; }
+    .sidebar-btn.active::before {
+      content:''; position:absolute; left:-8px; top:50%;
+      transform:translateY(-50%); width:2px; height:24px;
+      background:var(--accent); border-radius:1px;
+    }
+    .sidebar-bottom {
+      display:flex; flex-direction:column; align-items:center;
+      gap:4px; width:100%; padding:0 8px;
+    }
+    .sidebar-bottom-btn {
+      width:44px; height:44px; border-radius:12px; border:none;
+      background:transparent; cursor:pointer; display:flex;
+      align-items:center; justify-content:center; color:var(--outline);
+      font-size:18px; transition:color 0.15s, background 0.15s;
+    }
+    .sidebar-bottom-btn:hover { color:white; background:rgba(255,255,255,0.06); }
+    .avatar-circle {
+      width:32px; height:32px; border-radius:50%;
+      background:var(--surface-hx); display:flex; align-items:center;
+      justify-content:center; font-size:13px; font-weight:700;
+      color:white; cursor:pointer; border:1.5px solid rgba(255,255,255,0.1);
     }
 
-    /* ── CASUAL THEME ──────────────────────────────────────── */
-    html.casual {
-      --bg0:#fdf6ee; --bg1:#fff9f2; --bg2:#f5ede0; --bg3:#ede3d2;
-      --bd0:#e2d4be; --bd1:#cfc0a4;
-      --t0:#3d2e1e;  --t1:#7a6248;  --t2:#b09070;
-      --grn:#52b04a; --amb:#e8892f; --blu:#4488cc;
-      --prp:#8855bb; --cyn:#3aa898; --gld:#d4a520; --red:#d04f35;
-      --journal:#9b72cf; --davinci:#cc7700;
-      /* layout */
-      --font-px:'Nunito',sans-serif;
-      --font-mono:'Nunito',sans-serif;
-      --font-code:'JetBrains Mono',monospace;
-      --radius:16px; --radius-sm:10px; --radius-xs:6px;
-      --shadow:0 4px 16px rgba(0,0,0,.08);
-      --shadow-md:0 6px 24px rgba(0,0,0,.1);
-      --shadow-lg:0 8px 32px rgba(0,0,0,.12);
-      --px-font-size-px:13px;
-      --px-font-size-label:11px;
+    /* Main */
+    .main {
+      flex:1; margin-left:64px; margin-right:320px;
+      display:flex; flex-direction:column; overflow:hidden;
     }
 
-    *{box-sizing:border-box;margin:0;padding:0;}
-    html,body,#root{width:100%;height:100%;overflow:hidden;}
-    html:not(.casual){image-rendering:pixelated;image-rendering:crisp-edges;}
-    body{background:var(--bg0);color:var(--t0);font-family:var(--font-mono);font-size:18px;transition:background .3s,color .3s;}
-    html.casual body{font-size:15px;image-rendering:auto;}
-
-    /* Pixel scanlines — hidden in casual */
-    body::after{content:'';position:fixed;inset:0;
-      background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.07) 2px,rgba(0,0,0,.07) 4px);
-      pointer-events:none;z-index:9999;}
-    html.casual body::after{display:none;}
-
-    ::-webkit-scrollbar{width:8px;}
-    ::-webkit-scrollbar-track{background:var(--bg1);}
-    ::-webkit-scrollbar-thumb{background:var(--bd1);border:2px solid var(--bg1);border-radius:var(--radius-xs);}
-    ::-webkit-scrollbar-thumb:hover{background:var(--t2);}
-
-    /* ── Shared component classes ── */
-    .px-btn{
-      font-family:var(--font-px);font-size:var(--px-font-size-px);
-      border:2px solid;cursor:pointer;border-radius:var(--radius-sm);
-      transition:transform 0.1s,box-shadow 0.1s,background 0.15s;
+    /* Header */
+    .top-header {
+      height:52px; z-index:40;
+      background:rgba(14,14,16,0.85); backdrop-filter:blur(12px);
+      display:flex; justify-content:space-between; align-items:center;
+      padding:0 24px; border-bottom:1px solid rgba(72,71,76,0.1);
+      flex-shrink:0;
     }
-    html:not(.casual) .px-btn:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 0 rgba(0,0,0,.6);}
-    html:not(.casual) .px-btn:active{transform:translate(1px,1px);box-shadow:1px 1px 0 0 rgba(0,0,0,.6);}
-    html.casual .px-btn:hover{transform:translateY(-1px);box-shadow:var(--shadow-md);}
-    html.casual .px-btn:active{transform:translateY(0);}
-    .px-btn:disabled{opacity:.4;cursor:not-allowed;transform:none !important;box-shadow:none !important;}
-
-    .px-stat{background:var(--bg2);border:2px solid var(--bd0);
-      box-shadow:var(--shadow);padding:10px 12px;border-radius:var(--radius-sm);}
-    .px-label{font-family:var(--font-px);font-size:var(--px-font-size-label);
-      letter-spacing:.08em;text-transform:uppercase;color:var(--t2);}
-    html.casual .px-label{letter-spacing:.04em;}
-    .px-tag{font-family:var(--font-px);font-size:var(--px-font-size-label);
-      padding:3px 8px;border:1px solid;border-radius:var(--radius-xs);}
-
-    .quick-btn{font-family:var(--font-mono);font-size:16px;padding:6px 10px;border:2px solid;
-      cursor:pointer;text-align:left;width:100%;background:transparent;
-      border-radius:var(--radius-sm);transition:filter .1s,transform .1s;}
-    html:not(.casual) .quick-btn:hover{filter:brightness(1.4);transform:translateX(3px);}
-    html.casual .quick-btn:hover{filter:brightness(0.95);transform:translateY(-1px);box-shadow:var(--shadow);}
-
-    .agent-nav-item{transition:transform .1s;}
-    html:not(.casual) .agent-nav-item:hover{transform:translateY(-3px);}
-    html.casual .agent-nav-item:hover{transform:translateX(3px);}
-
-    .dither-bg{background-image:radial-gradient(circle,rgba(255,255,255,.025) 1px,transparent 1px);background-size:4px 4px;}
-    html.casual .dither-bg{background-image:none;}
-
-    .blink{animation:blink 1s step-end infinite;}
-    @keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
-    .type-dot{animation:tdot 1.2s step-end infinite;}
-    .type-dot:nth-child(2){animation-delay:.4s;}
-    .type-dot:nth-child(3){animation-delay:.8s;}
-    @keyframes tdot{0%,66%,100%{opacity:0;}33%{opacity:1;}}
-    html.casual .type-dot{animation:tdot-c 1.4s ease-in-out infinite;border-radius:50%;}
-    @keyframes tdot-c{0%,100%{transform:scale(.6);opacity:.3;}50%{transform:scale(1);opacity:1;}}
-    html.casual .type-dot:nth-child(2){animation-delay:.2s;}
-    html.casual .type-dot:nth-child(3){animation-delay:.4s;}
-
-    .msg-in{animation:msgIn .15s ease both;}
-    @keyframes msgIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
-
-    .msg-content pre{background:#080810;border:2px solid var(--bd0);border-left:4px solid var(--prp);
-      padding:12px;overflow-x:auto;font-family:var(--font-code);font-size:16px;line-height:1.5;
-      margin:8px 0;box-shadow:var(--shadow);border-radius:var(--radius-xs);}
-    html.casual .msg-content pre{background:#f0e8f8;border-left:4px solid var(--prp);color:#3d2e1e;}
-    .msg-content code{background:var(--bg2);border:1px solid var(--bd0);padding:1px 6px;
-      font-family:var(--font-code);font-size:16px;color:var(--cyn);border-radius:var(--radius-xs);}
-    html.casual .msg-content code{color:var(--prp);}
-    .msg-content ul{padding-left:20px;margin:6px 0;list-style:square;}
-    html.casual .msg-content ul{list-style:disc;}
-    .msg-content li{margin:4px 0;}
-    .msg-content strong{color:var(--gld);}
-    html.casual .msg-content strong{color:var(--amb);}
-    .msg-content p{margin:4px 0;line-height:1.5;}
-
-    /* Theme toggle button — z-index must exceed scanlines (9999) */
-    .theme-toggle{
-      position:fixed;bottom:24px;right:24px;z-index:100000;
-      width:48px;height:48px;border-radius:50%;
-      border:2px solid var(--bd1);background:var(--bg2);
-      cursor:pointer;font-size:20px;
-      box-shadow:var(--shadow-md);
-      display:flex;align-items:center;justify-content:center;
-      transition:transform .2s,box-shadow .2s,background .3s;
-      outline:none;
+    .header-left { display:flex; align-items:center; gap:16px; }
+    .header-agent-info { display:flex; align-items:center; gap:10px; }
+    .header-agent-avatar {
+      width:32px; height:32px; border-radius:50%;
+      background:var(--surface-hx); display:flex; align-items:center;
+      justify-content:center; font-size:16px; overflow:hidden; flex-shrink:0;
     }
-    .theme-toggle:hover{transform:scale(1.12);box-shadow:var(--shadow-lg);}
-    .theme-toggle:active{transform:scale(0.96);}
-
-    #conn-banner{
-      position:fixed;top:0;left:0;right:0;z-index:99999;
-      background:#ff2244;border-bottom:3px solid #ff6666;
-      font-family:var(--font-px);font-size:8px;
-      color:#fff;text-align:center;padding:10px;
-      display:none;line-height:2;
+    .header-agent-avatar img { width:100%; height:100%; object-fit:cover; }
+    .header-agent-name { font-size:14px; font-weight:700; color:white; }
+    .header-agent-sub {
+      font-size:10px; font-family:'JetBrains Mono',monospace;
+      color:var(--outline); text-transform:uppercase; letter-spacing:0.1em;
     }
-    html.casual #conn-banner{border-radius:0 0 var(--radius-sm) var(--radius-sm);font-size:12px;}
+    .active-badge {
+      font-size:10px; font-family:'JetBrains Mono',monospace; font-weight:700;
+      color:var(--primary); background:rgba(74,225,118,0.1);
+      padding:2px 8px; border-radius:100px; border:1px solid rgba(74,225,118,0.2);
+    }
+    .header-tabs {
+      display:flex; gap:3px; background:var(--surface);
+      border-radius:100px; padding:3px;
+    }
+    .header-tab {
+      padding:4px 14px; border-radius:100px; font-size:13px;
+      font-weight:500; color:var(--text-v); cursor:pointer;
+      border:none; background:transparent; transition:all 0.15s;
+    }
+    .header-tab.active { background:var(--surface-hi); color:white; }
+    .header-right { display:flex; align-items:center; gap:6px; }
+    .header-icon-btn {
+      width:34px; height:34px; border-radius:10px; border:none;
+      background:transparent; color:var(--outline); cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      transition:color 0.15s, background 0.15s;
+    }
+    .header-icon-btn:hover { color:white; background:var(--surface); }
+
+    /* View area */
+    .view-area {
+      flex:1; overflow:hidden; position:relative;
+      background:radial-gradient(ellipse at 50% 30%, rgba(56,211,106,0.04) 0%, transparent 65%);
+    }
+
+    /* Chat */
+    .chat-view { position:relative; height:100%; display:flex; flex-direction:column; }
+    .chat-messages {
+      flex:1; overflow-y:auto; padding:32px 32px 200px;
+      display:flex; flex-direction:column; gap:28px;
+    }
+    .msg-agent-row {
+      display:flex; align-items:flex-start; gap:12px;
+      max-width:800px; animation:msgIn 0.25s ease-out;
+    }
+    .msg-avatar {
+      width:32px; height:32px; border-radius:8px;
+      background:var(--surface-hx); border:1px solid rgba(72,71,76,0.1);
+      display:flex; align-items:center; justify-content:center;
+      font-size:15px; flex-shrink:0; overflow:hidden;
+    }
+    .msg-avatar img { width:100%; height:100%; object-fit:cover; }
+    .msg-bubble-agent {
+      background:var(--surface); border-left:3px solid var(--accent);
+      border-radius:0 12px 12px 12px; padding:16px 20px;
+      font-size:15px; line-height:1.65; color:var(--text);
+      box-shadow:0 2px 12px rgba(0,0,0,0.25); flex:1;
+    }
+    .msg-footer {
+      font-family:'JetBrains Mono',monospace; font-size:10px;
+      color:var(--outline); margin-top:10px;
+    }
+    .msg-user-row {
+      display:flex; align-items:flex-start; gap:12px;
+      max-width:600px; margin-left:auto; flex-direction:row-reverse;
+      animation:msgIn 0.25s ease-out;
+    }
+    .msg-bubble-user {
+      border-radius:12px 0 12px 12px; padding:14px 18px;
+      font-size:15px; line-height:1.65; color:var(--text);
+    }
+    .typing-indicator {
+      display:flex; align-items:center; gap:10px;
+      margin-left:44px; animation:fadeIn 0.2s ease;
+    }
+    .typing-dots { display:flex; gap:4px; }
+    .typing-dot {
+      width:6px; height:6px; border-radius:50%;
+      animation:dotBounce 1.2s ease-in-out infinite;
+    }
+    .typing-dot:nth-child(2){animation-delay:0.15s}
+    .typing-dot:nth-child(3){animation-delay:0.3s}
+    .typing-text { font-size:12px; color:var(--outline); font-style:italic; }
+
+    /* Input */
+    .chat-input-area {
+      position:absolute; bottom:0; left:0; right:0; padding:0 32px 28px;
+      background:linear-gradient(to top, var(--bg) 55%, rgba(14,14,16,0.85) 75%, transparent);
+    }
+    .chips-row { display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+    .chip {
+      display:flex; align-items:center; gap:6px; padding:5px 12px;
+      border-radius:100px; font-size:11px; font-weight:600;
+      cursor:pointer; border:none; transition:all 0.15s; white-space:nowrap;
+    }
+    .input-box {
+      background:var(--surface-hi); border:1px solid rgba(72,71,76,0.12);
+      border-radius:16px; padding:8px; display:flex; align-items:flex-end;
+      gap:6px; box-shadow:0 20px 60px rgba(0,0,0,0.4);
+      transition:border-color 0.2s, box-shadow 0.2s;
+    }
+    .input-box:focus-within {
+      border-color:rgba(74,225,118,0.3);
+      box-shadow:0 0 0 4px rgba(74,225,118,0.05),0 20px 60px rgba(0,0,0,0.4);
+    }
+    .input-btn {
+      width:40px; height:40px; border-radius:10px; border:none;
+      background:transparent; color:var(--outline); cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      flex-shrink:0; transition:color 0.15s;
+    }
+    .input-btn:hover { color:var(--primary); }
+    .input-textarea {
+      flex:1; background:transparent; border:none; outline:none;
+      color:var(--text); font-family:'Inter',sans-serif; font-size:15px;
+      padding:8px 4px; resize:none; max-height:160px; line-height:1.65;
+    }
+    .input-textarea::placeholder { color:rgba(118,117,122,0.5); }
+    .send-btn {
+      width:40px; height:40px; border-radius:10px; border:none;
+      background:var(--primary); color:#0e0e10; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      flex-shrink:0; transition:filter 0.15s, transform 0.1s;
+    }
+    .send-btn:hover { filter:brightness(1.1); }
+    .send-btn:active { transform:scale(0.92); }
+    .send-btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+    /* Dashboard */
+    .dashboard-view { padding:40px; max-width:960px; width:100%; margin:0 auto; }
+    .dashboard-status {
+      font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
+      text-transform:uppercase; letter-spacing:0.2em; color:var(--primary-d);
+      margin-bottom:6px;
+    }
+    .dashboard-title {
+      font-size:34px; font-weight:800; color:white;
+      letter-spacing:-0.03em; margin-bottom:32px;
+    }
+    .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+    .stat-card {
+      position:relative; background:var(--surface-lo); border-radius:16px;
+      padding:20px; border:1px solid rgba(72,71,76,0.08); overflow:hidden;
+      transition:background 0.15s;
+    }
+    .stat-card:hover { background:var(--surface-hi); }
+    .stat-card-bar { position:absolute; left:0; top:0; width:3px; height:100%; }
+    .stat-icon-box {
+      width:38px; height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.05);
+      display:flex; align-items:center; justify-content:center;
+      font-size:17px; margin-bottom:12px;
+    }
+    .stat-title {
+      font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
+      text-transform:uppercase; letter-spacing:0.1em; color:var(--outline); margin-bottom:4px;
+    }
+    .stat-value { font-size:26px; font-weight:700; color:white; letter-spacing:-0.03em; margin-bottom:4px; }
+    .stat-sub { font-size:11px; color:var(--outline); }
+    .content-grid { display:grid; grid-template-columns:2fr 1fr; gap:16px; }
+    .content-card {
+      background:var(--surface-lo); border-radius:16px;
+      padding:24px; border:1px solid rgba(72,71,76,0.08);
+    }
+    .card-title {
+      font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
+      text-transform:uppercase; letter-spacing:0.15em; color:var(--outline); margin-bottom:16px;
+    }
+    .activity-item {
+      display:flex; align-items:center; gap:12px; padding:10px 0;
+      border-bottom:1px solid rgba(72,71,76,0.08);
+    }
+    .activity-item:last-child { border-bottom:none; }
+    .activity-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .activity-text { flex:1; font-size:13px; color:var(--text-v); }
+    .activity-time { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--outline); }
+    .qa-btn {
+      width:100%; display:flex; align-items:center; gap:10px;
+      background:var(--surface-hi); border:1px solid rgba(72,71,76,0.1);
+      border-radius:10px; padding:12px 14px; color:var(--text);
+      font-size:13px; font-weight:500; cursor:pointer;
+      transition:background 0.15s; margin-bottom:8px; text-align:left;
+    }
+    .qa-btn:hover { background:var(--surface-hx); }
+    .qa-btn:last-child { margin-bottom:0; }
+    .qa-icon {
+      width:32px; height:32px; background:var(--bg); border-radius:8px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:15px; flex-shrink:0;
+    }
+
+    /* Right panel */
+    .right-panel {
+      position:fixed; right:0; top:0; height:100%; width:320px;
+      background:var(--surface-lo); z-index:30; display:flex;
+      flex-direction:column; padding:24px;
+      border-left:1px solid rgba(72,71,76,0.1);
+    }
+    .panel-header {
+      display:flex; justify-content:space-between; align-items:flex-start;
+      margin-bottom:20px; flex-shrink:0;
+    }
+    .panel-title { font-size:13px; font-weight:600; color:var(--primary); }
+    .panel-sub {
+      font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
+      text-transform:uppercase; letter-spacing:0.15em; color:var(--outline); margin-top:2px;
+    }
+    .panel-scroll { overflow-y:auto; flex:1; }
+    .panel-section { margin-bottom:24px; }
+    .panel-label {
+      font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
+      text-transform:uppercase; letter-spacing:0.15em; color:var(--outline);
+      margin-bottom:8px; display:flex; align-items:center; justify-content:space-between;
+    }
+    .panel-badge {
+      background:rgba(74,225,118,0.1); color:var(--primary);
+      font-size:10px; padding:2px 8px; border-radius:100px;
+    }
+    .project-card {
+      background:var(--surface-hi); border-left:2px solid var(--primary);
+      border-radius:10px; padding:12px;
+    }
+    .project-card-title { font-size:13px; font-weight:600; color:white; margin-bottom:4px; }
+    .project-card-sub { font-size:11px; color:var(--text-v); line-height:1.5; }
+    .task-item {
+      background:var(--surface-hi); border-left:2px solid transparent;
+      border-radius:8px; padding:10px 12px; margin-bottom:6px;
+      cursor:pointer; transition:all 0.15s;
+    }
+    .task-item:hover { background:var(--surface-hx); border-left-color:rgba(255,255,255,0.2); }
+    .task-item-title { font-size:13px; font-weight:500; color:var(--text); margin-bottom:4px; }
+    .task-item-meta {
+      font-family:'JetBrains Mono',monospace; font-size:10px;
+      color:var(--outline); display:flex; align-items:center; gap:5px;
+    }
+    .score-card {
+      position:relative; background:var(--surface-hi);
+      border-radius:10px; padding:16px; overflow:hidden;
+    }
+    .score-blob {
+      position:absolute; right:-16px; top:-16px; width:80px; height:80px;
+      background:rgba(74,225,118,0.05); border-radius:50%; filter:blur(20px);
+    }
+    .score-value { font-size:28px; font-weight:900; color:white; letter-spacing:-0.05em; }
+    .score-trend {
+      font-family:'JetBrains Mono',monospace; font-size:11px;
+      font-weight:700; color:var(--primary); margin-left:8px;
+    }
+    .score-bar-bg {
+      width:100%; height:6px; background:var(--bg);
+      border-radius:100px; margin:10px 0 6px;
+    }
+    .score-bar-fill {
+      height:100%; background:var(--primary); border-radius:100px;
+      box-shadow:0 0 8px rgba(74,225,118,0.4);
+    }
+    .score-sub { font-size:10px; color:var(--outline); }
+    .memory-item {
+      display:flex; align-items:center; gap:10px; padding:7px 8px;
+      border-radius:8px; cursor:pointer; transition:background 0.15s;
+    }
+    .memory-item:hover { background:var(--surface-hi); }
+    .memory-text { font-size:12px; color:var(--text-v); }
+    .panel-footer {
+      border-top:1px solid rgba(72,71,76,0.1); padding-top:12px;
+      display:flex; gap:8px; margin-top:8px; flex-shrink:0;
+    }
+    .panel-footer-btn {
+      flex:1; display:flex; flex-direction:column; align-items:center;
+      gap:3px; padding:8px; border-radius:8px; border:none;
+      background:transparent; cursor:pointer; transition:background 0.15s;
+      font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
+      text-transform:uppercase; letter-spacing:0.05em;
+    }
+    .panel-footer-btn:hover { background:var(--surface-hi); }
+    .panel-footer-btn.active { color:var(--primary); }
+    .panel-footer-btn:not(.active) { color:var(--outline); }
+
+    /* Upload / receipt */
+    .drop-zone {
+      border:2px dashed rgba(72,71,76,0.3); border-radius:12px;
+      padding:20px; text-align:center; cursor:pointer;
+      transition:all 0.15s; margin-top:8px;
+    }
+    .drop-zone:hover { border-color:rgba(74,225,118,0.35); background:rgba(74,225,118,0.04); }
+    .drop-text { font-size:12px; color:var(--text-v); }
+    .drop-sub { font-size:10px; color:var(--outline); margin-top:4px; font-family:'JetBrains Mono',monospace; }
+
+    /* Command palette */
+    .cmd-backdrop {
+      position:fixed; inset:0; z-index:100; background:rgba(0,0,0,0.65);
+      backdrop-filter:blur(24px); display:flex; align-items:flex-start;
+      justify-content:center; padding-top:15vh; animation:fadeIn 0.15s ease;
+    }
+    .cmd-modal {
+      width:100%; max-width:560px; background:var(--surface-lo);
+      border-radius:16px; box-shadow:0 32px 128px rgba(0,0,0,0.85);
+      overflow:hidden; border:1px solid rgba(255,255,255,0.1);
+      animation:scaleIn 0.2s ease-out;
+    }
+    .cmd-search {
+      display:flex; align-items:center; gap:12px; padding:18px 20px;
+      background:rgba(31,31,35,0.5); border-bottom:1px solid rgba(255,255,255,0.05);
+    }
+    .cmd-input {
+      flex:1; background:transparent; border:none; outline:none;
+      color:var(--text); font-family:'JetBrains Mono',monospace; font-size:16px;
+    }
+    .cmd-esc {
+      font-family:'JetBrains Mono',monospace; font-size:10px;
+      color:var(--outline); background:var(--surface-hx);
+      padding:3px 7px; border-radius:5px;
+    }
+    .cmd-results { max-height:400px; overflow-y:auto; padding:8px; }
+    .cmd-section-hdr {
+      font-family:'JetBrains Mono',monospace; font-size:10px;
+      text-transform:uppercase; letter-spacing:0.2em; color:var(--outline);
+      padding:8px 12px 4px;
+    }
+    .cmd-item {
+      display:flex; align-items:center; gap:12px; padding:10px 12px;
+      border-radius:10px; cursor:pointer; transition:background 0.1s;
+    }
+    .cmd-item:hover { background:var(--surface-hi); }
+    .cmd-item-icon {
+      width:36px; height:36px; border-radius:10px; background:var(--bg);
+      border:1px solid rgba(255,255,255,0.05); display:flex;
+      align-items:center; justify-content:center; font-size:17px;
+      flex-shrink:0; transition:transform 0.15s;
+    }
+    .cmd-item:hover .cmd-item-icon { transform:scale(1.1); }
+    .cmd-item-label { font-size:13px; font-weight:600; }
+    .cmd-item-sub { font-size:11px; color:var(--outline); }
+    .cmd-footer {
+      padding:12px 20px; background:rgba(14,14,16,0.8);
+      border-top:1px solid rgba(255,255,255,0.05);
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .cmd-hints { display:flex; gap:14px; }
+    .cmd-hint { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--outline); }
+    .cmd-ver { font-family:'JetBrains Mono',monospace; font-size:10px; color:rgba(118,117,122,0.4); }
+
+    /* Crew drawer */
+    .crew-backdrop {
+      position:fixed; inset:0; z-index:60; background:rgba(0,0,0,0.65);
+      backdrop-filter:blur(4px); display:flex; justify-content:flex-end;
+      animation:fadeIn 0.2s ease;
+    }
+    .crew-drawer {
+      width:100%; max-width:520px; height:100%;
+      background:var(--surface-lo);
+      box-shadow:-32px 0 128px rgba(0,0,0,0.85);
+      border-left:1px solid rgba(255,255,255,0.08);
+      display:flex; flex-direction:column;
+      animation:slideInRight 0.35s cubic-bezier(0.32,0.72,0,1);
+    }
+    .crew-header {
+      padding:28px 28px 20px; display:flex;
+      align-items:flex-start; justify-content:space-between; flex-shrink:0;
+    }
+    .crew-title-bar {
+      width:6px; height:32px; background:var(--tertiary);
+      border-radius:3px; box-shadow:0 0 12px rgba(193,128,255,0.4);
+      flex-shrink:0;
+    }
+    .crew-title {
+      font-size:22px; font-weight:900; letter-spacing:-0.03em;
+      color:white; text-transform:uppercase;
+    }
+    .crew-sub {
+      font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
+      text-transform:uppercase; letter-spacing:0.2em; color:var(--outline); margin-top:2px;
+    }
+    .crew-close {
+      width:32px; height:32px; border-radius:50%; border:none;
+      background:var(--surface-hi); color:var(--outline); cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      font-size:16px; transition:color 0.15s; flex-shrink:0;
+    }
+    .crew-close:hover { color:white; }
+    .crew-content { flex:1; overflow-y:auto; padding:0 28px 28px; }
+    .crew-section { margin-bottom:28px; }
+    .crew-label {
+      font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
+      text-transform:uppercase; letter-spacing:0.15em; color:var(--outline);
+      margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;
+    }
+    .crew-type-row { display:flex; gap:8px; margin-bottom:10px; }
+    .crew-type-btn {
+      flex:1; padding:10px; border-radius:10px;
+      border:1px solid rgba(72,71,76,0.2); background:var(--surface-hi);
+      color:var(--text-v); font-size:12px; font-weight:600;
+      cursor:pointer; transition:all 0.15s; text-align:center;
+    }
+    .crew-type-btn.active {
+      background:rgba(193,128,255,0.15); border-color:rgba(193,128,255,0.3);
+      color:var(--tertiary);
+    }
+    .crew-textarea {
+      width:100%; background:var(--surface-hi);
+      border:1px solid rgba(72,71,76,0.2); border-radius:10px;
+      padding:12px 14px; color:var(--text); font-family:'Inter',sans-serif;
+      font-size:14px; outline:none; resize:vertical; min-height:80px;
+      transition:border-color 0.15s;
+    }
+    .crew-textarea:focus { border-color:rgba(193,128,255,0.4); }
+    .crew-select {
+      width:100%; background:var(--surface-hi);
+      border:1px solid rgba(72,71,76,0.2); border-radius:10px;
+      padding:10px 14px; color:var(--text); font-family:'Inter',sans-serif;
+      font-size:14px; outline:none; transition:border-color 0.15s;
+    }
+    .crew-select:focus { border-color:rgba(193,128,255,0.4); }
+    .agent-node {
+      background:var(--surface-hi); border-radius:14px;
+      border-left:4px solid var(--primary); padding:14px 16px;
+      display:flex; align-items:center; gap:14px;
+      box-shadow:0 4px 20px rgba(0,0,0,0.3); margin-bottom:10px;
+      transition:transform 0.2s; cursor:default;
+    }
+    .agent-node:hover { transform:translateY(-2px); }
+    .agent-node-icon {
+      width:44px; height:44px; border-radius:10px; background:var(--bg);
+      border:1px solid rgba(255,255,255,0.05); display:flex;
+      align-items:center; justify-content:center; font-size:22px; flex-shrink:0;
+    }
+    .agent-node-title {
+      font-size:12px; font-weight:900; text-transform:uppercase;
+      letter-spacing:0.05em; color:white;
+    }
+    .agent-node-sub { font-size:11px; color:var(--outline); margin-top:2px; }
+    .logs-box {
+      background:rgba(0,0,0,0.45); border:1px solid rgba(255,255,255,0.05);
+      border-radius:14px; padding:18px; font-family:'JetBrains Mono',monospace;
+      font-size:11px; line-height:1.7; height:220px; overflow-y:auto;
+    }
+    .log-sys { color:var(--primary); }
+    .log-info { color:var(--outline-v); }
+    .log-analysis { color:#699cff; }
+    .log-cursor {
+      display:inline-block; width:6px; height:12px;
+      background:var(--primary); animation:pulse 1s infinite; vertical-align:middle;
+    }
+    .crew-footer {
+      padding:20px 28px; background:var(--surface-hi);
+      border-top:1px solid rgba(255,255,255,0.05); flex-shrink:0;
+    }
+    .launch-btn {
+      width:100%; padding:16px; border-radius:14px; border:none;
+      background:linear-gradient(90deg, var(--primary) 0%, var(--primary-d) 50%, var(--primary) 100%);
+      color:#0e0e10; font-weight:900; font-size:12px;
+      text-transform:uppercase; letter-spacing:0.3em; cursor:pointer;
+      box-shadow:0 8px 32px rgba(74,225,118,0.25);
+      transition:transform 0.15s, filter 0.15s;
+      display:flex; align-items:center; justify-content:center; gap:8px;
+    }
+    .launch-btn:hover:not(:disabled) { transform:scale(1.02); filter:brightness(1.05); }
+    .launch-btn:active:not(:disabled) { transform:scale(0.98); }
+    .launch-btn:disabled { opacity:0.5; cursor:not-allowed; }
+    .launch-sub {
+      text-align:center; font-family:'JetBrains Mono',monospace;
+      font-size:10px; color:var(--outline); margin-top:8px; text-transform:uppercase;
+    }
+
+    /* Misc */
+    .spinner {
+      width:14px; height:14px; border:2px solid transparent;
+      border-top-color:currentColor; border-radius:50%;
+      animation:spin 0.8s linear infinite; flex-shrink:0;
+    }
+    code {
+      font-family:'JetBrains Mono',monospace; background:rgba(0,0,0,0.4);
+      padding:2px 6px; border-radius:4px; font-size:0.9em; color:var(--primary);
+    }
+    pre {
+      background:rgba(0,0,0,0.4); border-radius:10px; padding:14px;
+      overflow-x:auto; margin:10px 0; border:1px solid rgba(72,71,76,0.1);
+    }
+    pre code { background:transparent; padding:0; font-size:13px; color:var(--primary-d); }
+    .file-input-hidden { display:none; }
+    strong { color:var(--text); font-weight:600; }
+    em { color:var(--text-v); }
   </style>
 </head>
 <body>
-  <div id="conn-banner">
-    CANNOT CONNECT TO BACKEND &nbsp;|&nbsp;
-    RUN: python server.py &nbsp;|&nbsp;
-    THEN OPEN: http://localhost:8000
-  </div>
-  <div id="err-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:999999;
-    background:#220000;border-bottom:3px solid #ff2244;color:#ff6666;padding:12px 16px;
-    font-family:monospace;font-size:13px;white-space:pre-wrap;word-break:break-all;"></div>
-  <div id="root"></div>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
 
-  <script>
-    window.onerror = function(msg,src,line,col,err){
-      var b=document.getElementById('err-banner');
-      b.style.display='block';
-      b.textContent='JS ERROR: '+msg+'\nat '+src+':'+line+':'+col;
-    };
-    window.onunhandledrejection=function(e){
-      var b=document.getElementById('err-banner');
-      b.style.display='block';
-      b.textContent='UNHANDLED PROMISE: '+(e.reason&&(e.reason.message||e.reason));
-    };
-  </script>
+// ── Agent definitions ────────────────────────────────────────────────────────
+const AGENTS = {
+  task:     { name:'Alfred',      sub:'Task Manager',     accent:'#4ae176', icon:'✅',
+              greeting:'Hello. I\'m Alfred, your task manager. What shall we tackle today?' },
+  notes:    { name:'Cicero',      sub:'Knowledge Base',   accent:'#adc6ff', icon:'📝',
+              greeting:'Cicero here. What would you like to write or research?' },
+  news:     { name:'Najwa',       sub:'News Feed',        accent:'#f59e0b', icon:'📰',
+              greeting:'Selamat datang. Najwa Shihab siap. Tanyakan berita apa saja.' },
+  coding:   { name:'Linus',       sub:'Code Assistant',   accent:'#c180ff', icon:'💻',
+              greeting:'Linus here. Talk is cheap. Show me the code — or describe your problem.' },
+  schedule: { name:'Miyamoto',    sub:'Schedule',         accent:'#06b6d4', icon:'📅',
+              greeting:'Miyamoto at your service. How shall we command your time today?' },
+  budget:   { name:'Mansa',       sub:'Finance',          accent:'#eab308', icon:'💰',
+              greeting:'Mansa Musa presides. Let\'s track your wealth — income, expenses, balance.' },
+  fitness:  { name:'Lavoiser',    sub:'Fitness & Health', accent:'#ef4444', icon:'🏋',
+              greeting:'Lavoiser aktif. Ask me about workouts, nutrition, or your fitness wiki.' },
+  journal:  { name:'Dostoyevsky', sub:'Journal',          accent:'#c084fc', icon:'🪞',
+              greeting:'Dostoyevsky di sini. Ruang ini aman. Ceritakan apa saja.' },
+  davinci:  { name:'Da Vinci',    sub:'Ideas Lab',        accent:'#f97316', icon:'💡',
+              greeting:'Leonardo da Vinci hadir. Tidak ada yang mustahil. Ide apa yang kita lahirkan?' },
+};
+const AGENT_ORDER = ['task','notes','news','coding','schedule','budget','fitness','journal','davinci'];
 
-  <script type="text/babel">
-    const { useState, useEffect, useRef, useCallback } = React;
+const CHIPS = {
+  task:     ['➕ Add Task','📋 List Pending','✔️ Mark Done','🗑️ Delete'],
+  notes:    ['📄 New Note','🔍 Search Notes','📚 Read Last','🔗 Summarize URL'],
+  news:     ['📰 Today\'s Briefing','🌍 World News','💼 Business','🔬 Tech'],
+  coding:   ['🐛 Debug This','📖 Explain Code','💡 Suggest Fix','📝 Write Tests'],
+  schedule: ['📅 Today\'s Events','➕ Add Event','🗓️ This Week','🗑️ Remove Event'],
+  budget:   ['💰 Add Expense','📊 Summary','💵 Add Income','📈 This Month'],
+  fitness:  ['🏋️ Log Workout','🥗 Track Nutrition','💪 My Progress','📖 Exercise Wiki'],
+  journal:  ['📖 Today\'s Entry','💭 Reflect','😤 Vent Mode','📆 Review Week'],
+  davinci:  ['💡 Brainstorm','🎨 Creative Brief','🔀 Remix Idea','✨ Random Prompt'],
+};
 
-    const API = (
-      window.location.protocol==='file:'||
-      window.location.origin==='null'||
-      !window.location.origin
-    ) ? 'http://localhost:8000' : window.location.origin;
+// ── SVG Icons ────────────────────────────────────────────────────────────────
+const IcoSend  = () => <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>;
+const IcoSearch= () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>;
+const IcoBell  = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>;
+const IcoMore  = () => <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>;
+const IcoMax   = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>;
+const IcoX     = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+const IcoClock = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="10" height="10"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+const IcoFile  = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>;
+const IcoCmd   = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="17" height="17"><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z"/></svg>;
+const IcoUsers = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="17" height="17"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+const IcoClip  = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="17" height="17"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>;
+const IcoRocket= () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="17" height="17"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>;
+const IcoHist  = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>;
+const IcoGear  = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="17" height="17"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
 
-    async function checkConnection(){
-      try{
-        const ctrl=new AbortController();
-        const timer=setTimeout(()=>ctrl.abort(),4000);
-        const r=await fetch(`${API}/api/tasks`,{signal:ctrl.signal});
-        clearTimeout(timer);
-        document.getElementById('conn-banner').style.display=r.ok?'none':'block';
-      }catch(e){
-        document.getElementById('conn-banner').style.display='block';
-      }
-    }
-    checkConnection();
-    setInterval(checkConnection,15000);
+// ── Utilities ────────────────────────────────────────────────────────────────
+const fmtTime = d => new Date(d).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+const fmtDate = s => { if(!s) return ''; return new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short'}); };
+const fmtMoney = n => {
+  if(n==null||isNaN(n)) return '—';
+  if(n>=1_000_000) return `${(n/1_000_000).toFixed(1)}M`;
+  if(n>=1_000) return `${(n/1_000).toFixed(0)}K`;
+  return String(Math.round(n));
+};
+const renderMd = t => {
+  if(!t) return '';
+  return t
+    .replace(/```[\w]*\n([\s\S]*?)```/g,'<pre><code>$1</code></pre>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g,'<em>$1</em>')
+    .replace(/^### (.+)$/gm,'<div style="color:var(--text);font-size:14px;font-weight:700;margin:10px 0 5px">$1</div>')
+    .replace(/^## (.+)$/gm,'<div style="color:white;font-size:15px;font-weight:700;margin:12px 0 6px">$1</div>')
+    .replace(/^- (.+)$/gm,'<div style="margin:3px 0;padding-left:12px">• $1</div>')
+    .replace(/\n\n/g,'<br/><br/>').replace(/\n/g,'<br/>');
+};
 
-    // ── CSS variable-based palette (adapts to both themes via CSS) ──────────────
-    const P = {
-      bg0:'var(--bg0)',bg1:'var(--bg1)',bg2:'var(--bg2)',bg3:'var(--bg3)',
-      bd0:'var(--bd0)',bd1:'var(--bd1)',
-      t0:'var(--t0)',t1:'var(--t1)',t2:'var(--t2)',
-      grn:'var(--grn)',amb:'var(--amb)',blu:'var(--blu)',
-      prp:'var(--prp)',cyn:'var(--cyn)',gld:'var(--gld)',red:'var(--red)',
-      journal:'var(--journal)',
-      davinci:'var(--davinci)',
-    };
+// ── API ──────────────────────────────────────────────────────────────────────
+const apiFetch = async (path, opts={}) => {
+  const r = await fetch(path, opts);
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+};
+const chatAPI    = (msg,agent) => apiFetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg,agent})});
+const tasksAPI   = () => apiFetch('/api/tasks');
+const notesAPI   = () => apiFetch('/api/notes');
+const budgetAPI  = () => apiFetch('/api/budget/summary');
+const daFilesAPI = () => apiFetch('/api/dataanalyst/files');
+const uploadDAAPI= f => { const fd=new FormData();fd.append('file',f);return apiFetch('/api/dataanalyst/upload',{method:'POST',body:fd}); };
+const receiptAPI = f => { const fd=new FormData();fd.append('file',f);return apiFetch('/api/budget/scan-receipt',{method:'POST',body:fd}); };
+const crewKick   = (topic,crew_type,filename) => apiFetch('/api/crew/kickoff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic,crew_type,filename})});
+const crewPoll   = id => apiFetch(`/api/crew/status/${id}`);
 
-    // ── Concrete colors (for SVG sprites + agent palette) ───────────────────────
-    const C_PIXEL = {
-      bg0:'#0a0a0f',bg1:'#111118',bg2:'#1a1a28',bg3:'#252538',
-      bd0:'#2a2a40',bd1:'#3a3a55',
-      t0:'#e8e8f0',t1:'#9090b0',t2:'#505068',
-      grn:'#00ff41',amb:'#ffaa00',blu:'#4499ff',
-      prp:'#bb44ff',cyn:'#00ffcc',gld:'#ffcc00',red:'#ff2244',journal:'#c084fc',davinci:'#ff9900',
-    };
-    const C_CASUAL = {
-      bg0:'#fdf6ee',bg1:'#fff9f2',bg2:'#f5ede0',bg3:'#ede3d2',
-      bd0:'#e2d4be',bd1:'#cfc0a4',
-      t0:'#3d2e1e',t1:'#7a6248',t2:'#b09070',
-      grn:'#52b04a',amb:'#e8892f',blu:'#4488cc',
-      prp:'#8855bb',cyn:'#3aa898',gld:'#d4a520',red:'#d04f35',journal:'#9b72cf',davinci:'#cc7700',
-    };
+// ── Sidebar ──────────────────────────────────────────────────────────────────
+function Sidebar({ active, setActive, onCmd, onCrew }) {
+  return (
+    <aside className="sidebar">
+      <div className="sidebar-logo">CL</div>
+      <div className="sidebar-agents scroll">
+        {AGENT_ORDER.map(k => {
+          const ag=AGENTS[k]; const isAct=active===k;
+          return (
+            <button key={k} className={`sidebar-btn ${isAct?'active':''}`}
+              style={isAct?{'--accent':ag.accent}:{}}
+              title={`${ag.name} — ${ag.sub}`} onClick={()=>setActive(k)}>
+              {ag.icon}
+            </button>
+          );
+        })}
+      </div>
+      <div className="sidebar-bottom">
+        <button className="sidebar-bottom-btn" title="Command Palette (Ctrl+K)" onClick={onCmd}><IcoCmd/></button>
+        <button className="sidebar-bottom-btn" title="Crew Mode" onClick={onCrew}><IcoUsers/></button>
+        <button className="sidebar-bottom-btn" title="Settings"><IcoGear/></button>
+        <div className="avatar-circle" title="Naufal">N</div>
+      </div>
+    </aside>
+  );
+}
 
-    // ── Layout / typography tokens (updated per theme via useTheme) ──────────────
-    const T_PIXEL = {
-      fontPx:"'Press Start 2P',monospace",
-      fontMono:"'VT323',monospace",
-      fontCode:"'VT323',monospace",
-      radius:'0px', radiusSm:'0px', radiusXs:'0px',
-      shadow:'2px 2px 0 0 rgba(0,0,0,.5)',
-      shadowMd:'3px 3px 0 0 rgba(0,0,0,.4)',
-      pxFs:6, labelFs:5,
-      bodyLineH:1.5, msgFS:18,
-    };
-    const T_CASUAL = {
-      fontPx:"'Nunito',sans-serif",
-      fontMono:"'Nunito',sans-serif",
-      fontCode:"'JetBrains Mono',monospace",
-      radius:'16px', radiusSm:'10px', radiusXs:'6px',
-      shadow:'0 4px 16px rgba(0,0,0,.08)',
-      shadowMd:'0 6px 24px rgba(0,0,0,.1)',
-      pxFs:13, labelFs:11,
-      bodyLineH:1.7, msgFS:15,
-    };
-
-    // ── Sprite pixel art (uses concrete colors, separate per theme) ──────────────
-    function getSP(C) {
-      return {
-        task:[
-          [3,2,C.grn],[4,2,C.grn],[5,2,C.grn],[6,2,C.grn],[7,2,C.grn],[8,2,C.grn],[9,2,C.grn],[10,2,C.grn],[11,2,C.grn],
-          [3,3,C.grn],[11,3,C.grn],
-          [3,4,C.grn],[9,4,'#00cc33'],[10,4,'#00cc33'],[11,4,C.grn],
-          [3,5,C.grn],[8,5,'#00cc33'],[11,5,C.grn],
-          [3,6,C.grn],[5,6,'#00cc33'],[7,6,'#00cc33'],[11,6,C.grn],
-          [3,7,C.grn],[6,7,'#00cc33'],[11,7,C.grn],
-          [3,8,C.grn],[5,8,C.t1],[6,8,C.t1],[7,8,C.t1],[8,8,C.t1],[11,8,C.grn],
-          [3,9,C.grn],[5,9,C.t1],[11,9,C.grn],
-          [3,10,C.grn],[5,10,C.t1],[6,10,C.t1],[7,10,C.t1],[11,10,C.grn],
-          [3,11,C.grn],[11,11,C.grn],
-          [3,12,C.grn],[4,12,C.grn],[5,12,C.grn],[6,12,C.grn],[7,12,C.grn],[8,12,C.grn],[9,12,C.grn],[10,12,C.grn],[11,12,C.grn],
-        ],
-        notes:[
-          [2,2,C.blu],[3,2,C.blu],[4,2,C.blu],[5,2,C.blu],[6,2,C.blu],[7,2,C.blu],[8,2,C.blu],[9,2,C.blu],
-          [2,3,C.blu],[9,3,C.blu],
-          [2,4,C.blu],[4,4,C.t0],[5,4,C.t0],[6,4,C.t0],[7,4,C.t0],[9,4,C.blu],
-          [2,5,C.blu],[9,5,C.blu],[12,5,C.gld],[13,5,C.gld],
-          [2,6,C.blu],[4,6,C.t0],[5,6,C.t0],[6,6,C.t0],[7,6,C.t0],[9,6,C.blu],[11,6,C.gld],[13,6,C.gld],
-          [2,7,C.blu],[9,7,C.blu],[10,7,C.gld],[13,7,C.gld],
-          [2,8,C.blu],[4,8,C.t0],[5,8,C.t0],[6,8,C.t0],[7,8,C.t0],[9,8,C.blu],[10,8,C.gld],[11,8,C.gld],
-          [2,9,C.blu],[9,9,C.blu],[11,9,C.gld],[12,9,C.gld],
-          [2,10,C.blu],[9,10,C.blu],[12,10,C.gld],[13,10,C.gld],
-          [2,11,C.blu],[9,11,C.blu],
-          [2,12,C.blu],[3,12,C.blu],[4,12,C.blu],[5,12,C.blu],[6,12,C.blu],[7,12,C.blu],[8,12,C.blu],[9,12,C.blu],
-        ],
-        news:[
-          [7,1,C.amb],[8,1,C.amb],
-          [5,2,C.amb],[6,2,C.amb],[9,2,C.amb],[10,2,C.amb],
-          [3,3,C.amb],[4,3,C.amb],[11,3,C.amb],[12,3,C.amb],
-          [2,4,C.amb],[13,4,C.amb],
-          [2,5,'#ff6600'],[7,5,C.amb],[8,5,C.amb],[13,5,'#ff6600'],
-          [3,6,'#ff6600'],[6,6,C.amb],[9,6,C.amb],[12,6,'#ff6600'],
-          [4,7,'#ff6600'],[7,7,C.t0],[8,7,C.t0],[11,7,'#ff6600'],
-          [5,8,'#ff6600'],[6,8,C.t0],[7,8,C.t0],[8,8,C.t0],[9,8,C.t0],[10,8,'#ff6600'],
-          [5,9,'#ff6600'],[6,9,C.t0],[9,9,C.t0],[10,9,'#ff6600'],
-          [6,10,'#ff6600'],[7,10,C.t0],[8,10,C.t0],[9,10,'#ff6600'],
-          [7,11,'#ff6600'],[8,11,'#ff6600'],
-          [7,12,C.t1],[8,12,C.t1],
-          [6,13,C.t1],[7,13,C.t1],[8,13,C.t1],[9,13,C.t1],
-        ],
-        coding:[
-          [5,1,C.prp],[6,1,C.prp],[7,1,C.prp],[8,1,C.prp],[9,1,C.prp],
-          [4,2,C.prp],[10,2,C.prp],
-          [4,3,C.prp],[6,3,C.cyn],[7,3,C.cyn],[10,3,C.prp],
-          [4,4,C.prp],[6,4,C.cyn],[7,4,C.cyn],[10,4,C.prp],
-          [4,5,C.prp],[10,5,C.prp],
-          [3,6,C.prp],[4,6,C.prp],[5,6,C.prp],[6,6,C.prp],[7,6,C.prp],[8,6,C.prp],[9,6,C.prp],[10,6,C.prp],[11,6,C.prp],
-          [3,7,C.prp],[5,7,C.grn],[11,7,C.prp],
-          [3,8,C.prp],[5,8,C.grn],[6,8,C.grn],[7,8,C.grn],[11,8,C.prp],
-          [3,9,C.prp],[11,9,C.prp],
-          [3,10,C.prp],[4,10,C.prp],[5,10,C.prp],[6,10,C.prp],[7,10,C.prp],[8,10,C.prp],[9,10,C.prp],[10,10,C.prp],[11,10,C.prp],
-          [5,11,C.t1],[6,11,C.t1],[9,11,C.t1],[10,11,C.t1],
-          [5,12,C.t1],[6,12,C.t1],[9,12,C.t1],[10,12,C.t1],
-          [4,13,C.t1],[5,13,C.t1],[6,13,C.t1],[9,13,C.t1],[10,13,C.t1],[11,13,C.t1],
-        ],
-        schedule:[
-          [6,1,C.cyn],[7,1,C.cyn],[8,1,C.cyn],
-          [5,2,C.cyn],[9,2,C.cyn],
-          [4,3,C.cyn],[5,3,'#00aaaa'],[6,3,C.t0],[7,3,C.t0],[8,3,C.t0],[9,3,'#00aaaa'],[10,3,C.cyn],
-          [3,4,C.cyn],[4,4,'#00aaaa'],[5,4,C.t0],[7,4,C.cyn],[10,4,'#00aaaa'],[11,4,C.cyn],
-          [3,5,C.cyn],[4,5,'#00aaaa'],[5,5,C.t0],[7,5,C.cyn],[8,5,C.cyn],[10,5,'#00aaaa'],[11,5,C.cyn],
-          [3,6,C.cyn],[4,6,'#00aaaa'],[5,6,C.t0],[6,6,C.t0],[7,6,C.t0],[8,6,C.t0],[9,6,C.t0],[10,6,'#00aaaa'],[11,6,C.cyn],
-          [3,7,C.cyn],[4,7,'#00aaaa'],[5,7,C.t0],[10,7,'#00aaaa'],[11,7,C.cyn],
-          [3,8,C.cyn],[4,8,'#00aaaa'],[5,8,C.t0],[10,8,'#00aaaa'],[11,8,C.cyn],
-          [3,9,C.cyn],[4,9,'#00aaaa'],[5,9,C.t0],[6,9,C.t0],[7,9,C.t0],[8,9,C.t0],[9,9,C.t0],[10,9,'#00aaaa'],[11,9,C.cyn],
-          [4,10,C.cyn],[5,10,'#00aaaa'],[10,10,'#00aaaa'],[11,10,C.cyn],
-          [4,11,C.cyn],[5,11,'#00aaaa'],[6,11,C.t0],[7,11,C.t0],[8,11,C.t0],[9,11,'#00aaaa'],[10,11,C.cyn],
-          [5,12,C.cyn],[9,12,C.cyn],
-          [6,13,C.cyn],[7,13,C.cyn],[8,13,C.cyn],
-        ],
-        budget:[
-          [4,2,C.gld],[5,2,C.gld],[6,2,C.gld],[7,2,C.gld],[8,2,C.gld],[9,2,C.gld],[10,2,C.gld],[11,2,C.gld],
-          [3,3,C.gld],[12,3,C.gld],
-          [3,4,C.gld],[5,4,C.amb],[6,4,C.amb],[7,4,C.amb],[8,4,C.amb],[9,4,C.amb],[10,4,C.amb],[12,4,C.gld],
-          [3,5,C.gld],[4,5,C.amb],[7,5,C.t0],[8,5,C.t0],[11,5,C.amb],[12,5,C.gld],
-          [3,6,C.gld],[4,6,C.amb],[6,6,C.t0],[7,6,C.t0],[8,6,C.t0],[9,6,C.t0],[11,6,C.amb],[12,6,C.gld],
-          [3,7,C.gld],[4,7,C.amb],[7,7,C.t0],[8,7,C.t0],[11,7,C.amb],[12,7,C.gld],
-          [3,8,C.gld],[4,8,C.amb],[5,8,C.amb],[6,8,C.amb],[7,8,C.amb],[8,8,C.amb],[9,8,C.amb],[10,8,C.amb],[11,8,C.amb],[12,8,C.gld],
-          [3,9,C.gld],[12,9,C.gld],
-          [3,10,'#cc9900'],[4,10,'#cc9900'],[5,10,'#cc9900'],[6,10,'#cc9900'],[7,10,'#cc9900'],[8,10,'#cc9900'],[9,10,'#cc9900'],[10,10,'#cc9900'],[11,10,'#cc9900'],[12,10,'#cc9900'],
-          [4,11,C.gld],[5,11,C.gld],[6,11,C.gld],[7,11,C.gld],[8,11,C.gld],[9,11,C.gld],[10,11,C.gld],[11,11,C.gld],
-        ],
-        fitness:[
-          [7,1,C.red],[8,1,C.red],
-          [6,2,C.red],[7,2,C.red],[8,2,C.red],[9,2,C.red],
-          [5,3,C.red],[6,3,'#cc1133'],[9,3,'#cc1133'],[10,3,C.red],
-          [4,4,C.red],[5,4,'#cc1133'],[10,4,'#cc1133'],[11,4,C.red],
-          [4,5,C.red],[11,5,C.red],
-          [4,6,C.red],[5,6,C.red],[6,6,C.red],[7,6,C.red],[8,6,C.red],[9,6,C.red],[10,6,C.red],[11,6,C.red],
-          [3,7,C.red],[4,7,'#cc1133'],[7,7,C.t0],[8,7,C.t0],[11,7,'#cc1133'],[12,7,C.red],
-          [3,8,C.red],[12,8,C.red],
-          [3,9,C.red],[4,9,C.red],[5,9,C.red],[6,9,C.red],[7,9,C.red],[8,9,C.red],[9,9,C.red],[10,9,C.red],[11,9,C.red],[12,9,C.red],
-          [5,10,C.red],[6,10,C.red],[9,10,C.red],[10,10,C.red],
-          [5,11,'#cc1133'],[6,11,'#cc1133'],[9,11,'#cc1133'],[10,11,'#cc1133'],
-          [5,12,C.t1],[6,12,C.t1],[9,12,C.t1],[10,12,C.t1],
-        ],
-        // Journal / diary sprite — open book with quill
-        journal:[
-          [3,3,C.journal],[4,3,C.journal],[5,3,C.journal],[6,3,C.journal],[7,3,C.journal],[8,3,C.journal],[9,3,C.journal],[10,3,C.journal],[11,3,C.journal],[12,3,C.journal],
-          [3,4,C.journal],[12,4,C.journal],
-          [3,5,C.journal],[5,5,C.t0],[6,5,C.t0],[7,5,C.t0],[8,5,C.t0],[9,5,C.t0],[10,5,C.t0],[12,5,C.journal],
-          [3,6,C.journal],[12,6,C.journal],
-          [3,7,C.journal],[5,7,C.t0],[6,7,C.t0],[7,7,C.t0],[8,7,C.t0],[9,7,C.t0],[10,7,C.t0],[12,7,C.journal],
-          [3,8,C.journal],[12,8,C.journal],
-          [3,9,C.journal],[5,9,C.t0],[6,9,C.t0],[7,9,C.t0],[12,9,C.journal],
-          [3,10,C.journal],[12,10,C.journal],
-          [3,11,C.journal],[4,11,C.journal],[5,11,C.journal],[6,11,C.journal],[7,11,C.journal],[8,11,C.journal],[9,11,C.journal],[10,11,C.journal],[11,11,C.journal],[12,11,C.journal],
-          // quill
-          [13,2,C.gld],[14,2,C.gld],
-          [13,3,C.gld],[14,3,C.t0],
-          [13,4,C.gld],
-          [12,5,C.gld],
-        ],
-        // Da Vinci — gear + lightbulb (inventor/creative)
-        davinci:[
-          [7,1,C.davinci],[8,1,C.davinci],
-          [6,2,C.davinci],[7,2,C.t0],[8,2,C.t0],[9,2,C.davinci],
-          [5,3,C.davinci],[6,3,C.t0],[7,3,C.davinci],[8,3,C.davinci],[9,3,C.t0],[10,3,C.davinci],
-          [5,4,C.davinci],[6,4,C.t0],[9,4,C.t0],[10,4,C.davinci],
-          [4,5,C.davinci],[5,5,C.davinci],[6,5,C.t0],[7,5,C.t0],[8,5,C.t0],[9,5,C.t0],[10,5,C.davinci],[11,5,C.davinci],
-          [4,6,C.davinci],[6,6,C.t0],[7,6,C.davinci],[8,6,C.davinci],[9,6,C.t0],[11,6,C.davinci],
-          [4,7,C.davinci],[5,7,C.davinci],[6,7,C.t0],[7,7,C.t0],[8,7,C.t0],[9,7,C.t0],[10,7,C.davinci],[11,7,C.davinci],
-          [5,8,C.davinci],[6,8,C.t0],[9,8,C.t0],[10,8,C.davinci],
-          [5,9,C.davinci],[6,9,C.t0],[7,9,C.davinci],[8,9,C.davinci],[9,9,C.t0],[10,9,C.davinci],
-          [6,10,C.davinci],[7,10,C.t0],[8,10,C.t0],[9,10,C.davinci],
-          [7,11,C.davinci],[8,11,C.davinci],
-          // center dot
-          [7,6,C.davinci],[8,6,C.davinci],
-        ],
-      };
-    }
-
-    // ── Agent definitions (accent colors adapt via C_PIXEL / C_CASUAL) ───────────
-    function getAgents(C) {
-      return {
-        task:     { id:'task',     name:'ALFRED',      fullName:'Alfred',          short:'ALFRED',      color:C.grn,     dark:'#00aa2a', bg:`rgba(0,255,65,0.08)`,    desc:'MISSION TRACKER // DEADLINES & TASKS',    greeting:"> ALFRED AT YOUR SERVICE\n> Your loyal task manager, Commander.\n> Add tasks, list missions, or mark objectives complete." },
-        notes:    { id:'notes',    name:'CICERO',      fullName:'Cicero',          short:'CICERO',      color:C.blu,     dark:'#2266cc', bg:`rgba(68,153,255,0.08)`,  desc:'KNOWLEDGE BASE // NOTES & RESEARCH',      greeting:"> CICERO SPEAKS\n> Scribe of knowledge and keeper of wisdom.\n> What shall I write, record, or summarize for you?" },
-        news:     { id:'news',     name:'NAJWA',       fullName:'Najwa Shihab',    short:'NAJWA',       color:C.amb,     dark:'#cc7700', bg:`rgba(255,170,0,0.08)`,   desc:'NEWS FEED // 24H BRIEFINGS',              greeting:"> SELAMAT DATANG — INI NAJWA SHIHAB\n> Live intelligence feed aktif. 24 jam terakhir dipantau.\n> Tanyakan topik apapun untuk laporan terkini." },
-        coding:   { id:'coding',   name:'LINUS',       fullName:'Linus Torvalds',  short:'LINUS',       color:C.prp,     dark:'#8822cc', bg:`rgba(187,68,255,0.08)`,  desc:'CODE DOJO // PROGRAMMING TUTOR',          greeting:"> LINUS TORVALDS ONLINE\n> Talk is cheap. Show me the code.\n> What programming challenge shall we solve today?" },
-        schedule: { id:'schedule', name:'MIYAMOTO',    fullName:'Miyamoto',        short:'MIYAMOTO',    color:C.cyn,     dark:'#00aaaa', bg:`rgba(0,255,204,0.08)`,   desc:'TIME MATRIX // CALENDAR ENGINE',          greeting:"> MIYAMOTO STANDS READY\n> Discipline in time is discipline in life.\n> Calendar synced — how shall we command your schedule?" },
-        budget:   { id:'budget',   name:'MANSA',       fullName:'Mansa Musa',      short:'MANSA',       color:C.gld,     dark:'#ccaa00', bg:`rgba(255,204,0,0.08)`,   desc:'FINANCE CORE // BUDGET TRACKER',          greeting:"> MANSA MUSA PRESIDES\n> Keeper of wealth and master of finance.\n> Income, expenses, balance — what shall we audit today?" },
-        fitness:  { id:'fitness',  name:'LAVOISER',    fullName:'Lavoiser',        short:'LAVOISER',    color:C.red,     dark:'#cc1133', bg:`rgba(255,34,68,0.08)`,   desc:'FITNESS CORE // WIKI + LEAN GAIN',        greeting:"> LAVOISER AKTIF\n> Wiki pribadi kamu siap di-scan. Profil: 21 th · lean gain · aktif.\n> Tanya tentang workout, nutrisi, atau buka wiki fitness kamu." },
-        journal:  { id:'journal',  name:'DOSTYEVSKY',  fullName:'Dostoyevsky',     short:'DOSTYEVSKY',  color:C.journal,  dark:'#7a44aa', bg:`rgba(192,132,252,0.08)`, desc:'PERSONAL JOURNAL // MOOD & REFLECTION',   greeting:"> DOSTOYEVSKY DI SINI\n> Ruang jurnalmu yang aman. Tanpa penilaian.\n> Ceritakan apa saja — aku di sini untuk mendengarkan dan mencatatnya bersamamu." },
-        davinci:      { id:'davinci',      name:'DA VINCI',    fullName:'Leonardo da Vinci', short:'DA VINCI',    color:C.davinci,      dark:'#aa5500', bg:`rgba(255,153,0,0.08)`,    desc:'IDEA LAB // BRAINSTORM & CREATIVE VAULT',   greeting:"> LEONARDO DA VINCI HADIR\n> Tidak ada yang mustahil — hanya yang belum ditemukan caranya.\n> Ide apa yang ingin kita lahirkan hari ini?" },
-      };
-    }
-
-    const AGENT_ORDER = ['task','notes','news','coding','schedule','budget','fitness','journal','davinci'];
-
-    function formatRp(n){ return 'Rp '+Number(n).toLocaleString('id-ID'); }
-
-    function renderContent(text){
-      if(text===null||text===undefined||text==='')return null;
-      if(typeof text!=='string')text=String(text);
-      const blocks=text.split(/(```[\s\S]*?```)/g);
-      return blocks.map((block,i)=>{
-        if(!block)return null;
-        if(block.startsWith('```')&&block.endsWith('```')){
-          const inner=block.slice(3,-3).replace(/^[a-z]+\n/,'');
-          return <pre key={i}>{inner}</pre>;
-        }
-        const lines=block.split('\n');
-        return(
-          <span key={i}>
-            {lines.map((line,j)=>{
-              const parts=line.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
-              return(
-                <React.Fragment key={j}>
-                  {parts.map((p,k)=>{
-                    if(p.startsWith('**')&&p.endsWith('**'))return<strong key={k}>{p.slice(2,-2)}</strong>;
-                    if(p.startsWith('`')&&p.endsWith('`'))return<code key={k}>{p.slice(1,-1)}</code>;
-                    return p;
-                  })}
-                  {j<lines.length-1&&<br/>}
-                </React.Fragment>
-              );
-            })}
-          </span>
-        );
-      });
-    }
-
-    // ── Sprite component ──────────────────────────────────────────────────────────
-    const Sprite=({pixels,size=28})=>(
-      <svg width={size} height={size} viewBox="0 0 16 16"
-        style={{imageRendering:'pixelated',display:'block',flexShrink:0}}>
-        {pixels.map(([x,y,c],i)=><rect key={i} x={x} y={y} width={1} height={1} fill={c}/>)}
-      </svg>
-    );
-
-    // ── Avatar ────────────────────────────────────────────────────────────────────
-    function Avatar({id,size=32,AGENTS,SP,T}){
-      const a=AGENTS[id];
-      const [imgOk,setImgOk]=useState(true);
-      useEffect(()=>{setImgOk(true);},[id]);
-      return(
-        <div style={{width:size,height:size,flexShrink:0,
-          border:`2px solid ${a.dark}`,background:a.bg,
-          borderRadius:T.radiusSm,
-          display:'flex',alignItems:'center',justifyContent:'center',
-          boxShadow:T.shadow,
-          overflow:'hidden',imageRendering:'pixelated'}}>
-          {imgOk
-            ?<img key={id} src={`/static/avatars/${id}.jpg`} alt={a.name}
-                onError={()=>setImgOk(false)}
-                style={{width:'100%',height:'100%',objectFit:'cover',display:'block',
-                  imageRendering:'auto',filter:`drop-shadow(0 0 4px ${a.dark})`}}/>
-            :<Sprite pixels={SP[id]} size={size-8}/>
-          }
+// ── Header ───────────────────────────────────────────────────────────────────
+function Header({ agKey, tab, setTab }) {
+  const ag=AGENTS[agKey];
+  return (
+    <header className="top-header">
+      <div className="header-left">
+        <div className="header-agent-info">
+          <div className="header-agent-avatar">
+            <img src={`/static/avatars/${agKey}.jpg`} alt={ag.name}
+              onError={e=>{e.target.style.display='none';e.target.parentNode.innerText=ag.icon;}}/>
+          </div>
+          <div>
+            <div className="header-agent-name">{ag.name}</div>
+            <div className="header-agent-sub">{ag.sub}</div>
+          </div>
+          <span className="active-badge" style={{color:ag.accent,background:ag.accent+'1a',borderColor:ag.accent+'33'}}>ONLINE</span>
         </div>
-      );
-    }
+        <div className="header-tabs">
+          <button className={`header-tab ${tab==='chat'?'active':''}`} onClick={()=>setTab('chat')}>Chat</button>
+          <button className={`header-tab ${tab==='overview'?'active':''}`} onClick={()=>setTab('overview')}>Overview</button>
+        </div>
+      </div>
+      <div className="header-right">
+        <button className="header-icon-btn"><IcoSearch/></button>
+        <button className="header-icon-btn"><IcoBell/></button>
+        <button className="header-icon-btn"><IcoMore/></button>
+      </div>
+    </header>
+  );
+}
 
-    // ── Sidebar ───────────────────────────────────────────────────────────────────
-    function Sidebar({active,onSelect,AGENTS,SP,T}){
-      return(
-        <aside style={{width:196,minWidth:196,background:P.bg1,
-          borderRight:`2px solid ${P.bd0}`,display:'flex',flexDirection:'column',
-          boxShadow:`2px 0 0 0 ${P.bd1}`}}>
-          <div className="dither-bg" style={{padding:'14px 12px',
-            borderBottom:`2px solid ${P.bd0}`,background:P.bg2}}>
-            <div style={{fontFamily:T.fontPx,fontSize:T.pxFs+3,color:P.cyn,marginBottom:5}}>
-              ▶ CassanovaL
-            </div>
-            <div style={{fontFamily:T.fontPx,fontSize:T.pxFs-1,color:P.t2}}>
-              COMMAND CENTER v2.0
-            </div>
-            <div style={{marginTop:8,display:'flex',alignItems:'center',gap:5}}>
-              <div className="blink" style={{width:6,height:6,background:P.grn,borderRadius:'50%'}}/>
-              <span style={{fontFamily:T.fontPx,fontSize:T.pxFs-1,color:P.grn}}>SYSTEMS ONLINE</span>
-            </div>
-          </div>
-          <div style={{padding:'6px 0',flex:1,overflowY:'auto'}}>
-            <div className="px-label" style={{padding:'8px 12px 6px',display:'block'}}>// AGENTS</div>
-            {AGENT_ORDER.map(id=>{
-              const a=AGENTS[id]; const on=active===id;
-              return(
-                <button key={id} className="agent-nav-item" onClick={()=>onSelect(id)}
-                  style={{width:'100%',display:'flex',alignItems:'center',gap:8,
-                    padding:'7px 10px',border:'none',cursor:'pointer',
-                    borderRadius:T.radiusXs,
-                    background:on?a.bg:'transparent',
-                    borderLeft:`3px solid ${on?a.color:'transparent'}`,
-                    color:on?a.color:P.t1}}>
-                  <Avatar id={id} size={26} AGENTS={AGENTS} SP={SP} T={T}/>
-                  <div>
-                    <div style={{fontFamily:T.fontPx,fontSize:T.pxFs,
-                      color:on?a.color:P.t1,marginBottom:2}}>{a.short}</div>
-                    <div style={{fontFamily:T.fontMono,fontSize:14,
-                      color:on?a.color:P.t2}}>{a.fullName}</div>
-                  </div>
-                  {on&&<div className="blink" style={{marginLeft:'auto',width:5,height:5,
-                    background:a.color,flexShrink:0,borderRadius:'50%'}}/>}
-                </button>
-              );
-            })}
-          </div>
-          <div style={{padding:'10px 12px',borderTop:`2px solid ${P.bd0}`,background:P.bg2,textAlign:'center'}}>
-            <div style={{fontFamily:T.fontPx,fontSize:T.pxFs-1,color:P.t2,lineHeight:1.9}}>
-              CREATED BY<br/>CassanovaL
-            </div>
-          </div>
-        </aside>
-      );
-    }
+// ── Chat View ────────────────────────────────────────────────────────────────
+function ChatView({ agKey, messages, loading, onSend }) {
+  const ag=AGENTS[agKey];
+  const [val,setVal]=useState('');
+  const endRef=useRef(null); const taRef=useRef(null); const fileRef=useRef(null);
 
-    // ── Typing indicator ──────────────────────────────────────────────────────────
-    function TypingIndicator({agent:id,AGENTS,SP,T}){
-      const a=AGENTS[id];
-      return(
-        <div className="msg-in" style={{display:'flex',gap:10,alignItems:'flex-start',padding:'6px 0'}}>
-          <Avatar id={id} size={32} AGENTS={AGENTS} SP={SP} T={T}/>
-          <div style={{background:P.bg2,border:`2px solid ${P.bd0}`,
-            borderLeft:`3px solid ${a.dark}`,padding:'10px 14px',
-            borderRadius:T.radius,
-            display:'flex',gap:6,alignItems:'center',boxShadow:T.shadow}}>
-            {[0,1,2].map(i=>(
-              <span key={i} className="type-dot" style={{width:8,height:8,background:a.color,
-                display:'inline-block',boxShadow:`1px 1px 0 0 ${a.dark}`,borderRadius:T.radiusXs}}/>
+  useEffect(()=>{ endRef.current?.scrollIntoView({behavior:'smooth'}); },[messages,loading]);
+
+  const send=useCallback(()=>{
+    const t=val.trim(); if(!t||loading) return;
+    setVal('');
+    if(taRef.current) taRef.current.style.height='auto';
+    onSend(t);
+  },[val,loading,onSend]);
+
+  const onKey=e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();} };
+  const onInput=e=>{
+    setVal(e.target.value);
+    e.target.style.height='auto';
+    e.target.style.height=Math.min(e.target.scrollHeight,160)+'px';
+  };
+
+  return (
+    <div className="chat-view">
+      <div className="chat-messages scroll">
+        {messages.length===0&&(
+          <div style={{textAlign:'center',padding:'80px 20px',color:'var(--outline)'}}>
+            <div style={{fontSize:'52px',marginBottom:'16px'}}>{ag.icon}</div>
+            <div style={{fontSize:'22px',fontWeight:'800',color:'white',marginBottom:'10px'}}>{ag.name}</div>
+            <div style={{fontSize:'14px',color:'var(--text-v)',maxWidth:'360px',margin:'0 auto',lineHeight:'1.65'}}>{ag.greeting}</div>
+          </div>
+        )}
+        {messages.map((m,i)=>m.role==='user'?(
+          <div key={i} className="msg-user-row">
+            <div className="msg-avatar" style={{background:'var(--surface-hx)'}}>N</div>
+            <div className="msg-bubble-user"
+              style={{background:ag.accent+'0c',border:`1px solid ${ag.accent}18`}}
+              dangerouslySetInnerHTML={{__html:renderMd(m.content)}}/>
+          </div>
+        ):(
+          <div key={i} className="msg-agent-row">
+            <div className="msg-avatar">
+              <img src={`/static/avatars/${agKey}.jpg`} alt={ag.name}
+                onError={e=>{e.target.style.display='none';e.target.parentNode.innerText=ag.icon;}}/>
+            </div>
+            <div className="msg-bubble-agent" style={{borderLeftColor:ag.accent}}>
+              <div dangerouslySetInnerHTML={{__html:renderMd(m.content)}}/>
+              <div className="msg-footer">SYSTEM: READY · {m.ts?fmtTime(m.ts):''}</div>
+            </div>
+          </div>
+        ))}
+        {loading&&(
+          <div className="typing-indicator">
+            <div className="typing-dots">
+              {[0,1,2].map(i=><div key={i} className="typing-dot"
+                style={{background:ag.accent+'70',animationDelay:i*150+'ms'}}/>)}
+            </div>
+            <span className="typing-text">{ag.name} is thinking…</span>
+          </div>
+        )}
+        <div ref={endRef}/>
+      </div>
+      <div className="chat-input-area">
+        <div className="chips-row">
+          {(CHIPS[agKey]||[]).map((c,i)=>(
+            <button key={i} className="chip" onClick={()=>onSend(c.replace(/^[^\s]+\s/,''))}
+              style={i===0
+                ?{background:ag.accent+'1f',color:ag.accent,border:`1px solid ${ag.accent}33`}
+                :{background:'var(--surface-hi)',color:'var(--text-v)',border:'1px solid rgba(72,71,76,0.12)'}}>
+              {c}
+            </button>
+          ))}
+        </div>
+        <div className="input-box">
+          <button className="input-btn" onClick={()=>fileRef.current?.click()}><IcoClip/></button>
+          <input ref={fileRef} type="file" className="file-input-hidden"
+            onChange={e=>{if(e.target.files[0])onSend(`[File: ${e.target.files[0].name}]`);}}/>
+          <textarea ref={taRef} className="input-textarea" rows="1"
+            placeholder={`Message ${ag.name}…`} value={val}
+            onChange={onInput} onKeyDown={onKey}/>
+          <button className="send-btn" onClick={send} disabled={!val.trim()||loading}>
+            {loading?<div className="spinner"/>:<IcoSend/>}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Dashboard ────────────────────────────────────────────────────────────────
+function DashboardView({ dash }) {
+  const {tStats,budget,notesTotal,recentTx}=dash;
+  const cards=[
+    {t:'Tasks Pending',   v:tStats?.pending??'—',            sub:`${tStats?.high_priority??0} high priority`,c:'#4ae176',i:'✅'},
+    {t:'Balance',         v:`Rp ${fmtMoney(budget?.balance)}`,sub:`Rp ${fmtMoney(budget?.monthly_expense)} spent`,c:'#eab308',i:'💰'},
+    {t:'Notes',           v:notesTotal??'—',                  sub:'Knowledge base entries',c:'#adc6ff',i:'📝'},
+    {t:'Monthly Income',  v:`Rp ${fmtMoney(budget?.monthly_income)}`,sub:'This month',c:'#4ae176',i:'📈'},
+  ];
+  return (
+    <div style={{height:'100%',overflowY:'auto'}} className="scroll">
+      <div className="dashboard-view">
+        <div className="dashboard-status">System Status: Optimal</div>
+        <div className="dashboard-title">Welcome back, Cassanova</div>
+        <div className="stats-grid">
+          {cards.map((c,i)=>(
+            <div key={i} className="stat-card">
+              <div className="stat-card-bar" style={{background:c.c}}/>
+              <div className="stat-icon-box" style={{background:c.c+'1a',borderColor:c.c+'22'}}>{c.i}</div>
+              <div className="stat-title">{c.t}</div>
+              <div className="stat-value">{c.v}</div>
+              <div className="stat-sub">{c.sub}</div>
+            </div>
+          ))}
+        </div>
+        <div className="content-grid">
+          <div className="content-card">
+            <div className="card-title">Recent Transactions</div>
+            {(!recentTx||recentTx.length===0)
+              ?<div style={{color:'var(--outline)',fontSize:'13px',padding:'12px 0'}}>No recent transactions</div>
+              :recentTx.map((tx,i)=>(
+              <div key={i} className="activity-item">
+                <div className="activity-dot" style={{background:tx.type==='income'?'#4ae176':'#ef4444',boxShadow:`0 0 6px ${tx.type==='income'?'#4ae176':'#ef4444'}`}}/>
+                <div className="activity-text">
+                  <span style={{color:'var(--text)',fontWeight:500}}>{tx.description}</span>
+                  <span style={{marginLeft:'8px',color:tx.type==='income'?'#4ae176':'#ef4444',fontWeight:600}}>
+                    {tx.type==='income'?'+':'-'}Rp {fmtMoney(tx.amount)}
+                  </span>
+                </div>
+                <div className="activity-time">{fmtDate(tx.date)}</div>
+              </div>
+            ))}
+          </div>
+          <div className="content-card">
+            <div className="card-title">Quick Actions</div>
+            {[['✅','Add Task','Create new task'],['💰','Log Expense','Track spending'],
+              ['📝','New Note','Capture thoughts'],['🔬','Research','Start crew pipeline']
+            ].map(([ic,lb,ds],i)=>(
+              <button key={i} className="qa-btn">
+                <div className="qa-icon">{ic}</div>
+                <div>
+                  <div style={{fontWeight:600,fontSize:'13px'}}>{lb}</div>
+                  <div style={{fontSize:'11px',color:'var(--outline)'}}>{ds}</div>
+                </div>
+              </button>
             ))}
           </div>
         </div>
-      );
-    }
+      </div>
+    </div>
+  );
+}
 
-    // ── Message bubble ────────────────────────────────────────────────────────────
-    function Bubble({msg,AGENTS,SP,T}){
-      const isUser=msg.role==='user';
-      const a=AGENTS[msg.agent]||AGENTS.task;
-      if(isUser)return(
-        <div className="msg-in" style={{display:'flex',justifyContent:'flex-end',padding:'4px 0'}}>
-          <div style={{maxWidth:'72%',background:P.bg3,border:`2px solid ${P.bd1}`,
-            borderRight:`3px solid ${P.t1}`,padding:'10px 14px',
-            borderRadius:T.radius,
-            fontFamily:T.fontMono,fontSize:T.msgFS,lineHeight:T.bodyLineH,color:P.t0,
-            boxShadow:T.shadow}}>
-            <div className="px-label" style={{marginBottom:6}}>YOU // {msg.time}</div>
-            {msg.content}
+// ── Right Panel ──────────────────────────────────────────────────────────────
+function RightPanel({ agKey, dash }) {
+  const ag=AGENTS[agKey];
+  const [tab,setTab]=useState('tasks');
+  const [scanning,setScanning]=useState(false);
+  const [scanRes,setScanRes]=useState(null);
+  const [daFiles,setDAFiles]=useState([]);
+  const [dragging,setDragging]=useState(false);
+  const recRef=useRef(null);
+
+  useEffect(()=>{
+    if(agKey==='coding') daFilesAPI().then(d=>setDAFiles(d.files||[])).catch(()=>{});
+  },[agKey]);
+
+  const doReceipt=async f=>{
+    setScanning(true);setScanRes(null);
+    try{setScanRes(await receiptAPI(f));}catch{setScanRes({error:'Gagal membaca struk'});}
+    setScanning(false);
+  };
+
+  const doDAUpload=async f=>{
+    try{const r=await uploadDAAPI(f);setDAFiles(p=>[{name:r.filename,size_kb:r.size_kb,modified:'just now'},...p]);}catch{}
+  };
+
+  const pendingTasks=dash.tasks?.filter(t=>t.status==='pending').slice(0,5)??[];
+  const recentNotes=dash.notes?.slice(0,5)??[];
+
+  if(agKey==='budget') return (
+    <aside className="right-panel">
+      <div className="panel-header">
+        <div><div className="panel-title">Workspace</div><div className="panel-sub">Finance Panel</div></div>
+        <button className="header-icon-btn"><IcoMax/></button>
+      </div>
+      <div className="panel-scroll scroll">
+        <div className="panel-section">
+          <div className="panel-label">Balance</div>
+          <div className="project-card" style={{borderLeftColor:ag.accent}}>
+            <div className="project-card-title">Rp {fmtMoney(dash.budget?.balance)}</div>
+            <div className="project-card-sub">
+              Income this month: Rp {fmtMoney(dash.budget?.monthly_income)}<br/>
+              Expense this month: Rp {fmtMoney(dash.budget?.monthly_expense)}
+            </div>
           </div>
         </div>
-      );
-      return(
-        <div className="msg-in" style={{display:'flex',gap:10,alignItems:'flex-start',padding:'4px 0'}}>
-          <Avatar id={msg.agent||'task'} size={32} AGENTS={AGENTS} SP={SP} T={T}/>
-          <div style={{maxWidth:'78%'}}>
-            <div style={{fontFamily:T.fontPx,fontSize:T.pxFs,
-              color:a.color,marginBottom:6,display:'flex',alignItems:'center',gap:8}}>
-              {a.name}
-              <span style={{color:P.t2}}>// {msg.time}</span>
-            </div>
-            <div className="msg-content" style={{background:P.bg2,border:`2px solid ${P.bd0}`,
-              borderLeft:`3px solid ${a.dark}`,padding:'10px 14px',
-              borderRadius:T.radius,
-              fontFamily:T.fontMono,fontSize:T.msgFS,lineHeight:T.bodyLineH,color:P.t0,
-              boxShadow:T.shadow}}>
-              {renderContent(msg.content)}
-            </div>
+        <div className="panel-section">
+          <div className="panel-label">Scan Receipt</div>
+          <div className="drop-zone"
+            style={{borderColor:dragging?ag.accent+'66':'rgba(72,71,76,0.3)'}}
+            onDragOver={e=>{e.preventDefault();setDragging(true);}}
+            onDragLeave={()=>setDragging(false)}
+            onDrop={e=>{e.preventDefault();setDragging(false);const f=e.dataTransfer.files[0];if(f)doReceipt(f);}}
+            onClick={()=>recRef.current?.click()}>
+            <input ref={recRef} type="file" accept="image/*" className="file-input-hidden"
+              onChange={e=>{if(e.target.files[0])doReceipt(e.target.files[0]);}}/>
+            <div style={{fontSize:'28px',marginBottom:'6px'}}>{scanning?'⏳':'📷'}</div>
+            <div className="drop-text">{scanning?'Membaca struk…':'Drop receipt atau klik upload'}</div>
+            <div className="drop-sub">JPG, PNG · Powered by Pixtral</div>
           </div>
-        </div>
-      );
-    }
-
-    // ── Receipt panel ─────────────────────────────────────────────────────────────
-    function ReceiptPanel({receipt,onConfirm,onCancel,T}){
-      if(!receipt)return null;
-      const isIncome=receipt.type==='income';
-      const typeColor=isIncome?P.grn:P.red;
-      return(
-        <div style={{margin:'0 16px 8px',border:`2px solid ${P.gld}`,
-          background:'rgba(255,204,0,0.06)',boxShadow:T.shadow,borderRadius:T.radius,
-          padding:'12px 14px'}}>
-          <div style={{fontFamily:T.fontPx,fontSize:T.pxFs,
-            color:P.gld,marginBottom:10,display:'flex',alignItems:'center',gap:8}}>
-            <span>RECEIPT DETECTED</span>
-            <div className="blink" style={{width:5,height:5,background:P.gld,borderRadius:'50%'}}/>
-          </div>
-          {receipt.imageUrl&&(
-            <img src={receipt.imageUrl} alt="receipt"
-              style={{width:'100%',maxHeight:120,objectFit:'cover',
-                border:`1px solid ${P.bd1}`,borderRadius:T.radiusXs,marginBottom:10,imageRendering:'auto'}}/>
+          {scanRes&&!scanRes.error&&(
+            <div style={{marginTop:'8px',background:'var(--surface-hi)',borderRadius:'8px',padding:'12px',fontSize:'12px'}}>
+              <div style={{color:'white',fontWeight:600}}>{scanRes.description}</div>
+              <div style={{color:scanRes.type==='income'?'#4ae176':'#ef4444',fontWeight:700,marginTop:'4px'}}>
+                {scanRes.type==='income'?'+':'-'}Rp {fmtMoney(scanRes.amount)}
+              </div>
+              <div style={{color:'var(--outline)',fontFamily:'JetBrains Mono',fontSize:'10px',marginTop:'4px'}}>
+                {scanRes.category} · {scanRes.date}
+              </div>
+            </div>
           )}
-          <div style={{display:'grid',gridTemplateColumns:'auto 1fr',gap:'5px 12px',
-            fontFamily:T.fontMono,fontSize:17,marginBottom:12}}>
-            <span style={{color:P.t2,fontFamily:T.fontPx,fontSize:T.pxFs}}>TYPE</span>
-            <span style={{color:typeColor}}>{receipt.type.toUpperCase()}</span>
-            <span style={{color:P.t2,fontFamily:T.fontPx,fontSize:T.pxFs}}>AMOUNT</span>
-            <span style={{color:typeColor,fontFamily:T.fontPx,fontSize:T.pxFs+3}}>
-              Rp {Number(receipt.amount).toLocaleString('id-ID')}
-            </span>
-            <span style={{color:P.t2,fontFamily:T.fontPx,fontSize:T.pxFs}}>CATEGORY</span>
-            <span style={{color:P.t0}}>{receipt.category}</span>
-            <span style={{color:P.t2,fontFamily:T.fontPx,fontSize:T.pxFs}}>DESC</span>
-            <span style={{color:P.t0}}>{receipt.description||'-'}</span>
-            <span style={{color:P.t2,fontFamily:T.fontPx,fontSize:T.pxFs}}>DATE</span>
-            <span style={{color:P.t1}}>{receipt.date}</span>
-          </div>
-          <div style={{display:'flex',gap:8}}>
-            <button onClick={onConfirm} className="px-btn"
-              style={{flex:1,background:'rgba(0,255,65,0.1)',borderColor:P.grn,
-                color:P.grn,padding:'7px 12px'}}>
-              ✓ CONFIRM &amp; SAVE
-            </button>
-            <button onClick={onCancel} className="px-btn"
-              style={{background:'rgba(255,34,68,0.1)',borderColor:P.red,
-                color:P.red,padding:'7px 12px'}}>
-              ✗ CANCEL
-            </button>
+          {scanRes?.error&&<div style={{marginTop:'8px',color:'#ef4444',fontSize:'12px'}}>{scanRes.error}</div>}
+        </div>
+      </div>
+    </aside>
+  );
+
+  if(agKey==='coding') return (
+    <aside className="right-panel">
+      <div className="panel-header">
+        <div><div className="panel-title">Workspace</div><div className="panel-sub">Data Files</div></div>
+        <button className="header-icon-btn"><IcoMax/></button>
+      </div>
+      <div className="panel-scroll scroll">
+        <div className="panel-section">
+          <div className="panel-label">Upload Dataset</div>
+          <div className="drop-zone" style={{borderColor:'rgba(193,128,255,0.3)'}}
+            onDragOver={e=>{e.preventDefault();setDragging(true);}}
+            onDragLeave={()=>setDragging(false)}
+            onDrop={e=>{e.preventDefault();setDragging(false);const f=e.dataTransfer.files[0];if(f)doDAUpload(f);}}
+            onClick={()=>{const i=document.createElement('input');i.type='file';i.accept='.csv,.xlsx,.xls,.json';i.onchange=e=>doDAUpload(e.target.files[0]);i.click();}}>
+            <div style={{fontSize:'26px',marginBottom:'6px'}}>📊</div>
+            <div className="drop-text">Upload CSV / Excel / JSON</div>
+            <div className="drop-sub">Drop file atau klik di sini</div>
           </div>
         </div>
-      );
-    }
+        {daFiles.length>0&&(
+          <div className="panel-section">
+            <div className="panel-label">Available Files</div>
+            {daFiles.map((f,i)=>(
+              <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:'var(--surface-hi)',borderRadius:'8px',padding:'8px 10px',marginBottom:'4px'}}>
+                <div>
+                  <div style={{fontSize:'12px',color:'var(--text)',fontFamily:'JetBrains Mono'}}>{f.name}</div>
+                  <div style={{fontSize:'10px',color:'var(--outline)'}}>{f.size_kb} KB · {f.modified}</div>
+                </div>
+                <a href={`/api/dataanalyst/download/${encodeURIComponent(f.name)}`} download
+                  style={{color:'var(--tertiary)',fontSize:'14px',textDecoration:'none'}}>↓</a>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </aside>
+  );
 
-    // ── Chat input ────────────────────────────────────────────────────────────────
-    function ChatInput({onSend,onReceiptSelect,isLoading,activeAgent,AGENTS,T}){
-      const [value,setValue]=useState('');
-      const textRef=useRef(null);
-      const fileRef=useRef(null);
-      const a=AGENTS[activeAgent];
-      function submit(){
-        const v=value.trim();if(!v||isLoading)return;
-        onSend(v);setValue('');textRef.current?.focus();
-      }
-      function handleFile(e){
-        const file=e.target.files?.[0];
-        if(file){onReceiptSelect(file);e.target.value='';}
-      }
-      return(
-        <div style={{padding:'12px 16px',borderTop:`2px solid ${P.bd0}`,
-          background:P.bg1,boxShadow:`0 -2px 0 0 ${P.bd1}`}}>
-          <div style={{display:'flex',gap:8,alignItems:'flex-end',
-            background:P.bg0,border:`2px solid ${value?a.dark:P.bd0}`,
-            borderRadius:T.radiusSm,
-            padding:'8px 10px',
-            boxShadow:value?`0 0 12px ${a.bg}`:'none',
-            transition:'border-color .2s,box-shadow .2s'}}>
-            <span style={{fontFamily:T.fontPx,fontSize:T.pxFs+4,
-              color:a.color,flexShrink:0,paddingBottom:2}}>{'>'}</span>
-            <textarea ref={textRef} value={value}
-              onChange={e=>{setValue(e.target.value);e.target.style.height='auto';e.target.style.height=Math.min(e.target.scrollHeight,120)+'px';}}
-              onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();submit();}}}
-              placeholder={`SEND COMMAND TO ${a.name}... [ENTER]`}
-              disabled={isLoading}
-              style={{flex:1,background:'transparent',border:'none',outline:'none',
-                resize:'none',color:P.t0,fontFamily:T.fontMono,
-                fontSize:T.msgFS,lineHeight:1.4,minHeight:24,maxHeight:120,overflow:'hidden'}}
-              rows={1}/>
-            {activeAgent==='budget'&&(
+  return (
+    <aside className="right-panel">
+      <div className="panel-header">
+        <div><div className="panel-title">Workspace</div><div className="panel-sub">Active Context</div></div>
+        <button className="header-icon-btn"><IcoMax/></button>
+      </div>
+      <div className="panel-scroll scroll">
+        <div className="panel-section">
+          <div className="panel-label">Active Agent</div>
+          <div className="project-card" style={{borderLeftColor:ag.accent}}>
+            <div className="project-card-title">{ag.icon} {ag.name}</div>
+            <div className="project-card-sub">{ag.sub}</div>
+          </div>
+        </div>
+        {tab==='tasks'?(
+          <div className="panel-section">
+            <div className="panel-label">Pending Tasks
+              <span className="panel-badge">{dash.tStats?.pending??0}</span>
+            </div>
+            {pendingTasks.length===0
+              ?<div style={{color:'var(--outline)',fontSize:'12px'}}>No pending tasks</div>
+              :pendingTasks.map((t,i)=>(
+                <div key={i} className="task-item">
+                  <div className="task-item-title">{t.title}</div>
+                  <div className="task-item-meta">
+                    <IcoClock/>
+                    <span>{t.priority||'normal'} priority</span>
+                    <span style={{width:'7px',height:'7px',borderRadius:'50%',display:'inline-block',
+                      background:t.priority==='high'?'#4ae176':t.priority==='medium'?'#c180ff':'#48474c'}}/>
+                  </div>
+                </div>
+              ))}
+          </div>
+        ):(
+          <div className="panel-section">
+            <div className="panel-label">Recent Notes</div>
+            {recentNotes.length===0
+              ?<div style={{color:'var(--outline)',fontSize:'12px'}}>No notes yet</div>
+              :recentNotes.map((n,i)=>(
+                <div key={i} className="task-item">
+                  <div className="task-item-title">{n.title}</div>
+                  <div className="task-item-meta"><IcoClock/>{fmtDate(n.updated_at)}</div>
+                </div>
+              ))}
+          </div>
+        )}
+        <div className="panel-section">
+          <div className="score-card">
+            <div className="score-blob"/>
+            <div style={{display:'flex',alignItems:'baseline'}}>
+              <span className="score-value">84</span>
+              <span className="score-trend">+3↑</span>
+            </div>
+            <div className="score-bar-bg"><div className="score-bar-fill" style={{width:'84%'}}/></div>
+            <div className="score-sub">Productivity Score · Today</div>
+          </div>
+        </div>
+        <div className="panel-section">
+          <div className="panel-label">Memory Threads</div>
+          {['Session context preserved','Task history loaded','Budget patterns synced'].map((m,i)=>(
+            <div key={i} className="memory-item">
+              <span style={{color:'#699cff'}}><IcoHist/></span>
+              <span className="memory-text">{m}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="panel-footer">
+        <button className={`panel-footer-btn ${tab==='tasks'?'active':''}`} onClick={()=>setTab('tasks')}>
+          <span>✅</span>Tasks
+        </button>
+        <button className={`panel-footer-btn ${tab==='notes'?'active':''}`} onClick={()=>setTab('notes')}>
+          <IcoFile/> Notes
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+// ── Command Palette ───────────────────────────────────────────────────────────
+function CommandPalette({ onClose, setAgent, setTab }) {
+  const [q,setQ]=useState('');
+  const inRef=useRef(null);
+  useEffect(()=>{ inRef.current?.focus(); },[]);
+
+  const all=[
+    ...AGENT_ORDER.map(k=>({type:'agent',key:k,title:`Switch to ${AGENTS[k].name}`,sub:AGENTS[k].sub,icon:AGENTS[k].icon,accent:AGENTS[k].accent})),
+    {type:'tab',key:'overview',title:'Open Dashboard',sub:'View stats & activity',icon:'📊',accent:'#adc6ff'},
+    {type:'tab',key:'chat',title:'Open Chat',sub:'Talk to active agent',icon:'💬',accent:'#4ae176'},
+  ];
+  const filtered=q?all.filter(c=>c.title.toLowerCase().includes(q.toLowerCase())||c.sub.toLowerCase().includes(q.toLowerCase())):all;
+
+  const pick=c=>{ if(c.type==='agent'){setAgent(c.key);setTab('chat');}else setTab(c.key); onClose(); };
+
+  return (
+    <div className="cmd-backdrop" onClick={onClose}>
+      <div className="cmd-modal" onClick={e=>e.stopPropagation()}>
+        <div className="cmd-search">
+          <IcoSearch/>
+          <input ref={inRef} className="cmd-input" placeholder="Search agents, commands…"
+            value={q} onChange={e=>setQ(e.target.value)}
+            onKeyDown={e=>{if(e.key==='Escape')onClose();if(e.key==='Enter'&&filtered[0])pick(filtered[0]);}}/>
+          <span className="cmd-esc">ESC</span>
+        </div>
+        <div className="cmd-results scroll">
+          {!q&&<div className="cmd-section-hdr">Agents &amp; Commands</div>}
+          {filtered.map((c,i)=>(
+            <div key={i} className="cmd-item" onClick={()=>pick(c)}>
+              <div className="cmd-item-icon">{c.icon}</div>
+              <div style={{flex:1}}>
+                <div className="cmd-item-label" style={{color:c.accent}}>{c.title}</div>
+                <div className="cmd-item-sub">{c.sub}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="cmd-footer">
+          <div className="cmd-hints">
+            <span className="cmd-hint">↑↓ Navigate</span>
+            <span className="cmd-hint">↵ Select</span>
+            <span className="cmd-hint">ESC Close</span>
+          </div>
+          <span className="cmd-ver">v2.5.0</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Crew Drawer ───────────────────────────────────────────────────────────────
+function CrewDrawer({ onClose }) {
+  const [crewType,setCrewType]=useState('research');
+  const [topic,setTopic]=useState('');
+  const [filename,setFilename]=useState('');
+  const [daFiles,setDAFiles]=useState([]);
+  const [status,setStatus]=useState('idle');
+  const [logs,setLogs]=useState([]);
+  const [outputs,setOutputs]=useState({});
+  const logsEndRef=useRef(null);
+  const pollRef=useRef(null);
+
+  useEffect(()=>{
+    daFilesAPI().then(d=>setDAFiles(d.files||[])).catch(()=>{});
+    return()=>{if(pollRef.current)clearInterval(pollRef.current);};
+  },[]);
+
+  useEffect(()=>{ logsEndRef.current?.scrollIntoView({behavior:'smooth'}); },[logs]);
+
+  const launch=async()=>{
+    if(!topic.trim()) return;
+    if(crewType==='dataanalyst'&&!filename) return;
+    setStatus('running');setLogs(['[SYSTEM] Initializing crew pipeline…']);setOutputs({});
+    try{
+      const res=await crewKick(topic.trim(),crewType,crewType==='dataanalyst'?filename:undefined);
+      const id=res.job_id;
+      pollRef.current=setInterval(async()=>{
+        try{
+          const s=await crewPoll(id);
+          if(s.logs?.length) setLogs(s.logs);
+          if(s.status==='done'){
+            clearInterval(pollRef.current);setStatus('done');setOutputs(s.outputs||{});
+            setLogs(p=>[...p,'[SYSTEM] ✅ Pipeline completed.']);
+          }else if(s.status==='error'){
+            clearInterval(pollRef.current);setStatus('error');
+            setLogs(p=>[...p,`[ERROR] ${(s.error||'Unknown').split('\n')[0]}`]);
+          }
+        }catch{}
+      },2500);
+    }catch(e){
+      setStatus('error');setLogs(p=>[...p,`[ERROR] ${e.message}`]);
+    }
+  };
+
+  const nodes=crewType==='research'
+    ?[{icon:'🔬',title:'Ibnu Al-Haytham',sub:'Deep Research Specialist',color:'#4ae176'},
+      {icon:'✍️',title:'Narator & Penulis',sub:'Content Writer',color:'#c180ff'}]
+    :[{icon:'🧹',title:'Data Cleaner',sub:'Preprocessing Agent',color:'#4ae176'},
+      {icon:'📊',title:'Statistician',sub:'Analysis Expert',color:'#adc6ff'},
+      {icon:'📈',title:'Visualizer',sub:'Chart Generator',color:'#f97316'}];
+
+  const logClass=l=>l.startsWith('[SYSTEM]')||l.startsWith('[ERROR]')?'log-sys':l.includes('>>')||l.includes('→')?'log-analysis':'log-info';
+
+  return (
+    <div className="crew-backdrop" onClick={onClose}>
+      <div className="crew-drawer" onClick={e=>e.stopPropagation()}>
+        <div className="crew-header">
+          <div style={{display:'flex',alignItems:'flex-start',gap:'12px'}}>
+            <div className="crew-title-bar"/>
+            <div><div className="crew-title">Crew Mode</div><div className="crew-sub">Multi-Agent Pipeline</div></div>
+          </div>
+          <button className="crew-close" onClick={onClose}><IcoX/></button>
+        </div>
+        <div className="crew-content scroll">
+          <div className="crew-section">
+            <div className="crew-label">Pipeline Type</div>
+            <div className="crew-type-row">
+              <button className={`crew-type-btn ${crewType==='research'?'active':''}`} onClick={()=>setCrewType('research')}>🔬 Research</button>
+              <button className={`crew-type-btn ${crewType==='dataanalyst'?'active':''}`} onClick={()=>setCrewType('dataanalyst')}>📊 Data Analyst</button>
+            </div>
+            {crewType==='research'?(
               <>
-                <input ref={fileRef} type="file" accept="image/*" capture="environment"
-                  style={{display:'none'}} onChange={handleFile}/>
-                <button onClick={()=>fileRef.current?.click()} disabled={isLoading}
-                  className="px-btn" title="Scan receipt"
-                  style={{background:isLoading?P.bg3:'rgba(255,204,0,0.1)',
-                    borderColor:isLoading?P.bd0:P.gld,
-                    color:isLoading?P.t2:P.gld,padding:'6px 10px',fontSize:14}}>
-                  📷
-                </button>
+                <div className="crew-label" style={{marginTop:'12px'}}>Research Topic</div>
+                <textarea className="crew-textarea" placeholder="Enter topic or research question…"
+                  value={topic} onChange={e=>setTopic(e.target.value)}/>
+              </>
+            ):(
+              <>
+                <div className="crew-label" style={{marginTop:'12px'}}>Dataset File</div>
+                <select className="crew-select" value={filename} onChange={e=>setFilename(e.target.value)}>
+                  <option value="">Select a file…</option>
+                  {daFiles.map((f,i)=><option key={i} value={f.name}>{f.name} ({f.size_kb} KB)</option>)}
+                </select>
+                <div style={{marginTop:'10px'}}>
+                  <div className="crew-label">Analysis Goal</div>
+                  <textarea className="crew-textarea" placeholder="What do you want to analyze?"
+                    value={topic} onChange={e=>setTopic(e.target.value)}/>
+                </div>
               </>
             )}
-            <button onClick={submit} disabled={!value.trim()||isLoading} className="px-btn"
-              style={{background:value.trim()&&!isLoading?a.dark:P.bg3,
-                borderColor:value.trim()&&!isLoading?a.color:P.bd0,
-                color:value.trim()&&!isLoading?a.color:P.t2,padding:'6px 12px',
-                boxShadow:value.trim()&&!isLoading?T.shadow:'none'}}>
-              SEND
-            </button>
           </div>
-          <div style={{fontFamily:T.fontPx,fontSize:T.pxFs-1,color:P.t2,
-            marginTop:6,textAlign:'center'}}>
-            [ENTER] SEND // [SHIFT+ENTER] NEWLINE // ROUTED TO {a.name}
-            {activeAgent==='budget'&&<span style={{color:P.gld}}> // 📷 SCAN RECEIPT</span>}
-          </div>
-        </div>
-      );
-    }
-
-    // ── Widgets ───────────────────────────────────────────────────────────────────
-    function TaskWidget({data,T}){
-      const{tasks=[],stats={}}=data;
-      const pending=tasks.filter(t=>t.status==='pending').slice(0,6);
-      return(
-        <div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:12}}>
-            {[['TOTAL',stats.total||0,P.t1],['ACTIVE',stats.pending||0,P.amb],
-              ['DONE',stats.completed||0,P.grn],['HIGH!',stats.high_priority||0,P.red]
-            ].map(([l,v,c])=>(
-              <div key={l} className="px-stat">
-                <div style={{fontFamily:T.fontPx,fontSize:T.pxFs+8,color:c}}>{v}</div>
-                <div className="px-label" style={{marginTop:4}}>{l}</div>
+          <div className="crew-section">
+            <div className="crew-label">
+              Node Topology
+              <span style={{color:'var(--primary)',fontSize:'11px',display:'flex',alignItems:'center',gap:'5px'}}>
+                <span style={{width:'6px',height:'6px',borderRadius:'50%',display:'inline-block',
+                  background:status==='running'?'var(--primary)':'#48474c',
+                  animation:status==='running'?'pulse 1s infinite':'none'}}/>
+                {nodes.length} Agents
+              </span>
+            </div>
+            {nodes.map((n,i)=>(
+              <div key={i} className="agent-node" style={{borderLeftColor:n.color}}>
+                <div className="agent-node-icon">{n.icon}</div>
+                <div style={{flex:1}}>
+                  <div className="agent-node-title">{n.title}</div>
+                  <div className="agent-node-sub">{n.sub}</div>
+                </div>
+                {status==='done'&&<span style={{color:'var(--primary)',fontSize:'16px'}}>✓</span>}
               </div>
             ))}
           </div>
-          {pending.length>0?(
-            <>
-              <div className="px-label" style={{marginBottom:8}}>// ACTIVE QUESTS</div>
-              {pending.map(t=>(
-                <div key={t.id} style={{display:'flex',gap:8,alignItems:'flex-start',
-                  padding:'6px 0',borderBottom:`1px solid ${P.bd0}`}}>
-                  <div style={{width:8,height:8,
-                    background:t.priority==='high'?P.red:t.priority==='medium'?P.amb:P.t2,
-                    marginTop:4,flexShrink:0,borderRadius:'50%'}}/>
-                  <div style={{fontFamily:T.fontMono,fontSize:16,color:P.t0,
-                    overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1}}>
-                    {t.title}
+          <div className="crew-section">
+            <div className="crew-label">System Logs</div>
+            <div className="logs-box scroll">
+              {logs.length===0?<span style={{color:'var(--outline)'}}>{'> Awaiting launch…'}</span>
+                :logs.map((l,i)=><div key={i} className={logClass(l)}>{l}</div>)}
+              {status==='running'&&<span className="log-cursor"/>}
+              <div ref={logsEndRef}/>
+            </div>
+          </div>
+          {Object.keys(outputs).length>0&&(
+            <div className="crew-section">
+              <div className="crew-label">Outputs</div>
+              {Object.entries(outputs).map(([fn,content],i)=>(
+                <div key={i} style={{marginBottom:'10px'}}>
+                  <div style={{fontFamily:'JetBrains Mono',fontSize:'11px',color:'var(--secondary)',marginBottom:'4px'}}>{fn}</div>
+                  <div style={{background:'rgba(0,0,0,0.4)',border:'1px solid rgba(255,255,255,0.05)',borderRadius:'10px',
+                    padding:'12px',fontFamily:'JetBrains Mono',fontSize:'11px',color:'var(--text-v)',
+                    maxHeight:'180px',overflowY:'auto',whiteSpace:'pre-wrap'}}>
+                    {content}
                   </div>
                 </div>
               ))}
-            </>
-          ):(
-            <div style={{fontFamily:T.fontMono,fontSize:18,color:P.grn,textAlign:'center',padding:'16px 0'}}>
-              ALL QUESTS COMPLETE!
             </div>
           )}
         </div>
-      );
-    }
-
-    function NotesWidget({data,T}){
-      const{notes=[],total=0}=data;
-      return(
-        <div>
-          <div style={{fontFamily:T.fontMono,fontSize:16,color:P.t1,marginBottom:10}}>
-            {total} ENTRIES IN DATABASE
-          </div>
-          {notes.slice(0,5).map(n=>(
-            <div key={n.id} style={{padding:'7px 0',borderBottom:`1px solid ${P.bd0}`}}>
-              <div style={{fontFamily:T.fontMono,fontSize:17,color:P.t0,
-                overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:2}}>
-                {n.title}
-              </div>
-              <div className="px-label">{n.updated_at?.slice(0,10)}</div>
-              {n.tags?.length>0&&(
-                <div style={{display:'flex',gap:4,flexWrap:'wrap',marginTop:4}}>
-                  {n.tags.slice(0,3).map(tag=>(
-                    <span key={tag} className="px-tag"
-                      style={{background:'rgba(68,153,255,0.1)',color:P.blu,borderColor:'#2266cc'}}>
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-          {notes.length===0&&(
-            <div style={{fontFamily:T.fontMono,fontSize:17,color:P.t2,textAlign:'center',padding:'16px 0'}}>
-              NO ENTRIES YET. COMMAND ME TO CREATE ONE.
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    function BudgetWidget({data,T}){
-      const{balance=0,monthly_income=0,monthly_expense=0,recent_transactions=[]}=data;
-      const pos=balance>=0;
-      return(
-        <div>
-          <div style={{background:pos?'rgba(0,255,65,.06)':'rgba(255,34,68,.06)',
-            border:`2px solid ${pos?'#00aa2a':P.red}`,boxShadow:T.shadow,
-            borderRadius:T.radius,
-            padding:'12px',marginBottom:10,textAlign:'center'}}>
-            <div className="px-label" style={{marginBottom:5}}>// NET BALANCE</div>
-            <div style={{fontFamily:T.fontPx,fontSize:T.pxFs+5,color:pos?P.grn:P.red}}>
-              {formatRp(balance)}
-            </div>
-          </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:10}}>
-            <div className="px-stat">
-              <div className="px-label" style={{marginBottom:4}}>IN</div>
-              <div style={{fontFamily:T.fontMono,fontSize:16,color:P.grn}}>+{formatRp(monthly_income)}</div>
-            </div>
-            <div className="px-stat">
-              <div className="px-label" style={{marginBottom:4}}>OUT</div>
-              <div style={{fontFamily:T.fontMono,fontSize:16,color:P.red}}>-{formatRp(monthly_expense)}</div>
-            </div>
-          </div>
-          {recent_transactions.length>0?(
-            <>
-              <div className="px-label" style={{marginBottom:8}}>// RECENT LEDGER</div>
-              {recent_transactions.map(t=>(
-                <div key={t.id} style={{display:'flex',justifyContent:'space-between',
-                  alignItems:'center',padding:'5px 0',borderBottom:`1px solid ${P.bd0}`}}>
-                  <div>
-                    <div style={{fontFamily:T.fontMono,fontSize:15,color:P.t0}}>{t.description||t.category}</div>
-                    <div className="px-label">{t.date}</div>
-                  </div>
-                  <div style={{fontFamily:T.fontPx,fontSize:T.pxFs,color:t.type==='income'?P.grn:P.red}}>
-                    {t.type==='income'?'+':'-'}{formatRp(t.amount)}
-                  </div>
-                </div>
-              ))}
-            </>
-          ):(
-            <div style={{fontFamily:T.fontMono,fontSize:17,color:P.t2,textAlign:'center',padding:'12px 0'}}>
-              VAULT EMPTY. NO TRANSACTIONS.
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    function NewsWidget({onQuickAsk,T}){
-      const topics=['Tech & AI','Indonesia','Business','Science','Crypto','Sports'];
-      return(
-        <div>
-          <div style={{fontFamily:T.fontMono,fontSize:16,color:P.t1,marginBottom:12}}>
-            LIVE INTEL ACTIVE. SELECT A CHANNEL:
-          </div>
-          <div className="px-label" style={{marginBottom:8}}>// CHANNELS</div>
-          <div style={{display:'flex',flexWrap:'wrap',gap:5}}>
-            {topics.map(t=>(
-              <button key={t} className="quick-btn" style={{width:'auto',borderColor:P.amb,color:P.amb}}
-                onClick={()=>onQuickAsk(`What's the latest news about ${t}?`)}>
-                {t}
-              </button>
-            ))}
+        <div className="crew-footer">
+          <button className="launch-btn" onClick={launch}
+            disabled={status==='running'||!topic.trim()||(crewType==='dataanalyst'&&!filename)}>
+            {status==='running'?<><div className="spinner"/>Running pipeline…</>:<><IcoRocket/>Launch Crew Pipeline</>}
+          </button>
+          <div className="launch-sub">
+            {status==='done'?'✅ PIPELINE COMPLETED':status==='error'?'❌ PIPELINE FAILED':'Estimated 1–3 min · Mistral LLM'}
           </div>
         </div>
-      );
-    }
-
-    function CodingWidget({onQuickAsk,T}){
-      const topics=[
-        {label:'Python basics',q:'Teach me Python basics'},
-        {label:'JavaScript async',q:'Explain async/await in JavaScript'},
-        {label:'React hooks',q:'How do React hooks work?'},
-        {label:'SQL queries',q:'Teach me SQL queries'},
-        {label:'Git workflow',q:'Explain the Git workflow'},
-        {label:'REST APIs',q:'How do I build a REST API?'},
-      ];
-      return(
-        <div>
-          <div style={{fontFamily:T.fontMono,fontSize:16,color:P.t1,marginBottom:12}}>
-            SELECT TRAINING MODULE:
-          </div>
-          <div className="px-label" style={{marginBottom:8}}>// CURRICULUM</div>
-          <div style={{display:'flex',flexDirection:'column',gap:5}}>
-            {topics.map(t=>(
-              <button key={t.label} className="quick-btn" style={{borderColor:P.prp,color:P.prp}}
-                onClick={()=>onQuickAsk(t.q)}>
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    function ScheduleWidget({onQuickAsk,T}){
-      const actions=[
-        {label:"Today's schedule",q:"What's on my schedule today?"},
-        {label:'Next 7 days',q:'Show my events for the next 7 days'},
-        {label:'Create event',q:'Help me create a new calendar event'},
-      ];
-      return(
-        <div>
-          <div style={{fontFamily:T.fontMono,fontSize:16,color:P.t1,marginBottom:12}}>
-            CALENDAR SYNCED.
-          </div>
-          <div className="px-label" style={{marginBottom:8}}>// QUICK ACTIONS</div>
-          <div style={{display:'flex',flexDirection:'column',gap:5}}>
-            {actions.map(a=>(
-              <button key={a.label} className="quick-btn" style={{borderColor:P.cyn,color:P.cyn}}
-                onClick={()=>onQuickAsk(a.q)}>
-                {a.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    function JournalWidget({onQuickAsk,T}){
-      const prompts=[
-        {label:'Apa yang aku rasakan hari ini?',q:'Aku ingin merefleksikan perasaanku hari ini'},
-        {label:'Tulis rasa syukur hari ini',q:'Bantu aku nulis gratitude hari ini'},
-        {label:'Lihat jurnal terbaru',q:'Tampilkan jurnal aku minggu ini'},
-        {label:'Cek riwayat mood',q:'Bagaimana pola mood aku belakangan ini?'},
-        {label:'Refleksi bebas',q:'Aku mau nulis jurnal bebas sekarang'},
-      ];
-      return(
-        <div>
-          <div style={{fontFamily:T.fontMono,fontSize:16,color:P.t1,marginBottom:6,lineHeight:1.6}}>
-            Ruang amanmu. Ceritakan apa saja.
-          </div>
-          <div style={{fontFamily:T.fontPx,fontSize:T.pxFs,color:P.journal,
-            marginBottom:10,opacity:.8}}>
-            💜 DOSTOYEVSKY SIAP MENDENGARKAN
-          </div>
-          <div className="px-label" style={{marginBottom:8}}>// MULAI DARI SINI</div>
-          <div style={{display:'flex',flexDirection:'column',gap:5}}>
-            {prompts.map(p=>(
-              <button key={p.label} className="quick-btn"
-                style={{borderColor:P.journal,color:P.journal}}
-                onClick={()=>onQuickAsk(p.q)}>
-                {p.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    // ── Data panel ────────────────────────────────────────────────────────────────
-    function DataPanel({activeAgent,data,onQuickAsk,onRefresh,AGENTS,T}){
-      const a=AGENTS[activeAgent];
-      return(
-        <aside style={{width:244,minWidth:244,background:P.bg1,
-          borderLeft:`2px solid ${P.bd0}`,display:'flex',flexDirection:'column',
-          boxShadow:`-2px 0 0 0 ${P.bd1}`}}>
-          <div style={{padding:'11px 14px',borderBottom:`2px solid ${P.bd0}`,
-            background:P.bg2,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-            <div>
-              <div style={{fontFamily:T.fontPx,fontSize:T.pxFs+2,color:a.color,marginBottom:3}}>{a.name}</div>
-              <div className="px-label">PANEL DATA</div>
-            </div>
-            <button onClick={onRefresh} className="px-btn" title="Refresh"
-              style={{background:P.bg3,borderColor:P.bd1,color:P.t1,padding:'5px 8px'}}>
-              ↺
-            </button>
-          </div>
-          <div style={{padding:'12px 14px',flex:1,overflowY:'auto'}}>
-            {activeAgent==='task'         &&<TaskWidget    data={data.tasks||{}}     T={T}/>}
-            {activeAgent==='notes'        &&<NotesWidget   data={data.notes||{}}     T={T}/>}
-            {activeAgent==='budget'       &&<BudgetWidget  data={data.budget||{}}    T={T}/>}
-            {activeAgent==='news'         &&<NewsWidget     onQuickAsk={onQuickAsk}  T={T}/>}
-            {activeAgent==='coding'       &&<CodingWidget   onQuickAsk={onQuickAsk}  T={T}/>}
-            {activeAgent==='schedule'     &&<ScheduleWidget onQuickAsk={onQuickAsk}  T={T}/>}
-            {activeAgent==='journal'      &&<JournalWidget  onQuickAsk={onQuickAsk}  T={T}/>}
-          </div>
-          <div style={{padding:'8px 14px',borderTop:`2px solid ${P.bd0}`,background:P.bg2}}>
-            <div style={{display:'flex',gap:4,justifyContent:'center',flexWrap:'wrap'}}>
-              {AGENT_ORDER.map(id=>(
-                <div key={id} style={{width:8,height:8,
-                  background:activeAgent===id?AGENTS[id].color:P.bd0,
-                  borderRadius:'50%',
-                  boxShadow:activeAgent===id?`0 0 6px ${AGENTS[id].color}`:'none'}}/>
-              ))}
-            </div>
-          </div>
-        </aside>
-      );
-    }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────────
-    function todayISO(){return new Date().toISOString().slice(0,10);}
-
-    function groupByDate(msgs){
-      const groups=[];
-      for(const msg of msgs){
-        const d=msg.date||todayISO();
-        if(!groups.length||groups[groups.length-1].date!==d){
-          groups.push({date:d,msgs:[msg]});
-        }else{
-          groups[groups.length-1].msgs.push(msg);
-        }
-      }
-      return groups;
-    }
-
-    function formatDateLabel(iso){
-      const today=todayISO();
-      const yesterday=new Date(Date.now()-86400000).toISOString().slice(0,10);
-      if(iso===today)return'HARI INI';
-      if(iso===yesterday)return'KEMARIN';
-      const d=new Date(iso+'T00:00:00');
-      return d.toLocaleDateString('id-ID',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}).toUpperCase();
-    }
-
-    // ── Theme toggle button (rendered via portal → always on top, never clipped) ──
-    function ThemeToggle({theme,onToggle}){
-      const btn=(
-        <button
-          className="theme-toggle"
-          onClick={onToggle}
-          title={theme==='pixel'?'Switch to Casual theme 🌸':'Switch to Pixel theme 👾'}
-        >
-          {theme==='pixel'?'🌸':'👾'}
-        </button>
-      );
-      // Portal renders directly into document.body — escapes every overflow:hidden
-      return ReactDOM.createPortal(btn, document.body);
-    }
+      </div>
+    </div>
+  );
+}
 
 // ── App ───────────────────────────────────────────────────────────────────────
-    // ══════════════════════════════════════════════════════════════════════════
-    //  CREW VIEW  — Mission Control for multi-agent CrewAI pipelines
-    // ══════════════════════════════════════════════════════════════════════════
+function App() {
+  const [agKey,setAgKey]=useState('task');
+  const [tab,setTab]=useState('chat');
+  const [msgs,setMsgs]=useState(()=>Object.fromEntries(AGENT_ORDER.map(k=>[k,[]])));
+  const [loading,setLoad]=useState(false);
+  const [showCmd,setShowCmd]=useState(false);
+  const [showCrew,setShowCrew]=useState(false);
+  const [dash,setDash]=useState({tStats:null,tasks:[],budget:null,notes:[],notesTotal:0,recentTx:[]});
 
-    const CREW_ACCENT  = '#ff6b35';   // orange — distinct from any single-agent colour
-    const CREW_PURPLE  = '#9b5de5';
-    const CREW_DARK    = '#0d0d1a';
-    const CREW_SURFACE = '#12122a';
-    const CREW_BORDER  = '#2a2a55';
-    const CREW_DIM     = '#5555aa';
+  useEffect(()=>{ document.documentElement.style.setProperty('--accent',AGENTS[agKey].accent); },[agKey]);
 
-    // Preset topics the user can pick quickly
-    const CREW_PRESETS = [
-      'Artificial Intelligence in Healthcare',
-      'Quantum Computing breakthroughs',
-      'Blockchain & Web3 latest trends',
-      'Renewable Energy innovations',
-      'Space exploration in 2025',
-      'Cybersecurity threats & defenses',
-    ];
+  const loadDash=useCallback(()=>{
+    Promise.all([tasksAPI(),notesAPI(),budgetAPI()])
+      .then(([t,n,b])=>setDash({
+        tStats:t.stats,tasks:t.tasks??[],budget:b,
+        notes:n.notes??[],notesTotal:n.total??0,
+        recentTx:b?.recent_transactions??[],
+      })).catch(()=>{});
+  },[]);
 
-    function CrewAgentCard({index, name, role, icon, status}){
-      const colors = {standby:CREW_DIM, running:CREW_ACCENT, done:CREW_PURPLE, error:'#ff3366'};
-      const col = colors[status] || CREW_DIM;
-      const pulse = status==='running';
-      return(
-        <div style={{
-          background: CREW_SURFACE,
-          border: `2px solid ${status==='standby'?CREW_BORDER:col}`,
-          borderRadius:8, padding:'14px 16px', minWidth:160, flex:1,
-          boxShadow: status!=='standby'?`0 0 18px ${col}33`:'none',
-          transition:'all .4s',
-          position:'relative', overflow:'hidden',
-        }}>
-          {/* glow bar top */}
-          <div style={{position:'absolute',top:0,left:0,right:0,height:3,
-            background:status==='standby'?CREW_BORDER:col,transition:'background .4s'}}/>
-          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
-            <span style={{fontSize:20}}>{icon}</span>
-            {pulse&&<div className="blink" style={{width:7,height:7,borderRadius:'50%',
-              background:CREW_ACCENT,boxShadow:`0 0 8px ${CREW_ACCENT}`}}/>}
-          </div>
-          <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:5,
-            color:col,marginBottom:4,letterSpacing:'.08em'}}>
-            AGENT {String(index+1).padStart(2,'0')}
-          </div>
-          <div style={{fontFamily:"'VT323',monospace",fontSize:18,color:'#e8e8f0',
-            marginBottom:3,lineHeight:1.2}}>{name}</div>
-          <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:4,
-            color:CREW_DIM,marginBottom:8}}>{role}</div>
-          <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:4,
-            color:col,letterSpacing:'.15em'}}>
-            [{status.toUpperCase()}]
-          </div>
-        </div>
-      );
-    }
+  useEffect(()=>{ loadDash(); const iv=setInterval(loadDash,30000); return()=>clearInterval(iv); },[loadDash]);
 
-    function CrewPipeline({agentStatuses, pipelineAgents}){
-      return(
-        <div style={{display:'flex',alignItems:'center',gap:0,justifyContent:'center',
-          flexWrap:'wrap',rowGap:12}}>
-          {pipelineAgents.map((a,i)=>(
-            <React.Fragment key={a.name}>
-              <CrewAgentCard index={i} {...a} status={agentStatuses[i]||'standby'}/>
-              {i<pipelineAgents.length-1&&(
-                <div style={{display:'flex',flexDirection:'column',alignItems:'center',
-                  padding:'0 8px',flexShrink:0}}>
-                  <div style={{width:32,height:2,
-                    background: (agentStatuses[i+1]&&agentStatuses[i+1]!=='standby')?CREW_PURPLE:CREW_BORDER,
-                    transition:'background .4s'}}/>
-                  <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:4,
-                    color:CREW_DIM,marginTop:4}}>→</div>
-                </div>
-              )}
-            </React.Fragment>
-          ))}
-        </div>
-      );
-    }
+  useEffect(()=>{
+    const h=e=>{
+      if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();setShowCmd(p=>!p);}
+      if(e.key==='Escape'){setShowCmd(false);setShowCrew(false);}
+    };
+    window.addEventListener('keydown',h);
+    return()=>window.removeEventListener('keydown',h);
+  },[]);
 
-    function CrewLogBox({logs}){
-      const ref=React.useRef(null);
-      useEffect(()=>{if(ref.current)ref.current.scrollTop=ref.current.scrollHeight;},[logs]);
-      if(!logs||!logs.length)return null;
-      return(
-        <div ref={ref} style={{
-          background:'#080810',border:`1px solid ${CREW_BORDER}`,borderRadius:6,
-          padding:'10px 12px',maxHeight:180,overflowY:'auto',
-          fontFamily:"'VT323',monospace",fontSize:14,color:'#6666cc',
-          lineHeight:1.4,
-        }}>
-          {logs.map((l,i)=>(
-            <div key={i} style={{color: l.includes('ERROR')||l.includes('Error')?'#ff3366':
-              l.includes('Agent')||l.includes('Task')?CREW_ACCENT:'#6666cc'}}>
-              {l}
-            </div>
-          ))}
-        </div>
-      );
-    }
-
-    function CrewResultBox({outputs}){
-      const [tab,setTab]=useState(Object.keys(outputs||{})[0]||'');
-      if(!outputs||!Object.keys(outputs).length)return null;
-      const tabs=Object.keys(outputs);
-      const labels={
-        'task1_research.txt':'📋 Research','task2_report.md':'📄 Report',
-        'task1_data_clean.txt':'🧹 Cleaning','task2_stats_analysis.txt':'📊 Stats',
-        'task3_visualization.txt':'🐍 Viz Summary',
-        'stats_report.md':'📊 Stats Report','visualization.py':'🐍 Viz Code',
-        'cleaned_data.csv':'✅ Cleaned Data',
-      };
-      return(
-        <div style={{background:CREW_SURFACE,border:`2px solid ${CREW_PURPLE}`,
-          borderRadius:8,overflow:'hidden'}}>
-          {/* tab bar */}
-          <div style={{display:'flex',borderBottom:`1px solid ${CREW_BORDER}`}}>
-            {tabs.map(t=>(
-              <button key={t} onClick={()=>setTab(t)}
-                style={{flex:1,padding:'8px 12px',background:tab===t?CREW_PURPLE+'22':'transparent',
-                  border:'none',cursor:'pointer',
-                  fontFamily:"'Press Start 2P',monospace",fontSize:5,
-                  color:tab===t?CREW_PURPLE:CREW_DIM,
-                  borderBottom:tab===t?`2px solid ${CREW_PURPLE}`:'2px solid transparent'}}>
-                {labels[t]||t}
-              </button>
-            ))}
-          </div>
-          {/* content */}
-          <div style={{padding:'14px',maxHeight:400,overflowY:'auto',
-            fontFamily:"'VT323',monospace",fontSize:16,color:'#d0d0f0',
-            lineHeight:1.6,whiteSpace:'pre-wrap',wordBreak:'break-word'}}>
-            {outputs[tab]}
-          </div>
-        </div>
-      );
-    }
-
-    // ── Pipeline configs ────────────────────────────────────────────────────────
-    const RESEARCH_AGENTS=[
-      {name:'Researcher',role:'Senior Research Analyst',    icon:'🔍'},
-      {name:'Writer',    role:'Senior Content Strategist',  icon:'✍️'},
-    ];
-    const DATA_AGENTS=[
-      {name:'DataBot-Clean',role:'Data Cleaning Specialist',      icon:'🧹'},
-      {name:'DataBot-Stats',role:'Statistical Analysis Specialist',icon:'📊'},
-      {name:'DataBot-Viz',  role:'Visualization Engineer',         icon:'🐍'},
-    ];
-
-    function CrewView({T}){
-      const [crewMode,setCrewMode]=useState('research'); // 'research' | 'dataanalyst'
-
-      // ── Research state ──────────────────────────────────────────────────────
-      const [topic,setTopic]=useState('');
-
-      // ── DataAnalyst state ───────────────────────────────────────────────────
-      const [daFiles,setDaFiles]=useState([]);
-      const [daSelected,setDaSelected]=useState('');
-      const [daUploading,setDaUploading]=useState(false);
-      const [daUploadMsg,setDaUploadMsg]=useState(null);
-      const daFileRef=React.useRef(null);
-
-      // ── Shared job state ────────────────────────────────────────────────────
-      const [jobId,setJobId]=useState(null);
-      const [job,setJob]=useState(null);
-      const [polling,setPolling]=useState(false);
-
-      // Fetch available data files when switching to dataanalyst mode
-      useEffect(()=>{
-        if(crewMode==='dataanalyst'){
-          fetch(`${API}/api/dataanalyst/files`)
-            .then(r=>r.json())
-            .then(d=>{ setDaFiles(d.files||[]); if(d.files?.length) setDaSelected(d.files[0].name); })
-            .catch(()=>{});
-        }
-      },[crewMode]);
-
-      async function handleDaUpload(e){
-        const file=e.target.files?.[0];
-        if(!file)return;
-        e.target.value='';
-        setDaUploading(true);
-        setDaUploadMsg(null);
-        try{
-          const fd=new FormData();
-          fd.append('file',file);
-          const res=await fetch(`${API}/api/dataanalyst/upload`,{method:'POST',body:fd});
-          const data=await res.json();
-          if(!res.ok)throw new Error(data.detail||'Upload failed');
-          setDaUploadMsg({ok:true,msg:`${data.filename} (${data.size_kb} KB) uploaded`});
-          const r=await(await fetch(`${API}/api/dataanalyst/files`)).json();
-          setDaFiles(r.files||[]);
-          setDaSelected(data.filename);
-        }catch(err){
-          setDaUploadMsg({ok:false,msg:err.message});
-        }finally{
-          setDaUploading(false);
-        }
-      }
-
-      // Derive per-agent statuses
-      function getAgentStatuses(j){
-        const n=crewMode==='dataanalyst'?3:2;
-        const standby=Array(n).fill('standby');
-        if(!j)return standby;
-        if(j.status==='error')return['error',...Array(n-1).fill('standby')];
-        if(j.status==='done')return Array(n).fill('done');
-        const logs=j.logs||[];
-        if(crewMode==='dataanalyst'){
-          const t1=logs.some(l=>l.includes('Task 1')||l.includes('task1_data')||l.includes('clean'));
-          const t2=logs.some(l=>l.includes('Task 2')||l.includes('task2_stats')||l.includes('stats'));
-          if(t2)return['done','done','running'];
-          if(t1)return['done','running','standby'];
-          return['running','standby','standby'];
-        }
-        const t1=logs.some(l=>l.includes('Task 1')||l.includes('task1_research'));
-        if(t1)return['done','running'];
-        return['running','standby'];
-      }
-
-      // Poll for job completion
-      useEffect(()=>{
-        if(!jobId||!polling)return;
-        const iv=setInterval(async()=>{
-          try{
-            const r=await fetch(`${API}/api/crew/status/${jobId}`);
-            const d=await r.json();
-            setJob(d);
-            if(d.status==='done'||d.status==='error'){
-              setPolling(false);
-              clearInterval(iv);
-            }
-          }catch(e){setPolling(false);clearInterval(iv);}
-        },2500);
-        return()=>clearInterval(iv);
-      },[jobId,polling]);
-
-      async function launchCrew(){
-        if(polling)return;
-        if(crewMode==='research'&&!topic.trim())return;
-        if(crewMode==='dataanalyst'&&!daSelected)return;
-        setJob(null);
-        try{
-          const body= crewMode==='dataanalyst'
-            ? {topic:`Data Analysis: ${daSelected}`,crew_type:'dataanalyst',filename:daSelected}
-            : {topic:topic.trim(),crew_type:'research'};
-          const r=await fetch(`${API}/api/crew/kickoff`,{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify(body),
-          });
-          const d=await r.json();
-          if(!r.ok)throw new Error(d.detail||'Launch failed');
-          setJobId(d.job_id);
-          setJob({status:'running',topic:d.topic,crew_type:crewMode,logs:[],outputs:{}});
-          setPolling(true);
-        }catch(e){
-          setJob({status:'error',error:e.message,logs:[],outputs:{}});
-        }
-      }
-
-      function resetJob(){setJob(null);setJobId(null);setPolling(false);}
-
-      const pipelineAgents=crewMode==='dataanalyst'?DATA_AGENTS:RESEARCH_AGENTS;
-      const agentStatuses=getAgentStatuses(job);
-      const running=polling||job?.status==='running';
-      const canLaunch=crewMode==='research'?topic.trim().length>0:daSelected.length>0;
-
-      return(
-        <div style={{display:'flex',flexDirection:'column',height:'100vh',
-          background:CREW_DARK,color:'#e8e8f0',overflow:'hidden',
-          fontFamily:"'VT323',monospace"}}>
-
-          {/* ── Header ── */}
-          <div style={{padding:'12px 24px',background:CREW_SURFACE,
-            borderBottom:`2px solid ${CREW_BORDER}`,
-            display:'flex',alignItems:'center',gap:16,
-            boxShadow:`0 2px 20px ${CREW_ACCENT}22`}}>
-            <div>
-              <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:8,
-                color:CREW_ACCENT,letterSpacing:'.15em',marginBottom:2}}>
-                ⬡ CREW MODE
-              </div>
-              <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:5,
-                color:CREW_DIM,letterSpacing:'.1em'}}>
-                MULTI-AGENT MISSION CONTROL
-              </div>
-            </div>
-            <div style={{flex:1}}/>
-            {running&&(
-              <div style={{display:'flex',alignItems:'center',gap:6,
-                fontFamily:"'Press Start 2P',monospace",fontSize:5,color:CREW_ACCENT}}>
-                <div className="blink" style={{width:7,height:7,borderRadius:'50%',
-                  background:CREW_ACCENT,boxShadow:`0 0 8px ${CREW_ACCENT}`}}/>
-                MISSION ACTIVE
-              </div>
-            )}
-            {job?.status==='done'&&(
-              <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:5,color:CREW_PURPLE}}>
-                ✓ MISSION COMPLETE
-              </div>
-            )}
-          </div>
-
-          {/* ── Body ── */}
-          <div style={{flex:1,overflowY:'auto',padding:'20px 28px',
-            display:'flex',flexDirection:'column',gap:20}}>
-
-            {/* ── Mode Selector ── */}
-            <div style={{display:'flex',gap:8}}>
-              {[
-                {id:'research',    label:'📡  RESEARCH PIPELINE',  sub:'2 agents · Researcher → Writer'},
-                {id:'dataanalyst', label:'📊  DATA ANALYSIS',       sub:'3 agents · Clean → Stats → Viz'},
-              ].map(m=>(
-                <button key={m.id}
-                  onClick={()=>{if(!running){setCrewMode(m.id);resetJob();}}}
-                  disabled={running}
-                  style={{
-                    flex:1,padding:'14px 10px',textAlign:'left',cursor:running?'not-allowed':'pointer',
-                    background: crewMode===m.id?`${CREW_ACCENT}18`:'transparent',
-                    border:`2px solid ${crewMode===m.id?CREW_ACCENT:CREW_BORDER}`,
-                    borderRadius:6,transition:'all .2s',opacity:running?.6:1,
-                  }}>
-                  <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:6,
-                    color:crewMode===m.id?CREW_ACCENT:CREW_DIM,letterSpacing:'.08em',marginBottom:6}}>
-                    {m.label}
-                  </div>
-                  <div style={{fontFamily:"'VT323',monospace",fontSize:14,
-                    color:crewMode===m.id?CREW_ACCENT+'aa':CREW_DIM+'88'}}>
-                    {m.sub}
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            {/* ── Mission Briefing ── */}
-            <div style={{background:CREW_SURFACE,border:`1px solid ${CREW_BORDER}`,
-              borderRadius:8,padding:'16px 18px'}}>
-              <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:6,
-                color:CREW_ACCENT,marginBottom:10,letterSpacing:'.1em'}}>
-                {crewMode==='dataanalyst'?'// DATA FILE':'// MISSION BRIEFING'}
-              </div>
-
-              {crewMode==='research'?(
-                <>
-                  <textarea value={topic}
-                    onChange={e=>setTopic(e.target.value)}
-                    onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();launchCrew();}}}
-                    disabled={running}
-                    placeholder="Enter research topic…  (e.g. Quantum Computing breakthroughs)"
-                    rows={2}
-                    style={{width:'100%',background:'#080810',border:`1px solid ${CREW_BORDER}`,
-                      borderRadius:4,color:'#e8e8f0',padding:'10px 12px',resize:'none',
-                      fontFamily:"'VT323',monospace",fontSize:18,outline:'none',
-                      opacity:running?.6:1,boxSizing:'border-box'}}/>
-                  <div style={{display:'flex',flexWrap:'wrap',gap:5,marginTop:8}}>
-                    {CREW_PRESETS.map(p=>(
-                      <button key={p} onClick={()=>!running&&setTopic(p)}
-                        style={{background:'transparent',border:`1px solid ${CREW_BORDER}`,
-                          color:CREW_DIM,padding:'4px 8px',borderRadius:4,cursor:'pointer',
-                          fontFamily:"'VT323',monospace",fontSize:13,opacity:running?.5:1}}
-                        onMouseEnter={e=>!running&&(e.target.style.borderColor=CREW_ACCENT,e.target.style.color=CREW_ACCENT)}
-                        onMouseLeave={e=>(e.target.style.borderColor=CREW_BORDER,e.target.style.color=CREW_DIM)}>
-                        {p}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              ):(
-                <>
-                  {/* File selector */}
-                  {daFiles.length>0?(
-                    <div style={{display:'flex',flexDirection:'column',gap:4,marginBottom:10}}>
-                      {daFiles.map(f=>(
-                        <div key={f.name}
-                          onClick={()=>!running&&setDaSelected(f.name)}
-                          style={{display:'flex',alignItems:'center',gap:8,
-                            padding:'8px 10px',borderRadius:4,cursor:running?'default':'pointer',
-                            border:`2px solid ${daSelected===f.name?CREW_PURPLE:CREW_BORDER}`,
-                            background:daSelected===f.name?`${CREW_PURPLE}18`:'transparent',
-                            transition:'all .15s'}}>
-                          <span style={{fontSize:16}}>📄</span>
-                          <div style={{flex:1}}>
-                            <div style={{fontFamily:"'VT323',monospace",fontSize:17,
-                              color:daSelected===f.name?CREW_PURPLE:'#e8e8f0'}}>
-                              {f.name}
-                            </div>
-                            <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:4,
-                              color:CREW_DIM}}>
-                              {f.size_kb} KB · {f.modified}
-                            </div>
-                          </div>
-                          {daSelected===f.name&&(
-                            <span style={{color:CREW_PURPLE,fontFamily:"'Press Start 2P',monospace",fontSize:5}}>✓</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ):(
-                    <div style={{padding:'14px',border:`1px dashed ${CREW_BORDER}`,borderRadius:4,
-                      textAlign:'center',fontFamily:"'VT323',monospace",fontSize:16,color:CREW_DIM,
-                      marginBottom:10}}>
-                      No data files found. Upload a CSV, XLSX, or JSON file below.
-                    </div>
-                  )}
-                  {/* Upload */}
-                  <input ref={daFileRef} type="file" accept=".csv,.xlsx,.xls,.json"
-                    style={{display:'none'}} onChange={handleDaUpload}/>
-                  <button onClick={()=>daFileRef.current?.click()} disabled={daUploading||running}
-                    style={{width:'100%',padding:'8px',background:'transparent',
-                      border:`1px solid ${CREW_BORDER}`,color:CREW_DIM,borderRadius:4,
-                      fontFamily:"'Press Start 2P',monospace",fontSize:5,cursor:'pointer',
-                      letterSpacing:'.08em'}}>
-                    {daUploading?'UPLOADING…':'+ UPLOAD FILE  (CSV / XLSX / JSON)'}
-                  </button>
-                  {daUploadMsg&&(
-                    <div style={{marginTop:6,fontFamily:"'VT323',monospace",fontSize:15,
-                      color:daUploadMsg.ok?'#00ff88':'#ff3366'}}>
-                      {daUploadMsg.ok?'✅ ':''}{daUploadMsg.msg}
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* Launch */}
-              <button onClick={launchCrew} disabled={running||!canLaunch}
-                style={{marginTop:12,width:'100%',padding:'12px',
-                  background:running?'transparent':canLaunch?CREW_ACCENT:'transparent',
-                  border:`2px solid ${running?CREW_DIM:canLaunch?CREW_ACCENT:CREW_BORDER}`,
-                  color:running?CREW_DIM:canLaunch?'#000':'#555',
-                  fontFamily:"'Press Start 2P',monospace",fontSize:7,
-                  letterSpacing:'.2em',cursor:running||!canLaunch?'not-allowed':'pointer',
-                  borderRadius:4,transition:'all .2s'}}>
-                {running
-                  ?'⬡ MISSION IN PROGRESS…'
-                  :crewMode==='dataanalyst'
-                    ?`⬡ LAUNCH DATA CREW${daSelected?' — '+daSelected:''}`
-                    :'⬡ LAUNCH CREW'}
-              </button>
-            </div>
-
-            {/* ── Agent Pipeline ── */}
-            {job&&(
-              <div style={{background:CREW_SURFACE,border:`1px solid ${CREW_BORDER}`,
-                borderRadius:8,padding:'16px 18px'}}>
-                <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:6,
-                  color:CREW_ACCENT,marginBottom:14,letterSpacing:'.1em'}}>
-                  // AGENT PIPELINE
-                </div>
-                <CrewPipeline agentStatuses={agentStatuses} pipelineAgents={pipelineAgents}/>
-              </div>
-            )}
-
-            {/* ── Live Log ── */}
-            {job&&job.logs&&job.logs.length>0&&(
-              <div style={{background:CREW_SURFACE,border:`1px solid ${CREW_BORDER}`,
-                borderRadius:8,padding:'14px 16px'}}>
-                <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:6,
-                  color:CREW_DIM,marginBottom:8,letterSpacing:'.1em'}}>
-                  // TRANSMISSION LOG
-                </div>
-                <CrewLogBox logs={job.logs}/>
-              </div>
-            )}
-
-            {/* ── Error ── */}
-            {job?.status==='error'&&(
-              <div style={{background:'#1a0010',border:`2px solid #ff3366`,
-                borderRadius:8,padding:'14px 16px',
-                fontFamily:"'VT323',monospace",fontSize:15,color:'#ff3366',
-                whiteSpace:'pre-wrap',wordBreak:'break-word'}}>
-                ✗ MISSION FAILED — {job.error}
-              </div>
-            )}
-
-            {/* ── Results ── */}
-            {job?.status==='done'&&job.outputs&&Object.keys(job.outputs).length>0&&(
-              <div style={{background:CREW_SURFACE,border:`1px solid ${CREW_BORDER}`,
-                borderRadius:8,padding:'14px 16px'}}>
-                <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:6,
-                  color:CREW_PURPLE,marginBottom:12,letterSpacing:'.1em'}}>
-                  // MISSION OUTPUT
-                </div>
-                <CrewResultBox outputs={job.outputs}/>
-              </div>
-            )}
-
-            {/* ── Complete card ── */}
-            {job?.status==='done'&&(
-              <div style={{background:CREW_PURPLE+'11',border:`2px solid ${CREW_PURPLE}`,
-                borderRadius:8,padding:'14px 18px',display:'flex',alignItems:'center',gap:12}}>
-                <span style={{fontSize:28}}>✓</span>
-                <div>
-                  <div style={{fontFamily:"'Press Start 2P',monospace",fontSize:6,
-                    color:CREW_PURPLE,marginBottom:4}}>MISSION COMPLETE</div>
-                  <div style={{fontFamily:"'VT323',monospace",fontSize:16,color:CREW_DIM}}>
-                    {crewMode==='dataanalyst'
-                      ?`File: ${daSelected} · Outputs: cleaned_data.csv, stats_report.md, visualization.py`
-                      :`Topic: ${job.topic} · Files: task1_research.txt, task2_report.md`}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    // ══════════════════════════════════════════════════════════════════════════
-    //  END CREW VIEW
-    // ══════════════════════════════════════════════════════════════════════════
-
-    function App(){
-      const [theme,setTheme]=useState(()=>localStorage.getItem('cassanoval-theme')||'pixel');
-      const [activeAgent,setActiveAgent]=useState('task');
-      const [appMode,setAppMode]=useState('single');  // 'single' | 'crew'
-      const T=theme==='pixel'?T_PIXEL:T_CASUAL;
-      const C=theme==='pixel'?C_PIXEL:C_CASUAL;
-      const AGENTS=getAgents(C);
-      const SP=getSP(C);
-
-      // Apply theme class to <html>
-      useEffect(()=>{
-        document.documentElement.className=theme==='casual'?'casual':'';
-        localStorage.setItem('cassanoval-theme',theme);
-      },[theme]);
-
-      const [messagesByAgent,setMessagesByAgent]=useState(()=>{
-        const init={};
-        AGENT_ORDER.forEach(id=>{
-          const agents=getAgents(C_PIXEL);
-          init[id]=[{
-            id:Date.now()+id,role:'agent',agent:id,
-            content:agents[id].greeting,
-            time:new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}),
-            date:todayISO(),
-          }];
-        });
-        return init;
-      });
-
-      const [isLoading,setIsLoading]=useState(false);
-      const [panelData,setPanelData]=useState({tasks:{},notes:{},budget:{}});
-      const [pendingReceipt,setPendingReceipt]=useState(null);
-      const [isScanningReceipt,setIsScanningReceipt]=useState(false);
-      const bottomRef=useRef(null);
-      const messages=messagesByAgent[activeAgent]||[];
-
-      useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:'smooth'});},[messages,isLoading]);
-
-      const fetchPanelData=useCallback(async(agent)=>{
-        try{
-          if(agent==='task'){
-            const d=await(await fetch(`${API}/api/tasks`)).json();
-            setPanelData(p=>({...p,tasks:d}));
-          }else if(agent==='notes'){
-            const d=await(await fetch(`${API}/api/notes`)).json();
-            setPanelData(p=>({...p,notes:d}));
-          }else if(agent==='budget'){
-            const d=await(await fetch(`${API}/api/budget/summary`)).json();
-            setPanelData(p=>({...p,budget:d}));
-          }
-        }catch(e){console.error('Panel fetch failed:',e);}
-      },[]);
-
-      useEffect(()=>{fetchPanelData(activeAgent);},[activeAgent,fetchPanelData]);
-
-      async function sendMessage(text){
-        if(isLoading)return;
-        const userMsg={id:Date.now(),role:'user',content:text,
-          time:new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}),
-          date:todayISO()};
-        setMessagesByAgent(prev=>({...prev,[activeAgent]:[...(prev[activeAgent]||[]),userMsg]}));
-        setIsLoading(true);
-        try{
-          const res=await fetch(`${API}/api/chat`,{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({message:text,agent:activeAgent}),
-          });
-          const data=await res.json();
-          if(!res.ok)throw new Error(data.detail||'Server error');
-          const agentMsg={id:Date.now()+1,role:'agent',
-            agent:data.agent||activeAgent,content:data.response,
-            time:new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}),
-            date:todayISO()};
-          setMessagesByAgent(prev=>({...prev,[activeAgent]:[...(prev[activeAgent]||[]),agentMsg]}));
-          await fetchPanelData(activeAgent);
-          document.getElementById('conn-banner').style.display='none';
-        }catch(err){
-          const isNet=err instanceof TypeError&&err.message.toLowerCase().includes('fetch');
-          const errMsg={id:Date.now()+1,role:'agent',agent:activeAgent,
-            content:isNet
-              ?`> NETWORK ERROR: Cannot reach backend.\n> Make sure server is running:\n>   python server.py\n> Then visit: http://localhost:8000`
-              :`> ERROR: ${err.message}`,
-            time:new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}),
-            date:todayISO()};
-          setMessagesByAgent(prev=>({...prev,[activeAgent]:[...(prev[activeAgent]||[]),errMsg]}));
-          document.getElementById('conn-banner').style.display='block';
-        }finally{setIsLoading(false);}
-      }
-
-      async function scanReceipt(file){
-        setPendingReceipt(null);
-        setIsScanningReceipt(true);
-        const imageUrl=URL.createObjectURL(file);
-        const time=new Date().toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'});
-        const scanMsg={id:Date.now(),role:'agent',agent:'budget',
-          content:'> SCANNING RECEIPT...\n> Memproses gambar dengan Pixtral Vision AI...',
-          time};
-        setMessagesByAgent(prev=>({...prev,budget:[...(prev.budget||[]),scanMsg]}));
-        try{
-          const formData=new FormData();
-          formData.append('file',file);
-          const res=await fetch(`${API}/api/budget/scan-receipt`,{method:'POST',body:formData});
-          const data=await res.json();
-          if(!res.ok)throw new Error(data.detail||'Scan failed');
-          setPendingReceipt({...data,imageUrl});
-          const doneMsg={id:Date.now()+1,role:'agent',agent:'budget',
-            content:'> RECEIPT SCAN COMPLETE!\n> Periksa detail di bawah lalu klik CONFIRM untuk menyimpan.',
-            time};
-          setMessagesByAgent(prev=>({
-            ...prev,
-            budget:[...(prev.budget||[]).filter(m=>m.id!==scanMsg.id),doneMsg]
-          }));
-        }catch(err){
-          const errMsg={id:Date.now()+1,role:'agent',agent:'budget',
-            content:`> SCAN FAILED: ${err.message}\n> Pastikan foto struk jelas dan coba lagi.`,
-            time};
-          setMessagesByAgent(prev=>({
-            ...prev,
-            budget:[...(prev.budget||[]).filter(m=>m.id!==scanMsg.id),errMsg]
-          }));
-        }finally{setIsScanningReceipt(false);}
-      }
-
-      function confirmReceipt(){
-        if(!pendingReceipt)return;
-        const r=pendingReceipt;
-        const msg=`Tambah ${r.type==='income'?'pemasukan':'pengeluaran'}: ${r.amount} kategori ${r.category} deskripsi "${r.description}" tanggal ${r.date}`;
-        setPendingReceipt(null);
-        sendMessage(msg);
-      }
-
-      // If Crew mode is active, render CrewView entirely
-      if(appMode==='crew'){
-        return(
-          <div style={{position:'relative'}}>
-            <CrewView T={T}/>
-            {/* Switch-back button */}
-            <button onClick={()=>setAppMode('single')}
-              style={{
-                position:'fixed',top:14,right:14,zIndex:9999,
-                fontFamily:"'Press Start 2P',monospace",fontSize:5,
-                padding:'7px 12px',
-                background:'transparent',
-                border:`2px solid ${CREW_BORDER}`,
-                color:CREW_DIM,cursor:'pointer',borderRadius:4,
-                letterSpacing:'.1em',
-              }}
-              onMouseEnter={e=>{e.target.style.borderColor=P.t1;e.target.style.color=P.t0;}}
-              onMouseLeave={e=>{e.target.style.borderColor=CREW_BORDER;e.target.style.color=CREW_DIM;}}>
-              ← SINGLE AGENT
-            </button>
-          </div>
-        );
-      }
-
-      const a=AGENTS[activeAgent];
-      return(
-        <div style={{display:'flex',height:'100vh',overflow:'hidden',background:P.bg0}}>
-          <Sidebar active={activeAgent} onSelect={setActiveAgent} AGENTS={AGENTS} SP={SP} T={T}/>
-          <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,overflow:'hidden'}}>
-            {/* Header */}
-            <div className="dither-bg" style={{padding:'10px 16px',
-              borderBottom:`2px solid ${P.bd0}`,background:P.bg1,
-              display:'flex',alignItems:'center',gap:12,flexShrink:0,
-              boxShadow:`0 2px 0 0 ${P.bd1}`}}>
-              <Avatar id={activeAgent} size={36} AGENTS={AGENTS} SP={SP} T={T}/>
-              <div style={{flex:1}}>
-                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
-                  <span style={{fontFamily:T.fontPx,fontSize:T.pxFs+4,color:a.color}}>{a.name}</span>
-                  <div className="blink" style={{width:6,height:6,background:P.grn,borderRadius:'50%'}}/>
-                </div>
-                <div style={{fontFamily:T.fontPx,fontSize:T.pxFs-1,color:P.t2}}>{a.desc}</div>
-              </div>
-              <div style={{display:'flex',gap:5,alignItems:'center'}}>
-                {AGENT_ORDER.map(id=>(
-                  <button key={id} onClick={()=>setActiveAgent(id)} title={AGENTS[id].name}
-                    style={{width:10,height:10,border:'none',cursor:'pointer',
-                      borderRadius:'50%',
-                      background:activeAgent===id?AGENTS[id].color:P.bd0,
-                      boxShadow:activeAgent===id?`0 0 6px ${AGENTS[id].color}`:'none'}}/>
-                ))}
-                {/* Mode toggle */}
-                <div style={{width:1,height:16,background:P.bd1,margin:'0 4px'}}/>
-                <button onClick={()=>setAppMode('crew')}
-                  style={{
-                    fontFamily:T.fontPx,fontSize:T.pxFs-1,
-                    padding:'4px 9px',cursor:'pointer',
-                    background:`${CREW_ACCENT}18`,
-                    border:`1px solid ${CREW_ACCENT}66`,
-                    color:CREW_ACCENT,borderRadius:T.radiusXs,
-                    letterSpacing:'.08em',whiteSpace:'nowrap',
-                  }}
-                  title="Switch to Multi-Agent Crew Mode">
-                  ⬡ CREW
-                </button>
-              </div>
-            </div>
-
-            {/* Chat area */}
-            <div style={{flex:1,overflowY:'auto',padding:'16px',background:P.bg0}}>
-              {groupByDate(messages).map((group,gi)=>(
-                <div key={group.date}>
-                  <div style={{display:'flex',alignItems:'center',gap:8,margin:`${gi===0?0:18}px 0 10px`}}>
-                    <div style={{flex:1,height:1,background:P.bd1}}/>
-                    <span style={{fontFamily:T.fontPx,fontSize:T.pxFs-1,
-                      color:P.t2,padding:'3px 10px',
-                      border:`1px solid ${P.bd1}`,borderRadius:T.radiusSm,background:P.bg0,
-                      letterSpacing:'.1em'}}>
-                      {formatDateLabel(group.date)}
-                    </span>
-                    <div style={{flex:1,height:1,background:P.bd1}}/>
-                  </div>
-                  <div style={{
-                    border:`2px solid ${P.bd0}`,
-                    borderTop:`3px solid ${AGENTS[activeAgent].dark}`,
-                    background:P.bg1,
-                    borderRadius:T.radius,
-                    padding:'10px 8px 6px',
-                    boxShadow:T.shadowMd,
-                    marginBottom:4,
-                  }}>
-                    {group.msgs.map(msg=><Bubble key={msg.id} msg={msg} AGENTS={AGENTS} SP={SP} T={T}/>)}
-                  </div>
-                </div>
-              ))}
-              {isLoading&&<TypingIndicator agent={activeAgent} AGENTS={AGENTS} SP={SP} T={T}/>}
-              <div ref={bottomRef}/>
-            </div>
-
-            {activeAgent==='budget'&&pendingReceipt&&(
-              <ReceiptPanel
-                receipt={pendingReceipt}
-                onConfirm={confirmReceipt}
-                onCancel={()=>setPendingReceipt(null)}
-                T={T}/>
-            )}
-            <ChatInput onSend={sendMessage} onReceiptSelect={scanReceipt}
-              isLoading={isLoading||isScanningReceipt} activeAgent={activeAgent}
-              AGENTS={AGENTS} T={T}/>
-          </div>
-          <DataPanel activeAgent={activeAgent} data={panelData}
-            onQuickAsk={sendMessage} onRefresh={()=>fetchPanelData(activeAgent)}
-            AGENTS={AGENTS} T={T}/>
-
-          <ThemeToggle theme={theme} onToggle={()=>setTheme(t=>t==='pixel'?'casual':'pixel')}/>
-        </div>
-      );
-    }
-
+  const send=useCallback(async text=>{
+    const ts=new Date().toISOString();
+    setMsgs(p=>({...p,[agKey]:[...p[agKey],{role:'user',content:text,ts}]}));
+    setLoad(true);
     try{
-      ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+      const r=await chatAPI(text,agKey);
+      setMsgs(p=>({...p,[agKey]:[...p[agKey],{role:'assistant',content:r.response,ts:new Date().toISOString()}]}));
     }catch(e){
-      const b=document.getElementById('err-banner');
-      b.style.display='block';
-      b.textContent='REACT RENDER ERROR: '+e.message+'\n'+(e.stack||'');
+      setMsgs(p=>({...p,[agKey]:[...p[agKey],{role:'assistant',content:`⚠️ ${e.message}. Make sure backend is running at localhost:8000.`,ts:new Date().toISOString()}]}));
     }
-  </script>
+    setLoad(false);
+    loadDash();
+  },[agKey,loadDash]);
+
+  const switchAgent=k=>{setAgKey(k);setTab('chat');};
+
+  return (
+    <div className="app">
+      <Sidebar active={agKey} setActive={switchAgent} onCmd={()=>setShowCmd(true)} onCrew={()=>setShowCrew(true)}/>
+      <main className="main">
+        <Header agKey={agKey} tab={tab} setTab={setTab}/>
+        <div className="view-area">
+          {tab==='chat'
+            ?<ChatView agKey={agKey} messages={msgs[agKey]} loading={loading} onSend={send}/>
+            :<DashboardView dash={dash}/>}
+        </div>
+      </main>
+      <RightPanel agKey={agKey} dash={dash}/>
+      {showCmd&&<CommandPalette onClose={()=>setShowCmd(false)} setAgent={switchAgent} setTab={setTab}/>}
+      {showCrew&&<CrewDrawer onClose={()=>setShowCrew(false)}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
 </body>
 </html>
