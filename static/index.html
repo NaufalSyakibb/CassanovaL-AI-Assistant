@@ -519,6 +519,7 @@ const crewPoll   = id => apiFetch(`/api/crew/status/${id}`);
 function AgentAvatar({ agKey, size=32, rounded='50%' }) {
   const ag = AGENTS[agKey];
   const [err, setErr] = useState(false);
+  useEffect(()=>setErr(false),[agKey]);
   return (
     <div style={{
       width:size, height:size, borderRadius:rounded,
@@ -547,7 +548,7 @@ function Sidebar({ active, setActive, onCmd, onCrew }) {
             <button key={k} className={`sidebar-btn ${isAct?'active':''}`}
               style={isAct?{'--accent':ag.accent}:{}}
               title={`${ag.name} — ${ag.sub}`} onClick={()=>setActive(k)}>
-              {ag.icon}
+              <AgentAvatar agKey={k} size={32} rounded="10px"/>
             </button>
           );
         })}
@@ -929,7 +930,11 @@ function CommandPalette({ onClose, setAgent, setTab }) {
           {!q&&<div className="cmd-section-hdr">Agents &amp; Commands</div>}
           {filtered.map((c,i)=>(
             <div key={i} className="cmd-item" onClick={()=>pick(c)}>
-              <div className="cmd-item-icon">{c.icon}</div>
+              <div className="cmd-item-icon">
+                {c.type==='agent'
+                  ?<AgentAvatar agKey={c.key} size={34} rounded="8px"/>
+                  :c.icon}
+              </div>
               <div style={{flex:1}}>
                 <div className="cmd-item-label" style={{color:c.accent}}>{c.title}</div>
                 <div className="cmd-item-sub">{c.sub}</div>
@@ -995,8 +1000,8 @@ function CrewDrawer({ onClose }) {
   };
 
   const nodes=crewType==='research'
-    ?[{icon:'🔬',title:'Ibnu Al-Haytham',sub:'Deep Research Specialist',color:'#4ae176'},
-      {icon:'✍️',title:'Narator & Penulis',sub:'Content Writer',color:'#c180ff'}]
+    ?[{icon:'🔬',title:'Ibnu Al-Haytham',sub:'Research Drafter',color:'#4ae176'},
+      {icon:'🔍',title:'Ibnu Al-Haytham',sub:'Self-Critic & Refiner',color:'#c180ff'}]
     :[{icon:'🧹',title:'Data Cleaner',sub:'Preprocessing Agent',color:'#4ae176'},
       {icon:'📊',title:'Statistician',sub:'Analysis Expert',color:'#adc6ff'},
       {icon:'📈',title:'Visualizer',sub:'Chart Generator',color:'#f97316'}];
