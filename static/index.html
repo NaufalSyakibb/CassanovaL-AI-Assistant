@@ -29,12 +29,10 @@
     }
     #root { height: 100vh; overflow: hidden; }
 
-    /* Scrollbar */
     .scroll::-webkit-scrollbar { width: 4px; }
     .scroll::-webkit-scrollbar-track { background: transparent; }
     .scroll::-webkit-scrollbar-thumb { background: var(--surface-hx); border-radius: 10px; }
 
-    /* Animations */
     @keyframes fadeIn { from{opacity:0} to{opacity:1} }
     @keyframes scaleIn {
       from{opacity:0;transform:scale(0.95) translateY(20px)}
@@ -52,20 +50,17 @@
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
     @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 
-    /* Layout */
-    .app { display:flex; height:100vh; width:100%; overflow:hidden; background:var(--bg); }
+    /* ── Layout ─────────────────────────────────────────────────────────── */
+    .app { display:flex; height:100vh; overflow:hidden; background:var(--bg); }
 
-    /* Sidebar */
+    /* ── Sidebar ─────────────────────────────────────────────────────────── */
     .sidebar {
       position:fixed; left:0; top:0; height:100%; width:64px;
       background:var(--black); display:flex; flex-direction:column;
       align-items:center; padding:16px 0; z-index:50;
       border-right:1px solid rgba(72,71,76,0.15);
     }
-    .sidebar-logo {
-      color:var(--primary); font-weight:900; font-size:20px;
-      letter-spacing:-0.05em; margin-bottom:20px;
-    }
+    .sidebar-logo { color:var(--primary); font-weight:900; font-size:20px; letter-spacing:-0.05em; margin-bottom:20px; }
     .sidebar-agents {
       display:flex; flex-direction:column; gap:4px; flex:1;
       width:100%; align-items:center; overflow-y:auto; padding:0 8px;
@@ -75,8 +70,7 @@
       position:relative; width:44px; height:44px; border-radius:12px;
       border:none; background:transparent; cursor:pointer;
       display:flex; align-items:center; justify-content:center;
-      font-size:19px; color:var(--outline);
-      transition:color 0.15s, background 0.15s;
+      font-size:19px; color:var(--outline); transition:color 0.15s, background 0.15s;
     }
     .sidebar-btn:hover { color:white; background:rgba(255,255,255,0.06); }
     .sidebar-btn.active { color:white; }
@@ -86,39 +80,35 @@
       background:var(--accent); border-radius:1px;
     }
     .sidebar-bottom {
-      display:flex; flex-direction:column; align-items:center;
-      gap:4px; width:100%; padding:0 8px;
+      display:flex; flex-direction:column; align-items:center; gap:4px;
+      width:100%; padding:0 8px;
     }
     .sidebar-bottom-btn {
       width:44px; height:44px; border-radius:12px; border:none;
       background:transparent; cursor:pointer; display:flex;
       align-items:center; justify-content:center; color:var(--outline);
-      font-size:18px; transition:color 0.15s, background 0.15s;
+      transition:color 0.15s, background 0.15s;
     }
     .sidebar-bottom-btn:hover { color:white; background:rgba(255,255,255,0.06); }
     .avatar-circle {
-      width:32px; height:32px; border-radius:50%;
-      background:var(--surface-hx); display:flex; align-items:center;
-      justify-content:center; font-size:13px; font-weight:700;
-      color:white; cursor:pointer; border:1.5px solid rgba(255,255,255,0.1);
+      width:32px; height:32px; border-radius:50%; background:var(--surface-hx);
+      display:flex; align-items:center; justify-content:center;
+      font-size:13px; font-weight:700; color:white; cursor:pointer;
+      border:1.5px solid rgba(255,255,255,0.1);
     }
 
-    /* Main */
-    .main {
-      flex:1; margin-left:64px; margin-right:320px;
-      display:flex; flex-direction:column; overflow:hidden;
-    }
+    /* ── Main ────────────────────────────────────────────────────────────── */
+    .main { flex:1; margin-left:64px; margin-right:320px; display:flex; flex-direction:column; overflow:hidden; }
 
-    /* Header */
+    /* ── Header ──────────────────────────────────────────────────────────── */
     .top-header {
-      height:52px; z-index:40;
-      background:rgba(14,14,16,0.85); backdrop-filter:blur(12px);
+      height:52px; background:rgba(14,14,16,0.85); backdrop-filter:blur(12px);
       display:flex; justify-content:space-between; align-items:center;
-      padding:0 24px; border-bottom:1px solid rgba(72,71,76,0.1);
-      flex-shrink:0;
+      padding:0 24px; border-bottom:1px solid rgba(72,71,76,0.1); flex-shrink:0;
     }
     .header-left { display:flex; align-items:center; gap:16px; }
     .header-agent-info { display:flex; align-items:center; gap:10px; }
+    /* Agent avatar in header — 32×32px circle */
     .header-agent-avatar {
       width:32px; height:32px; border-radius:50%;
       background:var(--surface-hx); display:flex; align-items:center;
@@ -132,49 +122,33 @@
     }
     .active-badge {
       font-size:10px; font-family:'JetBrains Mono',monospace; font-weight:700;
-      color:var(--primary); background:rgba(74,225,118,0.1);
-      padding:2px 8px; border-radius:100px; border:1px solid rgba(74,225,118,0.2);
+      padding:2px 8px; border-radius:100px;
     }
-    .header-tabs {
-      display:flex; gap:3px; background:var(--surface);
-      border-radius:100px; padding:3px;
-    }
+    .header-tabs { display:flex; gap:3px; background:var(--surface); border-radius:100px; padding:3px; }
     .header-tab {
-      padding:4px 14px; border-radius:100px; font-size:13px;
-      font-weight:500; color:var(--text-v); cursor:pointer;
-      border:none; background:transparent; transition:all 0.15s;
+      padding:4px 14px; border-radius:100px; font-size:13px; font-weight:500;
+      color:var(--text-v); cursor:pointer; border:none; background:transparent; transition:all 0.15s;
     }
     .header-tab.active { background:var(--surface-hi); color:white; }
-    .header-right { display:flex; align-items:center; gap:6px; }
-    .header-icon-btn {
-      width:34px; height:34px; border-radius:10px; border:none;
-      background:transparent; color:var(--outline); cursor:pointer;
-      display:flex; align-items:center; justify-content:center;
-      transition:color 0.15s, background 0.15s;
-    }
-    .header-icon-btn:hover { color:white; background:var(--surface); }
 
-    /* View area */
+    /* ── View area ───────────────────────────────────────────────────────── */
     .view-area {
       flex:1; overflow:hidden; position:relative;
       background:radial-gradient(ellipse at 50% 30%, rgba(56,211,106,0.04) 0%, transparent 65%);
     }
 
-    /* Chat */
+    /* ── Chat ────────────────────────────────────────────────────────────── */
     .chat-view { position:relative; height:100%; display:flex; flex-direction:column; }
     .chat-messages {
       flex:1; overflow-y:auto; padding:32px 32px 200px;
       display:flex; flex-direction:column; gap:28px;
     }
-    .msg-agent-row {
-      display:flex; align-items:flex-start; gap:12px;
-      max-width:800px; animation:msgIn 0.25s ease-out;
-    }
+    .msg-agent-row { display:flex; align-items:flex-start; gap:12px; max-width:800px; animation:msgIn 0.25s ease-out; }
+    /* Agent avatar in chat bubbles — 32×32px rounded square */
     .msg-avatar {
-      width:32px; height:32px; border-radius:8px;
-      background:var(--surface-hx); border:1px solid rgba(72,71,76,0.1);
-      display:flex; align-items:center; justify-content:center;
-      font-size:15px; flex-shrink:0; overflow:hidden;
+      width:32px; height:32px; border-radius:8px; background:var(--surface-hx);
+      border:1px solid rgba(72,71,76,0.1); display:flex; align-items:center;
+      justify-content:center; font-size:15px; flex-shrink:0; overflow:hidden;
     }
     .msg-avatar img { width:100%; height:100%; object-fit:cover; }
     .msg-bubble-agent {
@@ -183,33 +157,19 @@
       font-size:15px; line-height:1.65; color:var(--text);
       box-shadow:0 2px 12px rgba(0,0,0,0.25); flex:1;
     }
-    .msg-footer {
-      font-family:'JetBrains Mono',monospace; font-size:10px;
-      color:var(--outline); margin-top:10px;
-    }
+    .msg-footer { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--outline); margin-top:10px; }
     .msg-user-row {
       display:flex; align-items:flex-start; gap:12px;
-      max-width:600px; margin-left:auto; flex-direction:row-reverse;
-      animation:msgIn 0.25s ease-out;
+      max-width:600px; margin-left:auto; flex-direction:row-reverse; animation:msgIn 0.25s ease-out;
     }
-    .msg-bubble-user {
-      border-radius:12px 0 12px 12px; padding:14px 18px;
-      font-size:15px; line-height:1.65; color:var(--text);
-    }
-    .typing-indicator {
-      display:flex; align-items:center; gap:10px;
-      margin-left:44px; animation:fadeIn 0.2s ease;
-    }
+    .msg-bubble-user { border-radius:12px 0 12px 12px; padding:14px 18px; font-size:15px; line-height:1.65; color:var(--text); }
+    .typing-indicator { display:flex; align-items:center; gap:10px; margin-left:44px; animation:fadeIn 0.2s ease; }
     .typing-dots { display:flex; gap:4px; }
-    .typing-dot {
-      width:6px; height:6px; border-radius:50%;
-      animation:dotBounce 1.2s ease-in-out infinite;
-    }
-    .typing-dot:nth-child(2){animation-delay:0.15s}
-    .typing-dot:nth-child(3){animation-delay:0.3s}
+    .typing-dot { width:6px; height:6px; border-radius:50%; animation:dotBounce 1.2s ease-in-out infinite; }
+    .typing-dot:nth-child(2){animation-delay:0.15s} .typing-dot:nth-child(3){animation-delay:0.3s}
     .typing-text { font-size:12px; color:var(--outline); font-style:italic; }
 
-    /* Input */
+    /* ── Chat input ──────────────────────────────────────────────────────── */
     .chat-input-area {
       position:absolute; bottom:0; left:0; right:0; padding:0 32px 28px;
       background:linear-gradient(to top, var(--bg) 55%, rgba(14,14,16,0.85) 75%, transparent);
@@ -222,9 +182,8 @@
     }
     .input-box {
       background:var(--surface-hi); border:1px solid rgba(72,71,76,0.12);
-      border-radius:16px; padding:8px; display:flex; align-items:flex-end;
-      gap:6px; box-shadow:0 20px 60px rgba(0,0,0,0.4);
-      transition:border-color 0.2s, box-shadow 0.2s;
+      border-radius:16px; padding:8px; display:flex; align-items:flex-end; gap:6px;
+      box-shadow:0 20px 60px rgba(0,0,0,0.4); transition:border-color 0.2s, box-shadow 0.2s;
     }
     .input-box:focus-within {
       border-color:rgba(74,225,118,0.3);
@@ -253,29 +212,23 @@
     .send-btn:active { transform:scale(0.92); }
     .send-btn:disabled { opacity:0.4; cursor:not-allowed; }
 
-    /* Dashboard */
+    /* ── Dashboard ───────────────────────────────────────────────────────── */
     .dashboard-view { padding:40px; max-width:960px; width:100%; margin:0 auto; }
     .dashboard-status {
       font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
-      text-transform:uppercase; letter-spacing:0.2em; color:var(--primary-d);
-      margin-bottom:6px;
+      text-transform:uppercase; letter-spacing:0.2em; color:var(--primary-d); margin-bottom:6px;
     }
-    .dashboard-title {
-      font-size:34px; font-weight:800; color:white;
-      letter-spacing:-0.03em; margin-bottom:32px;
-    }
+    .dashboard-title { font-size:34px; font-weight:800; color:white; letter-spacing:-0.03em; margin-bottom:32px; }
     .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
     .stat-card {
       position:relative; background:var(--surface-lo); border-radius:16px;
-      padding:20px; border:1px solid rgba(72,71,76,0.08); overflow:hidden;
-      transition:background 0.15s;
+      padding:20px; border:1px solid rgba(72,71,76,0.08); overflow:hidden; transition:background 0.15s;
     }
     .stat-card:hover { background:var(--surface-hi); }
     .stat-card-bar { position:absolute; left:0; top:0; width:3px; height:100%; }
     .stat-icon-box {
       width:38px; height:38px; border-radius:10px; border:1px solid rgba(255,255,255,0.05);
-      display:flex; align-items:center; justify-content:center;
-      font-size:17px; margin-bottom:12px;
+      display:flex; align-items:center; justify-content:center; font-size:17px; margin-bottom:12px;
     }
     .stat-title {
       font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
@@ -283,49 +236,23 @@
     }
     .stat-value { font-size:26px; font-weight:700; color:white; letter-spacing:-0.03em; margin-bottom:4px; }
     .stat-sub { font-size:11px; color:var(--outline); }
-    .content-grid { display:grid; grid-template-columns:2fr 1fr; gap:16px; }
-    .content-card {
-      background:var(--surface-lo); border-radius:16px;
-      padding:24px; border:1px solid rgba(72,71,76,0.08);
-    }
+    .activity-card { background:var(--surface-lo); border-radius:16px; padding:24px; border:1px solid rgba(72,71,76,0.08); }
     .card-title {
       font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
       text-transform:uppercase; letter-spacing:0.15em; color:var(--outline); margin-bottom:16px;
     }
-    .activity-item {
-      display:flex; align-items:center; gap:12px; padding:10px 0;
-      border-bottom:1px solid rgba(72,71,76,0.08);
-    }
+    .activity-item { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid rgba(72,71,76,0.08); }
     .activity-item:last-child { border-bottom:none; }
     .activity-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-    .activity-text { flex:1; font-size:13px; color:var(--text-v); }
     .activity-time { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--outline); }
-    .qa-btn {
-      width:100%; display:flex; align-items:center; gap:10px;
-      background:var(--surface-hi); border:1px solid rgba(72,71,76,0.1);
-      border-radius:10px; padding:12px 14px; color:var(--text);
-      font-size:13px; font-weight:500; cursor:pointer;
-      transition:background 0.15s; margin-bottom:8px; text-align:left;
-    }
-    .qa-btn:hover { background:var(--surface-hx); }
-    .qa-btn:last-child { margin-bottom:0; }
-    .qa-icon {
-      width:32px; height:32px; background:var(--bg); border-radius:8px;
-      display:flex; align-items:center; justify-content:center;
-      font-size:15px; flex-shrink:0;
-    }
 
-    /* Right panel */
+    /* ── Right panel ─────────────────────────────────────────────────────── */
     .right-panel {
       position:fixed; right:0; top:0; height:100%; width:320px;
       background:var(--surface-lo); z-index:30; display:flex;
-      flex-direction:column; padding:24px;
-      border-left:1px solid rgba(72,71,76,0.1);
+      flex-direction:column; padding:24px; border-left:1px solid rgba(72,71,76,0.1);
     }
-    .panel-header {
-      display:flex; justify-content:space-between; align-items:flex-start;
-      margin-bottom:20px; flex-shrink:0;
-    }
+    .panel-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; flex-shrink:0; }
     .panel-title { font-size:13px; font-weight:600; color:var(--primary); }
     .panel-sub {
       font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
@@ -338,14 +265,8 @@
       text-transform:uppercase; letter-spacing:0.15em; color:var(--outline);
       margin-bottom:8px; display:flex; align-items:center; justify-content:space-between;
     }
-    .panel-badge {
-      background:rgba(74,225,118,0.1); color:var(--primary);
-      font-size:10px; padding:2px 8px; border-radius:100px;
-    }
-    .project-card {
-      background:var(--surface-hi); border-left:2px solid var(--primary);
-      border-radius:10px; padding:12px;
-    }
+    .panel-badge { background:rgba(74,225,118,0.1); color:var(--primary); font-size:10px; padding:2px 8px; border-radius:100px; }
+    .project-card { background:var(--surface-hi); border-left:2px solid var(--primary); border-radius:10px; padding:12px; }
     .project-card-title { font-size:13px; font-weight:600; color:white; margin-bottom:4px; }
     .project-card-sub { font-size:11px; color:var(--text-v); line-height:1.5; }
     .task-item {
@@ -355,64 +276,31 @@
     }
     .task-item:hover { background:var(--surface-hx); border-left-color:rgba(255,255,255,0.2); }
     .task-item-title { font-size:13px; font-weight:500; color:var(--text); margin-bottom:4px; }
-    .task-item-meta {
-      font-family:'JetBrains Mono',monospace; font-size:10px;
-      color:var(--outline); display:flex; align-items:center; gap:5px;
-    }
-    .score-card {
-      position:relative; background:var(--surface-hi);
-      border-radius:10px; padding:16px; overflow:hidden;
-    }
-    .score-blob {
-      position:absolute; right:-16px; top:-16px; width:80px; height:80px;
-      background:rgba(74,225,118,0.05); border-radius:50%; filter:blur(20px);
-    }
-    .score-value { font-size:28px; font-weight:900; color:white; letter-spacing:-0.05em; }
-    .score-trend {
-      font-family:'JetBrains Mono',monospace; font-size:11px;
-      font-weight:700; color:var(--primary); margin-left:8px;
-    }
-    .score-bar-bg {
-      width:100%; height:6px; background:var(--bg);
-      border-radius:100px; margin:10px 0 6px;
-    }
-    .score-bar-fill {
-      height:100%; background:var(--primary); border-radius:100px;
-      box-shadow:0 0 8px rgba(74,225,118,0.4);
-    }
-    .score-sub { font-size:10px; color:var(--outline); }
-    .memory-item {
-      display:flex; align-items:center; gap:10px; padding:7px 8px;
-      border-radius:8px; cursor:pointer; transition:background 0.15s;
-    }
-    .memory-item:hover { background:var(--surface-hi); }
-    .memory-text { font-size:12px; color:var(--text-v); }
+    .task-item-meta { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--outline); display:flex; align-items:center; gap:5px; }
     .panel-footer {
       border-top:1px solid rgba(72,71,76,0.1); padding-top:12px;
       display:flex; gap:8px; margin-top:8px; flex-shrink:0;
     }
     .panel-footer-btn {
-      flex:1; display:flex; flex-direction:column; align-items:center;
-      gap:3px; padding:8px; border-radius:8px; border:none;
-      background:transparent; cursor:pointer; transition:background 0.15s;
-      font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700;
-      text-transform:uppercase; letter-spacing:0.05em;
+      flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
+      padding:8px; border-radius:8px; border:none; background:transparent; cursor:pointer;
+      transition:background 0.15s; font-family:'JetBrains Mono',monospace;
+      font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;
     }
     .panel-footer-btn:hover { background:var(--surface-hi); }
     .panel-footer-btn.active { color:var(--primary); }
     .panel-footer-btn:not(.active) { color:var(--outline); }
 
-    /* Upload / receipt */
+    /* ── Drop zone (receipt / DA upload) ────────────────────────────────── */
     .drop-zone {
       border:2px dashed rgba(72,71,76,0.3); border-radius:12px;
-      padding:20px; text-align:center; cursor:pointer;
-      transition:all 0.15s; margin-top:8px;
+      padding:20px; text-align:center; cursor:pointer; transition:all 0.15s; margin-top:8px;
     }
     .drop-zone:hover { border-color:rgba(74,225,118,0.35); background:rgba(74,225,118,0.04); }
     .drop-text { font-size:12px; color:var(--text-v); }
     .drop-sub { font-size:10px; color:var(--outline); margin-top:4px; font-family:'JetBrains Mono',monospace; }
 
-    /* Command palette */
+    /* ── Command palette ─────────────────────────────────────────────────── */
     .cmd-backdrop {
       position:fixed; inset:0; z-index:100; background:rgba(0,0,0,0.65);
       backdrop-filter:blur(24px); display:flex; align-items:flex-start;
@@ -421,88 +309,49 @@
     .cmd-modal {
       width:100%; max-width:560px; background:var(--surface-lo);
       border-radius:16px; box-shadow:0 32px 128px rgba(0,0,0,0.85);
-      overflow:hidden; border:1px solid rgba(255,255,255,0.1);
-      animation:scaleIn 0.2s ease-out;
+      overflow:hidden; border:1px solid rgba(255,255,255,0.1); animation:scaleIn 0.2s ease-out;
     }
     .cmd-search {
       display:flex; align-items:center; gap:12px; padding:18px 20px;
       background:rgba(31,31,35,0.5); border-bottom:1px solid rgba(255,255,255,0.05);
     }
-    .cmd-input {
-      flex:1; background:transparent; border:none; outline:none;
-      color:var(--text); font-family:'JetBrains Mono',monospace; font-size:16px;
-    }
-    .cmd-esc {
-      font-family:'JetBrains Mono',monospace; font-size:10px;
-      color:var(--outline); background:var(--surface-hx);
-      padding:3px 7px; border-radius:5px;
-    }
+    .cmd-input { flex:1; background:transparent; border:none; outline:none; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:16px; }
+    .cmd-esc { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--outline); background:var(--surface-hx); padding:3px 7px; border-radius:5px; }
     .cmd-results { max-height:400px; overflow-y:auto; padding:8px; }
-    .cmd-section-hdr {
-      font-family:'JetBrains Mono',monospace; font-size:10px;
-      text-transform:uppercase; letter-spacing:0.2em; color:var(--outline);
-      padding:8px 12px 4px;
-    }
-    .cmd-item {
-      display:flex; align-items:center; gap:12px; padding:10px 12px;
-      border-radius:10px; cursor:pointer; transition:background 0.1s;
-    }
+    .cmd-section-hdr { font-family:'JetBrains Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.2em; color:var(--outline); padding:8px 12px 4px; }
+    .cmd-item { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:10px; cursor:pointer; transition:background 0.1s; }
     .cmd-item:hover { background:var(--surface-hi); }
     .cmd-item-icon {
       width:36px; height:36px; border-radius:10px; background:var(--bg);
-      border:1px solid rgba(255,255,255,0.05); display:flex;
-      align-items:center; justify-content:center; font-size:17px;
-      flex-shrink:0; transition:transform 0.15s;
+      border:1px solid rgba(255,255,255,0.05); display:flex; align-items:center;
+      justify-content:center; font-size:17px; flex-shrink:0; transition:transform 0.15s;
     }
     .cmd-item:hover .cmd-item-icon { transform:scale(1.1); }
     .cmd-item-label { font-size:13px; font-weight:600; }
     .cmd-item-sub { font-size:11px; color:var(--outline); }
     .cmd-footer {
-      padding:12px 20px; background:rgba(14,14,16,0.8);
-      border-top:1px solid rgba(255,255,255,0.05);
+      padding:12px 20px; background:rgba(14,14,16,0.8); border-top:1px solid rgba(255,255,255,0.05);
       display:flex; align-items:center; justify-content:space-between;
     }
     .cmd-hints { display:flex; gap:14px; }
     .cmd-hint { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--outline); }
     .cmd-ver { font-family:'JetBrains Mono',monospace; font-size:10px; color:rgba(118,117,122,0.4); }
 
-    /* Crew drawer */
+    /* ── Crew drawer ─────────────────────────────────────────────────────── */
     .crew-backdrop {
       position:fixed; inset:0; z-index:60; background:rgba(0,0,0,0.65);
-      backdrop-filter:blur(4px); display:flex; justify-content:flex-end;
-      animation:fadeIn 0.2s ease;
+      backdrop-filter:blur(4px); display:flex; justify-content:flex-end; animation:fadeIn 0.2s ease;
     }
     .crew-drawer {
-      width:100%; max-width:520px; height:100%;
-      background:var(--surface-lo);
-      box-shadow:-32px 0 128px rgba(0,0,0,0.85);
-      border-left:1px solid rgba(255,255,255,0.08);
-      display:flex; flex-direction:column;
-      animation:slideInRight 0.35s cubic-bezier(0.32,0.72,0,1);
+      width:100%; max-width:520px; height:100%; background:var(--surface-lo);
+      box-shadow:-32px 0 128px rgba(0,0,0,0.85); border-left:1px solid rgba(255,255,255,0.08);
+      display:flex; flex-direction:column; animation:slideInRight 0.35s cubic-bezier(0.32,0.72,0,1);
     }
-    .crew-header {
-      padding:28px 28px 20px; display:flex;
-      align-items:flex-start; justify-content:space-between; flex-shrink:0;
-    }
-    .crew-title-bar {
-      width:6px; height:32px; background:var(--tertiary);
-      border-radius:3px; box-shadow:0 0 12px rgba(193,128,255,0.4);
-      flex-shrink:0;
-    }
-    .crew-title {
-      font-size:22px; font-weight:900; letter-spacing:-0.03em;
-      color:white; text-transform:uppercase;
-    }
-    .crew-sub {
-      font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
-      text-transform:uppercase; letter-spacing:0.2em; color:var(--outline); margin-top:2px;
-    }
-    .crew-close {
-      width:32px; height:32px; border-radius:50%; border:none;
-      background:var(--surface-hi); color:var(--outline); cursor:pointer;
-      display:flex; align-items:center; justify-content:center;
-      font-size:16px; transition:color 0.15s; flex-shrink:0;
-    }
+    .crew-header { padding:28px 28px 20px; display:flex; align-items:flex-start; justify-content:space-between; flex-shrink:0; }
+    .crew-title-bar { width:6px; height:32px; background:var(--tertiary); border-radius:3px; box-shadow:0 0 12px rgba(193,128,255,0.4); flex-shrink:0; }
+    .crew-title { font-size:22px; font-weight:900; letter-spacing:-0.03em; color:white; text-transform:uppercase; }
+    .crew-sub { font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.2em; color:var(--outline); margin-top:2px; }
+    .crew-close { width:32px; height:32px; border-radius:50%; border:none; background:var(--surface-hi); color:var(--outline); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:color 0.15s; flex-shrink:0; }
     .crew-close:hover { color:white; }
     .crew-content { flex:1; overflow-y:auto; padding:0 28px 28px; }
     .crew-section { margin-bottom:28px; }
@@ -512,96 +361,40 @@
       margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;
     }
     .crew-type-row { display:flex; gap:8px; margin-bottom:10px; }
-    .crew-type-btn {
-      flex:1; padding:10px; border-radius:10px;
-      border:1px solid rgba(72,71,76,0.2); background:var(--surface-hi);
-      color:var(--text-v); font-size:12px; font-weight:600;
-      cursor:pointer; transition:all 0.15s; text-align:center;
-    }
-    .crew-type-btn.active {
-      background:rgba(193,128,255,0.15); border-color:rgba(193,128,255,0.3);
-      color:var(--tertiary);
-    }
-    .crew-textarea {
-      width:100%; background:var(--surface-hi);
-      border:1px solid rgba(72,71,76,0.2); border-radius:10px;
-      padding:12px 14px; color:var(--text); font-family:'Inter',sans-serif;
-      font-size:14px; outline:none; resize:vertical; min-height:80px;
-      transition:border-color 0.15s;
-    }
+    .crew-type-btn { flex:1; padding:10px; border-radius:10px; border:1px solid rgba(72,71,76,0.2); background:var(--surface-hi); color:var(--text-v); font-size:12px; font-weight:600; cursor:pointer; transition:all 0.15s; text-align:center; }
+    .crew-type-btn.active { background:rgba(193,128,255,0.15); border-color:rgba(193,128,255,0.3); color:var(--tertiary); }
+    .crew-textarea { width:100%; background:var(--surface-hi); border:1px solid rgba(72,71,76,0.2); border-radius:10px; padding:12px 14px; color:var(--text); font-family:'Inter',sans-serif; font-size:14px; outline:none; resize:vertical; min-height:80px; transition:border-color 0.15s; }
     .crew-textarea:focus { border-color:rgba(193,128,255,0.4); }
-    .crew-select {
-      width:100%; background:var(--surface-hi);
-      border:1px solid rgba(72,71,76,0.2); border-radius:10px;
-      padding:10px 14px; color:var(--text); font-family:'Inter',sans-serif;
-      font-size:14px; outline:none; transition:border-color 0.15s;
-    }
+    .crew-select { width:100%; background:var(--surface-hi); border:1px solid rgba(72,71,76,0.2); border-radius:10px; padding:10px 14px; color:var(--text); font-family:'Inter',sans-serif; font-size:14px; outline:none; transition:border-color 0.15s; }
     .crew-select:focus { border-color:rgba(193,128,255,0.4); }
-    .agent-node {
-      background:var(--surface-hi); border-radius:14px;
-      border-left:4px solid var(--primary); padding:14px 16px;
-      display:flex; align-items:center; gap:14px;
-      box-shadow:0 4px 20px rgba(0,0,0,0.3); margin-bottom:10px;
-      transition:transform 0.2s; cursor:default;
-    }
+    .agent-node { background:var(--surface-hi); border-radius:14px; border-left:4px solid var(--primary); padding:14px 16px; display:flex; align-items:center; gap:14px; box-shadow:0 4px 20px rgba(0,0,0,0.3); margin-bottom:10px; transition:transform 0.2s; }
     .agent-node:hover { transform:translateY(-2px); }
-    .agent-node-icon {
-      width:44px; height:44px; border-radius:10px; background:var(--bg);
-      border:1px solid rgba(255,255,255,0.05); display:flex;
-      align-items:center; justify-content:center; font-size:22px; flex-shrink:0;
-    }
-    .agent-node-title {
-      font-size:12px; font-weight:900; text-transform:uppercase;
-      letter-spacing:0.05em; color:white;
-    }
+    .agent-node-icon { width:44px; height:44px; border-radius:10px; background:var(--bg); border:1px solid rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+    .agent-node-title { font-size:12px; font-weight:900; text-transform:uppercase; letter-spacing:0.05em; color:white; }
     .agent-node-sub { font-size:11px; color:var(--outline); margin-top:2px; }
-    .logs-box {
-      background:rgba(0,0,0,0.45); border:1px solid rgba(255,255,255,0.05);
-      border-radius:14px; padding:18px; font-family:'JetBrains Mono',monospace;
-      font-size:11px; line-height:1.7; height:220px; overflow-y:auto;
-    }
+    .logs-box { background:rgba(0,0,0,0.45); border:1px solid rgba(255,255,255,0.05); border-radius:14px; padding:18px; font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.7; height:220px; overflow-y:auto; }
     .log-sys { color:var(--primary); }
     .log-info { color:var(--outline-v); }
     .log-analysis { color:#699cff; }
-    .log-cursor {
-      display:inline-block; width:6px; height:12px;
-      background:var(--primary); animation:pulse 1s infinite; vertical-align:middle;
-    }
-    .crew-footer {
-      padding:20px 28px; background:var(--surface-hi);
-      border-top:1px solid rgba(255,255,255,0.05); flex-shrink:0;
-    }
+    .log-cursor { display:inline-block; width:6px; height:12px; background:var(--primary); animation:pulse 1s infinite; vertical-align:middle; }
+    .crew-footer { padding:20px 28px; background:var(--surface-hi); border-top:1px solid rgba(255,255,255,0.05); flex-shrink:0; }
     .launch-btn {
       width:100%; padding:16px; border-radius:14px; border:none;
       background:linear-gradient(90deg, var(--primary) 0%, var(--primary-d) 50%, var(--primary) 100%);
-      color:#0e0e10; font-weight:900; font-size:12px;
-      text-transform:uppercase; letter-spacing:0.3em; cursor:pointer;
-      box-shadow:0 8px 32px rgba(74,225,118,0.25);
+      color:#0e0e10; font-weight:900; font-size:12px; text-transform:uppercase; letter-spacing:0.3em;
+      cursor:pointer; box-shadow:0 8px 32px rgba(74,225,118,0.25);
       transition:transform 0.15s, filter 0.15s;
       display:flex; align-items:center; justify-content:center; gap:8px;
     }
     .launch-btn:hover:not(:disabled) { transform:scale(1.02); filter:brightness(1.05); }
     .launch-btn:active:not(:disabled) { transform:scale(0.98); }
     .launch-btn:disabled { opacity:0.5; cursor:not-allowed; }
-    .launch-sub {
-      text-align:center; font-family:'JetBrains Mono',monospace;
-      font-size:10px; color:var(--outline); margin-top:8px; text-transform:uppercase;
-    }
+    .launch-sub { text-align:center; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--outline); margin-top:8px; text-transform:uppercase; }
 
-    /* Misc */
-    .spinner {
-      width:14px; height:14px; border:2px solid transparent;
-      border-top-color:currentColor; border-radius:50%;
-      animation:spin 0.8s linear infinite; flex-shrink:0;
-    }
-    code {
-      font-family:'JetBrains Mono',monospace; background:rgba(0,0,0,0.4);
-      padding:2px 6px; border-radius:4px; font-size:0.9em; color:var(--primary);
-    }
-    pre {
-      background:rgba(0,0,0,0.4); border-radius:10px; padding:14px;
-      overflow-x:auto; margin:10px 0; border:1px solid rgba(72,71,76,0.1);
-    }
+    /* ── Misc ────────────────────────────────────────────────────────────── */
+    .spinner { width:14px; height:14px; border:2px solid transparent; border-top-color:currentColor; border-radius:50%; animation:spin 0.8s linear infinite; flex-shrink:0; }
+    code { font-family:'JetBrains Mono',monospace; background:rgba(0,0,0,0.4); padding:2px 6px; border-radius:4px; font-size:0.9em; color:var(--primary); }
+    pre { background:rgba(0,0,0,0.4); border-radius:10px; padding:14px; overflow-x:auto; margin:10px 0; border:1px solid rgba(72,71,76,0.1); }
     pre code { background:transparent; padding:0; font-size:13px; color:var(--primary-d); }
     .file-input-hidden { display:none; }
     strong { color:var(--text); font-weight:600; }
@@ -613,7 +406,30 @@
 <script type="text/babel">
 const { useState, useEffect, useRef, useCallback } = React;
 
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║  FOTO PROFIL AGENT — CARA MENGGANTI                                     ║
+// ║                                                                          ║
+// ║  Letakkan foto di folder:  static/avatars/                               ║
+// ║                                                                          ║
+// ║  Nama file harus PERSIS seperti ini (huruf kecil, format .jpg):          ║
+// ║                                                                          ║
+// ║    static/avatars/task.jpg      → Alfred (Task Manager)                  ║
+// ║    static/avatars/notes.jpg     → Cicero (Knowledge Base)                ║
+// ║    static/avatars/news.jpg      → Najwa  (News Feed)                     ║
+// ║    static/avatars/coding.jpg    → Linus  (Code Assistant)                ║
+// ║    static/avatars/schedule.jpg  → Miyamoto (Schedule)                    ║
+// ║    static/avatars/budget.jpg    → Mansa  (Finance)                       ║
+// ║    static/avatars/fitness.jpg   → Lavoiser (Fitness & Health)            ║
+// ║    static/avatars/journal.jpg   → Dostoyevsky (Journal)                  ║
+// ║    static/avatars/davinci.jpg   → Da Vinci (Ideas Lab)                   ║
+// ║                                                                          ║
+// ║  Format yang didukung: .jpg, .jpeg, .png, .webp                          ║
+// ║  Jika file tidak ditemukan, otomatis tampil emoji sebagai fallback.      ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+
 // ── Agent definitions ────────────────────────────────────────────────────────
+// Untuk mengganti foto, lihat panduan di atas.
+// Untuk mengganti nama/greeting, edit objek AGENTS di bawah ini.
 const AGENTS = {
   task:     { name:'Alfred',      sub:'Task Manager',     accent:'#4ae176', icon:'✅',
               greeting:'Hello. I\'m Alfred, your task manager. What shall we tackle today?' },
@@ -636,6 +452,7 @@ const AGENTS = {
 };
 const AGENT_ORDER = ['task','notes','news','coding','schedule','budget','fitness','journal','davinci'];
 
+// Quick-action chips shown above the chat input, per agent
 const CHIPS = {
   task:     ['➕ Add Task','📋 List Pending','✔️ Mark Done','🗑️ Delete'],
   notes:    ['📄 New Note','🔍 Search Notes','📚 Read Last','🔗 Summarize URL'],
@@ -648,29 +465,24 @@ const CHIPS = {
   davinci:  ['💡 Brainstorm','🎨 Creative Brief','🔀 Remix Idea','✨ Random Prompt'],
 };
 
-// ── SVG Icons ────────────────────────────────────────────────────────────────
+// ── SVG Icons ─────────────────────────────────────────────────────────────────
 const IcoSend  = () => <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>;
 const IcoSearch= () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>;
-const IcoBell  = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>;
-const IcoMore  = () => <svg viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>;
-const IcoMax   = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>;
-const IcoX     = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
 const IcoClock = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="10" height="10"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
 const IcoFile  = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>;
 const IcoCmd   = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="17" height="17"><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z"/></svg>;
 const IcoUsers = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="17" height="17"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+const IcoX     = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="15" height="15"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
 const IcoClip  = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="17" height="17"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>;
 const IcoRocket= () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="17" height="17"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>;
-const IcoHist  = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>;
-const IcoGear  = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="17" height="17"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
 
-// ── Utilities ────────────────────────────────────────────────────────────────
-const fmtTime = d => new Date(d).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
-const fmtDate = s => { if(!s) return ''; return new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short'}); };
+// ── Utilities ─────────────────────────────────────────────────────────────────
+const fmtTime  = d => new Date(d).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+const fmtDate  = s => s ? new Date(s).toLocaleDateString('id-ID',{day:'numeric',month:'short'}) : '';
 const fmtMoney = n => {
   if(n==null||isNaN(n)) return '—';
   if(n>=1_000_000) return `${(n/1_000_000).toFixed(1)}M`;
-  if(n>=1_000) return `${(n/1_000).toFixed(0)}K`;
+  if(n>=1_000)     return `${(n/1_000).toFixed(0)}K`;
   return String(Math.round(n));
 };
 const renderMd = t => {
@@ -686,7 +498,7 @@ const renderMd = t => {
     .replace(/\n\n/g,'<br/><br/>').replace(/\n/g,'<br/>');
 };
 
-// ── API ──────────────────────────────────────────────────────────────────────
+// ── API helpers ───────────────────────────────────────────────────────────────
 const apiFetch = async (path, opts={}) => {
   const r = await fetch(path, opts);
   if(!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -702,7 +514,28 @@ const receiptAPI = f => { const fd=new FormData();fd.append('file',f);return api
 const crewKick   = (topic,crew_type,filename) => apiFetch('/api/crew/kickoff',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic,crew_type,filename})});
 const crewPoll   = id => apiFetch(`/api/crew/status/${id}`);
 
-// ── Sidebar ──────────────────────────────────────────────────────────────────
+// ── AgentAvatar — reusable avatar component ──────────────────────────────────
+// Tries to load /static/avatars/{agKey}.jpg — falls back to emoji if not found.
+function AgentAvatar({ agKey, size=32, rounded='50%' }) {
+  const ag = AGENTS[agKey];
+  const [err, setErr] = useState(false);
+  return (
+    <div style={{
+      width:size, height:size, borderRadius:rounded,
+      background:'var(--surface-hx)', display:'flex', alignItems:'center',
+      justifyContent:'center', overflow:'hidden', flexShrink:0,
+      border:'1px solid rgba(72,71,76,0.1)', fontSize:size*0.5,
+    }}>
+      {!err
+        ? <img src={`/static/avatars/${agKey}.jpg`} alt={ag.name}
+            style={{width:'100%',height:'100%',objectFit:'cover'}}
+            onError={()=>setErr(true)}/>
+        : ag.icon}
+    </div>
+  );
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
 function Sidebar({ active, setActive, onCmd, onCrew }) {
   return (
     <aside className="sidebar">
@@ -722,56 +555,48 @@ function Sidebar({ active, setActive, onCmd, onCrew }) {
       <div className="sidebar-bottom">
         <button className="sidebar-bottom-btn" title="Command Palette (Ctrl+K)" onClick={onCmd}><IcoCmd/></button>
         <button className="sidebar-bottom-btn" title="Crew Mode" onClick={onCrew}><IcoUsers/></button>
-        <button className="sidebar-bottom-btn" title="Settings"><IcoGear/></button>
         <div className="avatar-circle" title="Naufal">N</div>
       </div>
     </aside>
   );
 }
 
-// ── Header ───────────────────────────────────────────────────────────────────
+// ── Header ────────────────────────────────────────────────────────────────────
 function Header({ agKey, tab, setTab }) {
   const ag=AGENTS[agKey];
   return (
     <header className="top-header">
       <div className="header-left">
         <div className="header-agent-info">
-          <div className="header-agent-avatar">
-            <img src={`/static/avatars/${agKey}.jpg`} alt={ag.name}
-              onError={e=>{e.target.style.display='none';e.target.parentNode.innerText=ag.icon;}}/>
-          </div>
+          <AgentAvatar agKey={agKey} size={32} rounded="50%"/>
           <div>
             <div className="header-agent-name">{ag.name}</div>
             <div className="header-agent-sub">{ag.sub}</div>
           </div>
-          <span className="active-badge" style={{color:ag.accent,background:ag.accent+'1a',borderColor:ag.accent+'33'}}>ONLINE</span>
+          <span className="active-badge" style={{color:ag.accent,background:ag.accent+'1a',border:`1px solid ${ag.accent}33`}}>ONLINE</span>
         </div>
         <div className="header-tabs">
           <button className={`header-tab ${tab==='chat'?'active':''}`} onClick={()=>setTab('chat')}>Chat</button>
           <button className={`header-tab ${tab==='overview'?'active':''}`} onClick={()=>setTab('overview')}>Overview</button>
         </div>
       </div>
-      <div className="header-right">
-        <button className="header-icon-btn"><IcoSearch/></button>
-        <button className="header-icon-btn"><IcoBell/></button>
-        <button className="header-icon-btn"><IcoMore/></button>
-      </div>
     </header>
   );
 }
 
-// ── Chat View ────────────────────────────────────────────────────────────────
+// ── Chat View ─────────────────────────────────────────────────────────────────
 function ChatView({ agKey, messages, loading, onSend }) {
   const ag=AGENTS[agKey];
   const [val,setVal]=useState('');
-  const endRef=useRef(null); const taRef=useRef(null); const fileRef=useRef(null);
+  const endRef=useRef(null); const taRef=useRef(null);
+  // receipt upload ref — only shown for budget agent
+  const recRef=useRef(null);
 
   useEffect(()=>{ endRef.current?.scrollIntoView({behavior:'smooth'}); },[messages,loading]);
 
   const send=useCallback(()=>{
     const t=val.trim(); if(!t||loading) return;
-    setVal('');
-    if(taRef.current) taRef.current.style.height='auto';
+    setVal(''); if(taRef.current) taRef.current.style.height='auto';
     onSend(t);
   },[val,loading,onSend]);
 
@@ -787,24 +612,20 @@ function ChatView({ agKey, messages, loading, onSend }) {
       <div className="chat-messages scroll">
         {messages.length===0&&(
           <div style={{textAlign:'center',padding:'80px 20px',color:'var(--outline)'}}>
-            <div style={{fontSize:'52px',marginBottom:'16px'}}>{ag.icon}</div>
-            <div style={{fontSize:'22px',fontWeight:'800',color:'white',marginBottom:'10px'}}>{ag.name}</div>
+            <AgentAvatar agKey={agKey} size={64} rounded="16px"/>
+            <div style={{fontSize:'22px',fontWeight:'800',color:'white',margin:'16px 0 10px'}}>{ag.name}</div>
             <div style={{fontSize:'14px',color:'var(--text-v)',maxWidth:'360px',margin:'0 auto',lineHeight:'1.65'}}>{ag.greeting}</div>
           </div>
         )}
         {messages.map((m,i)=>m.role==='user'?(
           <div key={i} className="msg-user-row">
-            <div className="msg-avatar" style={{background:'var(--surface-hx)'}}>N</div>
-            <div className="msg-bubble-user"
-              style={{background:ag.accent+'0c',border:`1px solid ${ag.accent}18`}}
+            <div style={{width:32,height:32,borderRadius:'50%',background:'var(--surface-hx)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:700,color:'white',flexShrink:0}}>N</div>
+            <div className="msg-bubble-user" style={{background:ag.accent+'0c',border:`1px solid ${ag.accent}18`}}
               dangerouslySetInnerHTML={{__html:renderMd(m.content)}}/>
           </div>
         ):(
           <div key={i} className="msg-agent-row">
-            <div className="msg-avatar">
-              <img src={`/static/avatars/${agKey}.jpg`} alt={ag.name}
-                onError={e=>{e.target.style.display='none';e.target.parentNode.innerText=ag.icon;}}/>
-            </div>
+            <AgentAvatar agKey={agKey} size={32} rounded="8px"/>
             <div className="msg-bubble-agent" style={{borderLeftColor:ag.accent}}>
               <div dangerouslySetInnerHTML={{__html:renderMd(m.content)}}/>
               <div className="msg-footer">SYSTEM: READY · {m.ts?fmtTime(m.ts):''}</div>
@@ -814,8 +635,7 @@ function ChatView({ agKey, messages, loading, onSend }) {
         {loading&&(
           <div className="typing-indicator">
             <div className="typing-dots">
-              {[0,1,2].map(i=><div key={i} className="typing-dot"
-                style={{background:ag.accent+'70',animationDelay:i*150+'ms'}}/>)}
+              {[0,1,2].map(i=><div key={i} className="typing-dot" style={{background:ag.accent+'70',animationDelay:i*150+'ms'}}/>)}
             </div>
             <span className="typing-text">{ag.name} is thinking…</span>
           </div>
@@ -834,9 +654,14 @@ function ChatView({ agKey, messages, loading, onSend }) {
           ))}
         </div>
         <div className="input-box">
-          <button className="input-btn" onClick={()=>fileRef.current?.click()}><IcoClip/></button>
-          <input ref={fileRef} type="file" className="file-input-hidden"
-            onChange={e=>{if(e.target.files[0])onSend(`[File: ${e.target.files[0].name}]`);}}/>
+          {/* Paperclip only shown for budget (opens receipt scanner) */}
+          {agKey==='budget'&&(
+            <>
+              <button className="input-btn" title="Scan Receipt" onClick={()=>recRef.current?.click()}><IcoClip/></button>
+              <input ref={recRef} type="file" accept="image/*" className="file-input-hidden"
+                onChange={e=>{if(e.target.files[0]) onSend(`[RECEIPT:${e.target.files[0].name}]`);}}/>
+            </>
+          )}
           <textarea ref={taRef} className="input-textarea" rows="1"
             placeholder={`Message ${ag.name}…`} value={val}
             onChange={onInput} onKeyDown={onKey}/>
@@ -849,13 +674,13 @@ function ChatView({ agKey, messages, loading, onSend }) {
   );
 }
 
-// ── Dashboard ────────────────────────────────────────────────────────────────
+// ── Dashboard ─────────────────────────────────────────────────────────────────
 function DashboardView({ dash }) {
   const {tStats,budget,notesTotal,recentTx}=dash;
   const cards=[
-    {t:'Tasks Pending',   v:tStats?.pending??'—',            sub:`${tStats?.high_priority??0} high priority`,c:'#4ae176',i:'✅'},
-    {t:'Balance',         v:`Rp ${fmtMoney(budget?.balance)}`,sub:`Rp ${fmtMoney(budget?.monthly_expense)} spent`,c:'#eab308',i:'💰'},
-    {t:'Notes',           v:notesTotal??'—',                  sub:'Knowledge base entries',c:'#adc6ff',i:'📝'},
+    {t:'Tasks Pending',   v:tStats?.pending??'—',             sub:`${tStats?.high_priority??0} high priority`,c:'#4ae176',i:'✅'},
+    {t:'Balance',         v:`Rp ${fmtMoney(budget?.balance)}`, sub:`Rp ${fmtMoney(budget?.monthly_expense)} spent`,c:'#eab308',i:'💰'},
+    {t:'Notes',           v:notesTotal??'—',                   sub:'Knowledge base entries',c:'#adc6ff',i:'📝'},
     {t:'Monthly Income',  v:`Rp ${fmtMoney(budget?.monthly_income)}`,sub:'This month',c:'#4ae176',i:'📈'},
   ];
   return (
@@ -874,45 +699,29 @@ function DashboardView({ dash }) {
             </div>
           ))}
         </div>
-        <div className="content-grid">
-          <div className="content-card">
-            <div className="card-title">Recent Transactions</div>
-            {(!recentTx||recentTx.length===0)
-              ?<div style={{color:'var(--outline)',fontSize:'13px',padding:'12px 0'}}>No recent transactions</div>
-              :recentTx.map((tx,i)=>(
-              <div key={i} className="activity-item">
-                <div className="activity-dot" style={{background:tx.type==='income'?'#4ae176':'#ef4444',boxShadow:`0 0 6px ${tx.type==='income'?'#4ae176':'#ef4444'}`}}/>
-                <div className="activity-text">
-                  <span style={{color:'var(--text)',fontWeight:500}}>{tx.description}</span>
-                  <span style={{marginLeft:'8px',color:tx.type==='income'?'#4ae176':'#ef4444',fontWeight:600}}>
-                    {tx.type==='income'?'+':'-'}Rp {fmtMoney(tx.amount)}
-                  </span>
-                </div>
-                <div className="activity-time">{fmtDate(tx.date)}</div>
+        <div className="activity-card">
+          <div className="card-title">Recent Transactions</div>
+          {(!recentTx||recentTx.length===0)
+            ?<div style={{color:'var(--outline)',fontSize:'13px',padding:'12px 0'}}>No recent transactions</div>
+            :recentTx.map((tx,i)=>(
+            <div key={i} className="activity-item">
+              <div className="activity-dot" style={{background:tx.type==='income'?'#4ae176':'#ef4444',boxShadow:`0 0 6px ${tx.type==='income'?'#4ae176':'#ef4444'}`}}/>
+              <div style={{flex:1,fontSize:'13px',color:'var(--text-v)'}}>
+                <span style={{color:'var(--text)',fontWeight:500}}>{tx.description}</span>
+                <span style={{marginLeft:'8px',color:tx.type==='income'?'#4ae176':'#ef4444',fontWeight:600}}>
+                  {tx.type==='income'?'+':'-'}Rp {fmtMoney(tx.amount)}
+                </span>
               </div>
-            ))}
-          </div>
-          <div className="content-card">
-            <div className="card-title">Quick Actions</div>
-            {[['✅','Add Task','Create new task'],['💰','Log Expense','Track spending'],
-              ['📝','New Note','Capture thoughts'],['🔬','Research','Start crew pipeline']
-            ].map(([ic,lb,ds],i)=>(
-              <button key={i} className="qa-btn">
-                <div className="qa-icon">{ic}</div>
-                <div>
-                  <div style={{fontWeight:600,fontSize:'13px'}}>{lb}</div>
-                  <div style={{fontSize:'11px',color:'var(--outline)'}}>{ds}</div>
-                </div>
-              </button>
-            ))}
-          </div>
+              <div className="activity-time">{fmtDate(tx.date)}</div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
   );
 }
 
-// ── Right Panel ──────────────────────────────────────────────────────────────
+// ── Right Panel ───────────────────────────────────────────────────────────────
 function RightPanel({ agKey, dash }) {
   const ag=AGENTS[agKey];
   const [tab,setTab]=useState('tasks');
@@ -924,6 +733,7 @@ function RightPanel({ agKey, dash }) {
 
   useEffect(()=>{
     if(agKey==='coding') daFilesAPI().then(d=>setDAFiles(d.files||[])).catch(()=>{});
+    setScanRes(null);
   },[agKey]);
 
   const doReceipt=async f=>{
@@ -933,17 +743,20 @@ function RightPanel({ agKey, dash }) {
   };
 
   const doDAUpload=async f=>{
-    try{const r=await uploadDAAPI(f);setDAFiles(p=>[{name:r.filename,size_kb:r.size_kb,modified:'just now'},...p]);}catch{}
+    try{
+      const r=await uploadDAAPI(f);
+      setDAFiles(p=>[{name:r.filename,size_kb:r.size_kb,modified:'just now'},...p]);
+    }catch{}
   };
 
-  const pendingTasks=dash.tasks?.filter(t=>t.status==='pending').slice(0,5)??[];
-  const recentNotes=dash.notes?.slice(0,5)??[];
+  const pendingTasks=dash.tasks?.filter(t=>t.status==='pending').slice(0,6)??[];
+  const recentNotes=dash.notes?.slice(0,6)??[];
 
+  // ── Budget panel ─────────────────────────────────────────────────────────
   if(agKey==='budget') return (
     <aside className="right-panel">
       <div className="panel-header">
-        <div><div className="panel-title">Workspace</div><div className="panel-sub">Finance Panel</div></div>
-        <button className="header-icon-btn"><IcoMax/></button>
+        <div><div className="panel-title">Finance Panel</div><div className="panel-sub">Mansa · Budget</div></div>
       </div>
       <div className="panel-scroll scroll">
         <div className="panel-section">
@@ -968,7 +781,7 @@ function RightPanel({ agKey, dash }) {
               onChange={e=>{if(e.target.files[0])doReceipt(e.target.files[0]);}}/>
             <div style={{fontSize:'28px',marginBottom:'6px'}}>{scanning?'⏳':'📷'}</div>
             <div className="drop-text">{scanning?'Membaca struk…':'Drop receipt atau klik upload'}</div>
-            <div className="drop-sub">JPG, PNG · Powered by Pixtral</div>
+            <div className="drop-sub">JPG · PNG · Powered by Pixtral</div>
           </div>
           {scanRes&&!scanRes.error&&(
             <div style={{marginTop:'8px',background:'var(--surface-hi)',borderRadius:'8px',padding:'12px',fontSize:'12px'}}>
@@ -987,11 +800,11 @@ function RightPanel({ agKey, dash }) {
     </aside>
   );
 
+  // ── DataAnalyst panel ────────────────────────────────────────────────────
   if(agKey==='coding') return (
     <aside className="right-panel">
       <div className="panel-header">
-        <div><div className="panel-title">Workspace</div><div className="panel-sub">Data Files</div></div>
-        <button className="header-icon-btn"><IcoMax/></button>
+        <div><div className="panel-title">Data Files</div><div className="panel-sub">Linus · DataAnalyst</div></div>
       </div>
       <div className="panel-scroll scroll">
         <div className="panel-section">
@@ -1025,18 +838,23 @@ function RightPanel({ agKey, dash }) {
     </aside>
   );
 
+  // ── Default panel (all other agents) ────────────────────────────────────
   return (
     <aside className="right-panel">
       <div className="panel-header">
         <div><div className="panel-title">Workspace</div><div className="panel-sub">Active Context</div></div>
-        <button className="header-icon-btn"><IcoMax/></button>
       </div>
       <div className="panel-scroll scroll">
         <div className="panel-section">
           <div className="panel-label">Active Agent</div>
           <div className="project-card" style={{borderLeftColor:ag.accent}}>
-            <div className="project-card-title">{ag.icon} {ag.name}</div>
-            <div className="project-card-sub">{ag.sub}</div>
+            <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'6px'}}>
+              <AgentAvatar agKey={agKey} size={36} rounded="8px"/>
+              <div>
+                <div className="project-card-title" style={{marginBottom:0}}>{ag.name}</div>
+                <div style={{fontSize:'10px',color:'var(--outline)',fontFamily:'JetBrains Mono',textTransform:'uppercase',letterSpacing:'0.08em'}}>{ag.sub}</div>
+              </div>
+            </div>
           </div>
         </div>
         {tab==='tasks'?(
@@ -1050,8 +868,7 @@ function RightPanel({ agKey, dash }) {
                 <div key={i} className="task-item">
                   <div className="task-item-title">{t.title}</div>
                   <div className="task-item-meta">
-                    <IcoClock/>
-                    <span>{t.priority||'normal'} priority</span>
+                    <IcoClock/> {t.priority||'normal'} priority
                     <span style={{width:'7px',height:'7px',borderRadius:'50%',display:'inline-block',
                       background:t.priority==='high'?'#4ae176':t.priority==='medium'?'#c180ff':'#48474c'}}/>
                   </div>
@@ -1066,31 +883,11 @@ function RightPanel({ agKey, dash }) {
               :recentNotes.map((n,i)=>(
                 <div key={i} className="task-item">
                   <div className="task-item-title">{n.title}</div>
-                  <div className="task-item-meta"><IcoClock/>{fmtDate(n.updated_at)}</div>
+                  <div className="task-item-meta"><IcoClock/> {fmtDate(n.updated_at)}</div>
                 </div>
               ))}
           </div>
         )}
-        <div className="panel-section">
-          <div className="score-card">
-            <div className="score-blob"/>
-            <div style={{display:'flex',alignItems:'baseline'}}>
-              <span className="score-value">84</span>
-              <span className="score-trend">+3↑</span>
-            </div>
-            <div className="score-bar-bg"><div className="score-bar-fill" style={{width:'84%'}}/></div>
-            <div className="score-sub">Productivity Score · Today</div>
-          </div>
-        </div>
-        <div className="panel-section">
-          <div className="panel-label">Memory Threads</div>
-          {['Session context preserved','Task history loaded','Budget patterns synced'].map((m,i)=>(
-            <div key={i} className="memory-item">
-              <span style={{color:'#699cff'}}><IcoHist/></span>
-              <span className="memory-text">{m}</span>
-            </div>
-          ))}
-        </div>
       </div>
       <div className="panel-footer">
         <button className={`panel-footer-btn ${tab==='tasks'?'active':''}`} onClick={()=>setTab('tasks')}>
@@ -1116,7 +913,6 @@ function CommandPalette({ onClose, setAgent, setTab }) {
     {type:'tab',key:'chat',title:'Open Chat',sub:'Talk to active agent',icon:'💬',accent:'#4ae176'},
   ];
   const filtered=q?all.filter(c=>c.title.toLowerCase().includes(q.toLowerCase())||c.sub.toLowerCase().includes(q.toLowerCase())):all;
-
   const pick=c=>{ if(c.type==='agent'){setAgent(c.key);setTab('chat');}else setTab(c.key); onClose(); };
 
   return (
@@ -1315,19 +1111,20 @@ function App() {
   const [showCrew,setShowCrew]=useState(false);
   const [dash,setDash]=useState({tStats:null,tasks:[],budget:null,notes:[],notesTotal:0,recentTx:[]});
 
+  // Apply per-agent accent color to the whole page
   useEffect(()=>{ document.documentElement.style.setProperty('--accent',AGENTS[agKey].accent); },[agKey]);
 
   const loadDash=useCallback(()=>{
     Promise.all([tasksAPI(),notesAPI(),budgetAPI()])
       .then(([t,n,b])=>setDash({
-        tStats:t.stats,tasks:t.tasks??[],budget:b,
-        notes:n.notes??[],notesTotal:n.total??0,
-        recentTx:b?.recent_transactions??[],
+        tStats:t.stats, tasks:t.tasks??[], budget:b,
+        notes:n.notes??[], notesTotal:n.total??0, recentTx:b?.recent_transactions??[],
       })).catch(()=>{});
   },[]);
 
   useEffect(()=>{ loadDash(); const iv=setInterval(loadDash,30000); return()=>clearInterval(iv); },[loadDash]);
 
+  // Keyboard shortcuts: Ctrl+K → command palette, Esc → close overlays
   useEffect(()=>{
     const h=e=>{
       if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();setShowCmd(p=>!p);}
@@ -1345,7 +1142,7 @@ function App() {
       const r=await chatAPI(text,agKey);
       setMsgs(p=>({...p,[agKey]:[...p[agKey],{role:'assistant',content:r.response,ts:new Date().toISOString()}]}));
     }catch(e){
-      setMsgs(p=>({...p,[agKey]:[...p[agKey],{role:'assistant',content:`⚠️ ${e.message}. Make sure backend is running at localhost:8000.`,ts:new Date().toISOString()}]}));
+      setMsgs(p=>({...p,[agKey]:[...p[agKey],{role:'assistant',content:`⚠️ ${e.message}. Pastikan backend berjalan di localhost:8000.`,ts:new Date().toISOString()}]}));
     }
     setLoad(false);
     loadDash();
