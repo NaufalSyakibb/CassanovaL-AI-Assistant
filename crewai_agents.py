@@ -103,138 +103,186 @@ else:
 file_writer = FileWriterTool()
 
 
-# ── Agent Factory ─────────────────────────────────────────────────────────────
+# ── Research Output Directory ──────────────────────────────────────────────────
 
-def make_researcher(topic: str) -> Agent:
+def _research_dir() -> Path:
+    """Return the directory where research output files are written.
+
+    Priority:
+      1. $OBSIDIAN_VAULT_PATH/Ferry Agent/  (OBSIDIAN_VAULT_PATH already points
+         to the 'AI Data' folder, so we only append the agent subfolder)
+      2. Project root / AI Data / Ferry Agent  (fallback if env var not set)
+    """
+    vault = os.getenv("OBSIDIAN_VAULT_PATH", "")
+    if vault:
+        p = Path(vault) / "Ferry Agent"
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+    p = Path(__file__).parent / "AI Data" / "Ferry Agent"
+    p.mkdir(parents=True, exist_ok=True)
+    return p
+
+
+# ── Agent Factory ─────────────────────────────────────────────────────────────
+#
+# Pipeline: Ibnu Al-Haytham (Drafter) → Ibnu Al-Haytham (Self-Critic)
+#
+# The same persona runs twice in different modes:
+#   1. DRAFTER  — researches deeply and writes a first draft, flagging weak spots
+#   2. CRITIC   — reads the draft with a skeptic's eye, identifies logic gaps and
+#                 unsupported claims, then outputs a refined final article
+#
+# The user never sees the raw draft — only the critique notes + final version.
+
+def make_drafter(topic: str) -> Agent:
+    """Agent 1: research the topic and produce a first draft with self-flagged weak spots."""
     return Agent(
         llm=llm_large,
         function_calling_llm=llm_small,
-        role="Ibnu Al-Haytham — Deep Research Specialist",
+        role="Ibnu Al-Haytham — Research Drafter",
         goal=(
-            f"Lakukan riset mendalam dan menyeluruh tentang: {topic}. "
-            "Kumpulkan sebanyak mungkin informasi yang relevan, akurat, dan terkini. "
-            "Sertakan semua URL sumber web yang digunakan secara lengkap. "
-            "Gali lebih dalam — temukan fakta, data, pendapat ahli, dan perspektif yang beragam."
+            f"Riset topik '{topic}' secara mendalam lalu tulis draf pertama artikel. "
+            "Draf boleh belum sempurna — tandai bagian yang argumennya masih lemah "
+            "agar bisa diperbaiki pada tahap kritik."
         ),
         backstory=(
-            "Kamu adalah Ibnu Al-Haytham, peneliti independen yang dikenal karena ketelitian "
-            "dan kedalamannya dalam mencari informasi. Kamu tidak puas dengan jawaban dangkal. "
-            "Setiap klaim yang kamu buat harus didukung oleh sumber yang jelas.\n\n"
+            "Kamu adalah Ibnu Al-Haytham dalam mode riset dan penulisan. "
+            "Tugasmu di tahap ini adalah mengumpulkan sebanyak mungkin informasi yang "
+            "relevan, akurat, dan terkini, lalu menuangkannya ke dalam draf pertama.\n\n"
             "Cara kerjamu:\n"
             "1. Mulai dengan pencarian luas untuk memetakan lanskap topik\n"
-            "2. Lanjutkan dengan pencarian spesifik per aspek penting dari topik\n"
-            "3. Kumpulkan fakta, data, kutipan, dan opini dari berbagai sudut pandang\n"
-            "4. Catat setiap URL sumber — judul halaman, URL lengkap, poin utama dari sumber tersebut\n"
-            "5. Jika menemukan informasi yang bertentangan antar sumber, catat keduanya\n\n"
-            "Kamu menghasilkan bahan mentah riset yang lengkap dan siap diolah menjadi narasi."
+            "2. Lanjutkan dengan pencarian spesifik per aspek penting\n"
+            "3. Kumpulkan fakta, data, kutipan ahli, kontroversi, dan contoh nyata\n"
+            "4. Catat setiap URL sumber secara lengkap\n"
+            "5. Tulis draf artikel yang mengalir — pembuka, isi, penutup\n\n"
+            "Prinsip penting: setiap paragraf yang kamu rasa klaimnya masih tipis atau "
+            "belum cukup didukung data, tambahkan penanda [⚠ PERLU DIKUATKAN] tepat di "
+            "akhir paragraf tersebut. Ini bukan kelemahan — ini kejujuran intelektual "
+            "yang akan membantu tahap kritik bekerja lebih efektif."
         ),
-        tools=[search_tool],
+        tools=[search_tool, file_writer],
         allow_delegation=False,
         verbose=True,
-        max_iter=12,
+        max_iter=15,
     )
 
 
-def make_writer(topic: str) -> Agent:
+def make_critic(topic: str) -> Agent:
+    """Agent 2: critique the draft's logic and evidence, then output the refined final article."""
     return Agent(
         llm=llm_large,
-        role="Narator & Penulis Konten",
+        role="Ibnu Al-Haytham — Self-Critic & Logic Refiner",
         goal=(
-            f"Ubah hasil riset tentang '{topic}' menjadi tulisan yang enak dibaca, "
-            "mengalir secara natural, dan mudah dipahami oleh pembaca awam sekalipun. "
-            "Sajikan informasi secara naratif — bukan daftar poin kering, "
-            "melainkan cerita yang informatif dan engaging."
+            f"Baca draf pertama tentang '{topic}' dengan mata skeptis. "
+            "Identifikasi setiap celah logika, klaim tanpa bukti, dan argumen lemah. "
+            "Hasilkan versi final yang lebih tajam, lebih jujur, dan lebih terpercaya."
         ),
         backstory=(
-            "Kamu adalah penulis konten berpengalaman yang mahir mengubah data dan fakta "
-            "mentah menjadi tulisan yang hidup dan mudah dicerna. Gayamu hangat, mengalir, "
-            "dan tidak kaku — seperti menjelaskan kepada teman yang ingin tahu tapi bukan "
-            "seorang ahli di bidang tersebut.\n\n"
-            "Prinsipmu:\n"
-            "- Gunakan bahasa yang natural dan mudah dipahami, hindari jargon yang tidak perlu\n"
-            "- Bangun narasi dengan alur: pembuka yang menarik, isi yang mengalir, penutup berkesan\n"
-            "- Setiap klaim penting tetap dilengkapi sumber (nama situs atau URL singkat)\n"
-            "- Prioritaskan keterbacaan — pembaca harus bisa memahami tanpa effort berlebih\n"
-            "- Gunakan analogi atau contoh konkret untuk memperjelas konsep yang kompleks"
+            "Kamu adalah Ibnu Al-Haytham — tapi sekarang kamu mengenakan topi kritik. "
+            "Kamu baru saja menyelesaikan draf pertama, dan sekarang kamu membacanya ulang "
+            "bukan sebagai penulisnya, melainkan sebagai pembaca yang paling kritis.\n\n"
+            "Pertanyaan yang selalu kamu tanyakan pada tulisanmu sendiri:\n"
+            "- Apakah klaim ini benar-benar didukung bukti yang memadai?\n"
+            "- Apakah logika dari A → B → C benar-benar mengalir tanpa lompatan?\n"
+            "- Adakah perspektif penting yang sengaja atau tidak sengaja diabaikan?\n"
+            "- Apakah ada generalisasi berlebihan ('selalu', 'semua', 'tidak pernah')?\n"
+            "- Bagian mana yang akan langsung dipertanyakan pembaca kritis?\n"
+            "- Apakah bagian yang ditandai [⚠ PERLU DIKUATKAN] sudah ditangani?\n\n"
+            "Setelah mengidentifikasi masalah, kamu tidak berhenti di daftar kritik — "
+            "kamu langsung memperbaiki setiap masalah. Jika suatu klaim tidak bisa "
+            "dikuatkan, kamu hapus atau ubah menjadi pernyataan yang lebih hati-hati "
+            "('cenderung', 'dalam banyak kasus', 'ada indikasi bahwa'). "
+            "Output akhirmu adalah artikel yang lebih tajam, lebih logis, dan lebih "
+            "jujur tentang batas antara yang sudah pasti vs. yang masih spekulatif."
         ),
         tools=[file_writer],
         allow_delegation=False,
         verbose=True,
-        max_iter=5,
+        max_iter=6,
     )
 
 
 # ── Task Factory ──────────────────────────────────────────────────────────────
 
-def make_research_task(topic: str, agent: Agent) -> Task:
+def make_draft_task(topic: str, agent: Agent) -> Task:
+    """Task 1: deep research + first draft with self-flagged weak spots."""
     return Task(
         description=(
-            f"Lakukan riset mendalam tentang topik berikut: **{topic}**\n\n"
-            "Ikuti langkah-langkah ini:\n\n"
-            "1. PENCARIAN AWAL — Mulai dengan 2-3 pencarian luas untuk memetakan topik:\n"
-            f"   - Cari '{topic}' untuk gambaran umum\n"
-            f"   - Cari '{topic} terbaru' atau '{topic} latest' untuk perkembangan terkini\n"
-            f"   - Cari '{topic} data' atau '{topic} statistik' untuk angka dan fakta\n\n"
-            "2. PENGGALIAN MENDALAM — Identifikasi 4-5 aspek penting dari topik ini dan "
-            "lakukan pencarian spesifik untuk setiap aspek. Minimal 2-3 pencarian per aspek.\n\n"
-            "3. PENGUMPULAN SUMBER — Untuk setiap informasi penting yang ditemukan, catat:\n"
-            "   - Fakta atau data utama yang ditemukan\n"
-            "   - URL sumber lengkap\n"
-            "   - Nama/judul sumber tersebut\n\n"
-            "4. PERSPEKTIF BERAGAM — Pastikan kamu mengumpulkan:\n"
-            "   - Fakta dan data kuantitatif\n"
-            "   - Opini atau analisis dari pakar/ahli\n"
-            "   - Contoh nyata atau studi kasus jika ada\n"
-            "   - Kontroversi atau perdebatan yang relevan jika ada\n\n"
-            "Berikan temuan selengkap mungkin agar penulis punya bahan yang kaya."
+            f"Lakukan riset mendalam tentang **{topic}**, lalu tulis draf pertama artikel.\n\n"
+            "FASE 1 — RISET (gunakan search tool):\n"
+            "1. Lakukan 2-3 pencarian luas untuk memetakan topik secara umum\n"
+            f"   - '{topic}', '{topic} terbaru / latest', '{topic} data / statistik'\n"
+            "2. Identifikasi 4-5 aspek utama topik ini, riset masing-masing secara spesifik "
+            "(minimal 2 pencarian per aspek)\n"
+            "3. Kumpulkan: fakta kuantitatif, kutipan ahli, contoh nyata, kontroversi jika ada\n"
+            "4. Catat setiap URL sumber — nama sumber, URL lengkap, poin utama\n\n"
+            "FASE 2 — TULIS DRAF PERTAMA:\n"
+            "Berdasarkan riset, tulis artikel naratif dengan struktur:\n"
+            "- Pembuka yang langsung menarik perhatian (fakta mengejutkan / pertanyaan)\n"
+            "- Isi yang mengalir per aspek utama, paragraf pendek, bahasa natural\n"
+            "- Sumber disebutkan secara natural dalam teks ('menurut [sumber]...')\n"
+            "- Penutup dengan insight utama\n"
+            "- Bagian Sumber Referensi di akhir\n\n"
+            "PENANDA KEJUJURAN INTELEKTUAL:\n"
+            "Setiap paragraf yang klaimnya masih tipis atau datanya belum kuat, "
+            "tambahkan [⚠ PERLU DIKUATKAN] di akhir paragraf tersebut.\n\n"
+            "Simpan draf menggunakan file_writer."
         ),
         expected_output=(
-            "Dokumen riset lengkap berisi:\n"
-            "- Temuan utama per aspek topik, dengan penjelasan detail\n"
-            "- Semua fakta, data, dan kutipan penting yang ditemukan\n"
-            "- Daftar sumber: [Nama Sumber] — [URL] — [Poin utama dari sumber ini]\n"
-            "- Minimal 8-12 sumber web berbeda\n"
-            "- Catatan jika ada informasi yang bertentangan antar sumber\n"
-            "Hasil riset harus komprehensif dan siap dijadikan dasar narasi yang kaya."
+            "Draf pertama artikel Bahasa Indonesia (600-900 kata) berisi:\n"
+            "- Narasi lengkap: pembuka, isi per aspek utama, penutup\n"
+            "- Sumber disebutkan natural dalam teks\n"
+            "- Penanda [⚠ PERLU DIKUATKAN] di paragraf yang masih lemah\n"
+            "- Bagian Sumber Referensi di akhir dengan minimal 8 URL\n"
+            "Disimpan ke task1_research.txt"
         ),
         agent=agent,
         output_file=str(_research_dir() / "task1_research.txt"),
     )
 
 
-def make_writing_task(topic: str, agent: Agent, research_task: Task) -> Task:
+def make_critique_task(topic: str, agent: Agent, draft_task: Task) -> Task:
+    """Task 2: self-critique the draft's logic then produce the polished final article."""
     return Task(
         description=(
-            f"Berdasarkan hasil riset yang telah dikumpulkan tentang **{topic}**, "
-            "tulislah artikel naratif yang informatif dan enak dibaca.\n\n"
-            "STRUKTUR TULISAN:\n"
-            "1. Pembuka yang menarik — mulai dengan fakta mengejutkan, pertanyaan, atau "
-            "konteks yang langsung menarik perhatian pembaca\n"
-            "2. Isi yang mengalir — sajikan informasi secara berurutan dan logis, "
-            "gunakan paragraf pendek, bangun dari konsep sederhana ke yang lebih kompleks\n"
-            "3. Sisipkan sumber secara natural — tulis '...menurut [nama sumber]...' atau "
-            "'...berdasarkan data dari [sumber]...' bukan footnote kaku\n"
-            "4. Penutup yang berkesan — simpulkan dengan insight utama atau pertanyaan "
-            "yang membuat pembaca berpikir lebih jauh\n\n"
-            "GAYA PENULISAN:\n"
-            "- Tulis seperti menjelaskan kepada teman cerdas yang bukan ahli di bidang ini\n"
-            "- Gunakan bahasa Indonesia yang natural, tidak kaku, tidak akademis\n"
-            "- Boleh campur istilah asing jika lebih tepat, tapi jelaskan artinya\n"
-            "- Gunakan analogi atau contoh konkret untuk hal-hal yang abstrak\n"
-            "- Hindari terlalu banyak bullet point — utamakan kalimat yang mengalir\n\n"
-            "Di akhir artikel, sertakan bagian **Sumber Referensi** dengan daftar "
-            "semua URL yang digunakan, format: - [Nama Sumber] — [URL]"
+            f"Baca draf pertama artikel tentang **{topic}** dan lakukan kritik menyeluruh, "
+            "lalu hasilkan versi final yang sudah disempurnakan.\n\n"
+            "LANGKAH 1 — KRITIK DRAF:\n"
+            "Periksa setiap bagian dan buat daftar masalah yang ditemukan:\n"
+            "- Klaim yang tidak didukung bukti memadai (termasuk semua [⚠ PERLU DIKUATKAN])\n"
+            "- Lompatan logika (dari premis A langsung ke kesimpulan C tanpa jembatan B)\n"
+            "- Generalisasi berlebihan: 'selalu', 'semua', 'tidak pernah', 'pasti'\n"
+            "- Perspektif penting yang hilang atau diabaikan\n"
+            "- Urutan atau struktur narasi yang mengganggu alur baca\n"
+            "- Istilah atau konsep yang tidak dijelaskan tapi diasumsikan dipahami\n\n"
+            "LANGKAH 2 — PERBAIKAN DAN PENULISAN FINAL:\n"
+            "Tulis versi artikel yang sudah diperbaiki:\n"
+            "- Kuatkan argumen lemah, atau ganti dengan pernyataan yang lebih berhati-hati\n"
+            "- Isi celah logika dengan penjelasan yang jelas\n"
+            "- Hapus klaim yang tidak bisa diverifikasi sama sekali\n"
+            "- Tambahkan nuansa di tempat yang perlu: 'cenderung', 'dalam banyak kasus', "
+            "'ada indikasi bahwa', 'beberapa peneliti berpendapat'\n"
+            "- Pertahankan gaya bahasa natural dan mudah dibaca\n\n"
+            "FORMAT OUTPUT WAJIB:\n"
+            "## CATATAN KRITIK\n"
+            "[Daftar masalah yang ditemukan beserta tindakan perbaikan spesifik]\n\n"
+            "---\n\n"
+            "## ARTIKEL FINAL\n"
+            "[Artikel lengkap yang sudah disempurnakan]\n\n"
+            "## Sumber Referensi\n"
+            "[Daftar URL dari draf]\n\n"
+            "Simpan menggunakan file_writer."
         ),
         expected_output=(
-            "Artikel naratif dalam Bahasa Indonesia (600-1000 kata) yang:\n"
-            "- Enak dan mudah dibaca oleh pembaca awam\n"
-            "- Informatif dan berbasis fakta dari hasil riset\n"
-            "- Mengalir natural dengan pembuka, isi, dan penutup yang jelas\n"
-            "- Menyebutkan sumber secara natural dalam teks\n"
-            "- Diakhiri bagian Sumber Referensi berisi daftar URL lengkap"
+            "Dokumen dua bagian:\n"
+            "1. CATATAN KRITIK — daftar masalah logika/bukti yang ditemukan dan "
+            "tindakan perbaikan konkret untuk masing-masing\n"
+            "2. ARTIKEL FINAL — versi yang sudah disempurnakan, logis, berimbang, "
+            "700-1000 kata, bahasa Indonesia natural\n"
+            "Disimpan ke task2_report.md"
         ),
         agent=agent,
-        context=[research_task],
+        context=[draft_task],
         output_file=str(_research_dir() / "task2_report.md"),
     )
 
@@ -242,15 +290,22 @@ def make_writing_task(topic: str, agent: Agent, research_task: Task) -> Task:
 # ── Crew Builder ──────────────────────────────────────────────────────────────
 
 def build_crew(topic: str, step_cb=None, task_cb=None) -> Crew:
-    researcher = make_researcher(topic)
-    writer     = make_writer(topic)
+    """Build the 2-agent Ibnu Al-Haytham self-critique pipeline.
 
-    research_task = make_research_task(topic, researcher)
-    writing_task  = make_writing_task(topic, writer, research_task)
+    Agent 1 (Drafter)  — researches the topic and writes a first draft,
+                         flagging weak spots with [⚠ PERLU DIKUATKAN].
+    Agent 2 (Critic)   — critiques the draft's logic and evidence,
+                         then produces the refined final article.
+    """
+    drafter = make_drafter(topic)
+    critic  = make_critic(topic)
+
+    draft_task    = make_draft_task(topic, drafter)
+    critique_task = make_critique_task(topic, critic, draft_task)
 
     return Crew(
-        agents=[researcher, writer],
-        tasks=[research_task, writing_task],
+        agents=[drafter, critic],
+        tasks=[draft_task, critique_task],
         verbose=step_cb is None,   # verbose only in standalone CLI mode
         step_callback=step_cb,
         task_callback=task_cb,
@@ -504,13 +559,13 @@ def main():
     args = parser.parse_args()
 
     print(f"\n{'='*60}")
-    print(f"  CrewAI Research Pipeline — Multi-LLM")
+    print(f"  CrewAI — Ibnu Al-Haytham Self-Critique Pipeline")
     print(f"  Topic: {args.topic}")
     search_provider = "Serper" if _serper_key else "DuckDuckGo (free)"
     print(f"  Search: {search_provider}")
-    print(f"  LLMs:")
-    print(f"    Researcher  → mistral-large-latest  (Mistral Cloud)")
-    print(f"    Writer      → mistral-large-latest  (Mistral Cloud)")
+    print(f"  Pipeline:")
+    print(f"    [1] Drafter  → mistral-large-latest  (research + first draft)")
+    print(f"    [2] Critic   → mistral-large-latest  (self-critique + refine)")
     print(f"{'='*60}\n")
 
     crew = build_crew(args.topic)
@@ -521,8 +576,8 @@ def main():
     print(f"{'='*60}")
     print(result)
     print(f"\nFiles saved:")
-    print("  task1_research.txt  — raw research findings")
-    print("  task2_report.md     — final polished report")
+    print("  task1_research.txt  — first draft (with flagged weak spots)")
+    print("  task2_report.md     — critique notes + final refined article")
 
 
 if __name__ == "__main__":
