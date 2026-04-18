@@ -33,7 +33,8 @@ _SUPPORTED_EXTS = {".csv", ".xlsx", ".xls", ".json"}
 
 def _data_dir() -> Path:
     vault = os.getenv("OBSIDIAN_VAULT_PATH", "").strip()
-    base = (Path(vault) / "AI Data" / "DataAnalyst Agent") if vault \
+    # OBSIDIAN_VAULT_PATH already points to the "AI Data" folder — only append the subfolder
+    base = (Path(vault) / "DataAnalyst Agent") if vault \
            else (Path(__file__).parent.parent / "AI Data" / "DataAnalyst Agent")
     base.mkdir(parents=True, exist_ok=True)
     return base

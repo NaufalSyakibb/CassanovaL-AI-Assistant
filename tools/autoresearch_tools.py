@@ -48,7 +48,8 @@ def _agent_dir(agent_name: str) -> Path:
 
     vault_path = os.getenv("OBSIDIAN_VAULT_PATH", "").strip()
     if vault_path:
-        base = Path(vault_path) / "AI Data" / folder
+        # OBSIDIAN_VAULT_PATH already points to the "AI Data" folder — only append the subfolder
+        base = Path(vault_path) / folder
     else:
         base = Path(__file__).parent.parent / "AI Data" / folder
 

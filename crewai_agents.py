@@ -73,8 +73,26 @@ llm_small = _make_mistral_llm("mistral-small-latest", temperature=0.1)
 _gemma4_model   = os.getenv("GEMMA4_MODEL",   "gemma-4")
 _gemma4_2_model = os.getenv("GEMMA4_2_MODEL", "gemma-4-2b-it")
 
-llm_gemma4   = _make_gemma_llm(_gemma4_model,   "GEMMA4_API_KEY",   temperature=0.3)
-llm_gemma4_2 = _make_gemma_llm(_gemma4_2_model, "GEMMA4_2_API_KEY", temperature=0.1)
+# Lazy with Mistral fallback — Gemma4 keys are optional.
+# Created at module level but wrapped so a missing key doesn't crash the import.
+def _get_gemma4_llm() -> LLM:
+    """Gemma4 large, falls back to mistral-large-latest if GEMMA4_API_KEY is absent."""
+    try:
+        return _make_gemma_llm(_gemma4_model, "GEMMA4_API_KEY", temperature=0.3)
+    except ValueError:
+        print("[WARN] GEMMA4_API_KEY not found — DataAnalyst Stats agent will use Mistral large.")
+        return _make_mistral_llm("mistral-large-latest", temperature=0.3)
+
+def _get_gemma4_2_llm() -> LLM:
+    """Gemma4 2B, falls back to mistral-small-latest if GEMMA4_2_API_KEY is absent."""
+    try:
+        return _make_gemma_llm(_gemma4_2_model, "GEMMA4_2_API_KEY", temperature=0.1)
+    except ValueError:
+        print("[WARN] GEMMA4_2_API_KEY not found — DataAnalyst Viz agent will use Mistral small.")
+        return _make_mistral_llm("mistral-small-latest", temperature=0.1)
+
+llm_gemma4   = _get_gemma4_llm()
+llm_gemma4_2 = _get_gemma4_2_llm()
 
 
 # ── Tools ─────────────────────────────────────────────────────────────────────

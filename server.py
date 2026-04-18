@@ -129,7 +129,8 @@ def _dataanalyst_dir() -> Path:
     from dotenv import load_dotenv
     load_dotenv()
     vault = os.getenv("OBSIDIAN_VAULT_PATH", "").strip()
-    base = (Path(vault) / "AI Data" / "DataAnalyst Agent") if vault \
+    # OBSIDIAN_VAULT_PATH already points to the "AI Data" folder — only append the subfolder
+    base = (Path(vault) / "DataAnalyst Agent") if vault \
            else (Path(__file__).parent / "AI Data" / "DataAnalyst Agent")
     base.mkdir(parents=True, exist_ok=True)
     return base
