@@ -139,8 +139,7 @@ else:
     research_search_tool = DuckDuckGoTool()
 
 # DataAnalyst crew still uses DuckDuckGo (no deep search needed there)
-_serper_key_da = os.getenv("SERPER_API_KEY", "")
-if _serper_key_da:
+if _serper_key:
     search_tool = SerperDevTool()
 else:
     if not _linkup_key:
@@ -190,33 +189,24 @@ def _research_dir() -> Path:
 
 
 def _read_phase_output(fname: str) -> str:
-    """Read a phase output file from research dir; return empty string if missing."""
+    """Read a phase output file from research dir; return empty string if missing or unreadable."""
     p = _research_dir() / fname
-    return p.read_text(encoding="utf-8") if p.exists() else ""
+    try:
+        return p.read_text(encoding="utf-8") if p.exists() else ""
+    except OSError:
+        return ""
 
 
 # ── Crew Builder ──────────────────────────────────────────────────────────────
 
-def build_crew(topic: str, step_cb=None, task_cb=None) -> Crew:
-    """Build the 2-agent Ibnu Al-Haytham self-critique pipeline.
+def build_crew(topic: str, step_cb=None, task_cb=None):
+    """7-agent Ibn Al-Haytham hybrid research pipeline — scaffold stub.
 
-    Agent 1 (Drafter)  — researches the topic and writes a first draft,
-                         flagging weak spots with [⚠ PERLU DIKUATKAN].
-    Agent 2 (Critic)   — critiques the draft's logic and evidence,
-                         then produces the refined final article.
+    Full implementation added in Task 8 (IbnAlHaythamPipeline).
     """
-    drafter = make_drafter(topic)
-    critic  = make_critic(topic)
-
-    draft_task    = make_draft_task(topic, drafter)
-    critique_task = make_critique_task(topic, critic, draft_task)
-
-    return Crew(
-        agents=[drafter, critic],
-        tasks=[draft_task, critique_task],
-        verbose=step_cb is None,   # verbose only in standalone CLI mode
-        step_callback=step_cb,
-        task_callback=task_cb,
+    raise NotImplementedError(
+        "build_crew() is a scaffold stub — IbnAlHaythamPipeline not yet wired up. "
+        "Tasks 2–8 must be completed first."
     )
 
 
