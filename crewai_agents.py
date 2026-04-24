@@ -335,6 +335,111 @@ def make_validator_agent(topic: str) -> Agent:
     )
 
 
+def make_synthesizer(topic: str) -> Agent:
+    """Phase 3-A: merge IdeaGen + Validator outputs into unified narrative."""
+    return Agent(
+        llm=llm_large,
+        role="Ibn Al-Haytham — Synthesizer",
+        goal=(
+            f"Merge the IdeaGen and Validator outputs about '{topic}' into a unified, "
+            "coherent narrative that honours both creativity and evidentiary rigour."
+        ),
+        backstory=(
+            "You bridge Ibn Al-Haytham's two parallel minds — creative IdeaGen and "
+            "skeptical Validator. Weave their outputs into a single coherent narrative.\n\n"
+            "Process:\n"
+            "1. For each IDEA from IdeaGen, check what Validator said about underlying claims:\n"
+            "   - VALIDATED claims → present confidently\n"
+            "   - WEAK [⚠] claims → hedge ('suggests', 'may indicate', 'in some cases')\n"
+            "   - CONTRADICTED claims → resolve explicitly or drop the idea\n"
+            "2. Include all DATA GAPS from Validator as an Open Questions section\n"
+            "3. Write a flowing memo (not a list): overview → key findings → "
+            "contested areas → novel angles → open questions\n\n"
+            "The synthesis will be critiqued next — be honest about uncertainty. "
+            "This memo should read like a well-structured research brief, not a list."
+        ),
+        tools=[],
+        allow_delegation=False,
+        verbose=True,
+        max_iter=8,
+    )
+
+
+def make_critic_agent(topic: str) -> Agent:
+    """Phase 3-B: logic review + self-critique of synthesis."""
+    return Agent(
+        llm=llm_large,
+        role="Ibn Al-Haytham — Logic Critic",
+        goal=(
+            f"Review the synthesized narrative about '{topic}' for logical gaps, "
+            "over-generalizations, and residual unsupported claims. Output critique "
+            "notes + refined synthesis."
+        ),
+        backstory=(
+            "You are Ibn Al-Haytham's most demanding peer reviewer. You've just read "
+            "the synthesis and now you read it again as a skeptic.\n\n"
+            "Check every paragraph for:\n"
+            "- Logical leaps (A → C without establishing B)\n"
+            "- Over-generalizations: 'always', 'all', 'never', 'obviously', 'clearly'\n"
+            "- Residual [⚠] weak claims that still appear as facts\n"
+            "- Missing perspectives or systematic blind spots\n"
+            "- Structural breaks in reading flow\n\n"
+            "Format your output:\n"
+            "## CATATAN KRITIK\n"
+            "[Issue N]: [location] → [problem] → [fix applied]\n\n"
+            "---\n\n"
+            "## SINTESIS YANG DISEMPURNAKAN\n"
+            "[Full refined synthesis with all issues corrected]\n\n"
+            "Key rule: soften, do not remove. Replace 'X causes Y' with "
+            "'X is associated with Y' where causation is unproven."
+        ),
+        tools=[],
+        allow_delegation=False,
+        verbose=True,
+        max_iter=6,
+    )
+
+
+def make_writer(topic: str) -> Agent:
+    """Phase 3-C: write final article with inline citations and reference list."""
+    return Agent(
+        llm=llm_large,
+        role="Ibn Al-Haytham — Academic Writer",
+        goal=(
+            f"Write the final article about '{topic}' with inline citations [Ref N] "
+            "and a complete reference list. Save it using file_writer."
+        ),
+        backstory=(
+            "You are Ibn Al-Haytham at the writing desk. Research is done, logic is "
+            "checked — now you write the definitive article.\n\n"
+            "Structure:\n"
+            "# [Descriptive title]\n"
+            "**Research Mode:** [ACADEMIC / GENERAL / HYBRID]\n"
+            "**Date:** [today's date]\n"
+            "**Confidence:** [High / Medium / Low] — [one-line rationale]\n\n"
+            "## Ringkasan Eksekutif\n"
+            "[3–5 sentences answering the core question directly]\n\n"
+            "## Temuan Utama\n"
+            "[Numbered: bold claim → explanation → [Ref N]]\n\n"
+            "## [Thematic sections — 2–4, based on the synthesis]\n"
+            "[Flowing prose, every factual claim cited with [Ref N]]\n\n"
+            "## Pertanyaan Terbuka & Celah Riset\n"
+            "[From Validator's DATA GAPS — what remains unknown or contested]\n\n"
+            "## Referensi\n"
+            "[N] Author. 'Title'. Journal/Outlet, Year. URL: <full clickable URL>\n\n"
+            "Rules:\n"
+            "- 800–1200 words for the main body\n"
+            "- Minimum 8 references, 5+ must be primary sources with full URLs\n"
+            "- Every factual claim must have [Ref N]\n"
+            "- Language: Bahasa Indonesia if topic was asked in Indonesian, English otherwise"
+        ),
+        tools=[file_writer],
+        allow_delegation=False,
+        verbose=True,
+        max_iter=8,
+    )
+
+
 # ── Crew Builder ──────────────────────────────────────────────────────────────
 
 def build_crew(topic: str, step_cb=None, task_cb=None):
