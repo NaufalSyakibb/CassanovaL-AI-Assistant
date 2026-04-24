@@ -440,6 +440,70 @@ def make_writer(topic: str) -> Agent:
     )
 
 
+# ── Task Factories ───────────────────────────────────────────────────────────
+
+def make_scout_task(topic: str, agent: Agent) -> Task:
+    """Phase 1-A task: survey + mode declaration."""
+    return Task(
+        description=(
+            f"Survey **{topic}** and produce a structured topic map.\n\n"
+            "STEP 1 — DECLARE MODE (first output line, always):\n"
+            f"Is '{topic}' primarily academic/scientific → [MODE: ACADEMIC], "
+            "general/social/business → [MODE: GENERAL], or both → [MODE: HYBRID]?\n\n"
+            "STEP 2 — BROAD SURVEY (3–5 searches):\n"
+            f"Search: '{topic}', '{topic} overview', '{topic} latest research', "
+            f"'{topic} key players'\n"
+            "ACADEMIC: also search '{topic} site:arxiv.org', "
+            "'{topic} site:pubmed.ncbi.nlm.nih.gov'\n"
+            "GENERAL: also search '{topic} news 2024 2025', '{topic} industry report'\n\n"
+            "STEP 3 — OUTPUT:\n"
+            "[MODE: X]\n\n"
+            "## Landscape Overview\n"
+            "- [5–8 bullets: key facts, players, debates, timeline]\n\n"
+            "## Key Search Terms for Deeper Research\n"
+            "- [6–10 specific terms]\n\n"
+            "## Initial Sources\n"
+            "[SOURCE 1] Title | URL | Brief note\n"
+            "[SOURCE 2] ..."
+        ),
+        expected_output=(
+            "Structured topic map with [MODE: X] on first line, landscape overview "
+            "(5–8 bullets), key search terms (6–10), and initial sources with URLs."
+        ),
+        agent=agent,
+        output_file=str(_research_dir() / "task1_scout.txt"),
+    )
+
+
+def make_filter_task(topic: str, agent: Agent, scout_task: Task) -> Task:
+    """Phase 1-B task: curate 10–15 best sources from Scout's findings."""
+    return Task(
+        description=(
+            f"Evaluate and curate sources for **{topic}** from Scout's output.\n\n"
+            "STEP 1 — SCORE EACH SOURCE from context:\n"
+            "  Tier: [PRIMARY] / [SECONDARY] / [TERTIARY]\n"
+            "  Relevance: 1–5\n"
+            "  Recency: current (<2 yr) / dated (2–5 yr) / foundational (older, seminal)\n\n"
+            "STEP 2 — SUPPLEMENT IF NEEDED:\n"
+            "If fewer than 10 quality sources found, run targeted searches:\n"
+            f"  ACADEMIC: '{topic} site:arxiv.org', '{topic} peer reviewed 2023 2024'\n"
+            f"  GENERAL:  '{topic} report 2024', '{topic} analysis expert'\n\n"
+            "STEP 3 — OUTPUT:\n"
+            "## Curated Sources (10–15)\n"
+            "[SOURCE N] Title | URL | [TIER] | Relevance: X/5 | One-line summary\n\n"
+            "## Research Focus\n"
+            "[3–4 bullets: the most important angles to investigate in Phase 2]"
+        ),
+        expected_output=(
+            "Curated list of 10–15 sources with tier, relevance score, URL, and summary. "
+            "Plus a Research Focus section with 3–4 key angles."
+        ),
+        agent=agent,
+        context=[scout_task],
+        output_file=str(_research_dir() / "task2_filter.txt"),
+    )
+
+
 # ── Crew Builder ──────────────────────────────────────────────────────────────
 
 def build_crew(topic: str, step_cb=None, task_cb=None):
