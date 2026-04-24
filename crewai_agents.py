@@ -504,6 +504,60 @@ def make_filter_task(topic: str, agent: Agent, scout_task: Task) -> Task:
     )
 
 
+def make_idea_task(topic: str, agent: Agent, filter_context: str) -> Task:
+    """Phase 2-A task: generate novel angles from curated sources."""
+    ctx = filter_context[:4000] if filter_context else "[No filter context available]"
+    return Task(
+        description=(
+            f"Based on the curated sources below for **{topic}**, generate 4–6 novel "
+            "research angles and hypotheses.\n\n"
+            f"--- CURATED SOURCES ---\n{ctx}\n--- END ---\n\n"
+            "For each idea:\n"
+            "IDEA N: [Title]\n"
+            "Type: [Novel connection / Research gap / Hypothesis / Counter-narrative]\n"
+            "Argument: [2–3 sentences]\n"
+            "Evidence basis: [which SOURCE N supports this]\n"
+            "Confidence: [High / Medium / Speculative]\n\n"
+            "Produce exactly 4–6 ideas. Label speculative ideas clearly. "
+            "The Validator checks evidence independently — do not over-hedge."
+        ),
+        expected_output=(
+            "4–6 structured ideas, each with: title, type, 2–3 sentence argument, "
+            "evidence basis (SOURCE N references), and confidence level."
+        ),
+        agent=agent,
+        output_file=str(_research_dir() / "task3a_ideas.txt"),
+    )
+
+
+def make_valid_task(topic: str, agent: Agent, filter_context: str) -> Task:
+    """Phase 2-B task: cross-check claims in curated sources."""
+    ctx = filter_context[:4000] if filter_context else "[No filter context available]"
+    return Task(
+        description=(
+            f"Cross-check the claims in these curated sources about **{topic}**.\n\n"
+            f"--- CURATED SOURCES ---\n{ctx}\n--- END ---\n\n"
+            "Produce four sections:\n\n"
+            "## VALIDATED CLAIMS\n"
+            "[✓] Claim | Source N, Source M | Confidence level\n\n"
+            "## WEAK / CONTESTED CLAIMS\n"
+            "[⚠] Claim | Why weak | What would strengthen it\n\n"
+            "## CONTRADICTIONS\n"
+            "[↔] Source A says X vs Source B says Y | Recommended resolution\n\n"
+            "## DATA GAPS\n"
+            "[?] Important question with no good source available\n\n"
+            "Rules: do not validate a claim from only one source. "
+            "Do not fabricate validation — if unverifiable, flag [⚠]."
+        ),
+        expected_output=(
+            "Four sections: validated claims [✓], weak/contested claims [⚠], "
+            "contradictions [↔], and data gaps [?]."
+        ),
+        agent=agent,
+        output_file=str(_research_dir() / "task3b_validation.txt"),
+    )
+
+
 # ── Crew Builder ──────────────────────────────────────────────────────────────
 
 def build_crew(topic: str, step_cb=None, task_cb=None):
