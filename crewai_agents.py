@@ -2,7 +2,7 @@
 Multi-Agent System with CrewAI + Mistral AI
 ============================================
 
-Pipeline 1 — Research (2 agents):  Researcher → Writer
+Pipeline 1 — Research (7 agents):  Scout → Filter → [IdeaGen ‖ Validator] → Synthesizer → Critic → Writer
 Pipeline 2 — DataAnalyst (3 agents): DataBot-Clean → DataBot-Stats → DataBot-Viz
 
 Usage:
