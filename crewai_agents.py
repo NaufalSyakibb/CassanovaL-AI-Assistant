@@ -197,6 +197,77 @@ def _read_phase_output(fname: str) -> str:
         return ""
 
 
+def make_scout(topic: str) -> Agent:
+    """Phase 1-A: broad survey + auto-detect research mode."""
+    return Agent(
+        llm=llm_small,
+        function_calling_llm=llm_small,
+        role="Ibn Al-Haytham — Research Scout",
+        goal=(
+            f"Analyze the topic '{topic}', declare the research mode "
+            "(ACADEMIC / GENERAL / HYBRID), then perform a broad initial survey "
+            "to map the landscape."
+        ),
+        backstory=(
+            "You are Ibn Al-Haytham in reconnaissance mode. Before deep research begins, "
+            "you survey the terrain.\n\n"
+            "Your first decision is the research mode:\n"
+            "  [MODE: ACADEMIC] — topic is scientific, medical, mathematical, or engineering\n"
+            "  [MODE: GENERAL]  — topic is business, culture, current events, or social\n"
+            "  [MODE: HYBRID]   — topic spans both (AI, tech policy, digital health, etc.)\n\n"
+            "After declaring the mode, run 3–5 broad searches:\n"
+            "- Key players, institutions, and authors in this space\n"
+            "- Major debates, controversies, or open questions\n"
+            "- Timeline: when did this emerge, what are recent developments?\n"
+            "- ACADEMIC mode: which databases have coverage (arXiv, PubMed, IEEE)?\n"
+            "- GENERAL mode: which outlets cover this best (news, industry, think-tanks)?\n\n"
+            "Output a structured topic map:\n"
+            "1. [MODE: X] declaration — first line, always\n"
+            "2. Landscape summary — 5–8 bullet points\n"
+            "3. Key search terms for deeper research — 6–10 terms\n"
+            "4. Initial sources found — URL + title + one-line note"
+        ),
+        tools=[research_search_tool],
+        allow_delegation=False,
+        verbose=True,
+        max_iter=8,
+    )
+
+
+def make_filter_agent(topic: str) -> Agent:
+    """Phase 1-B: evaluate Scout sources, curate 10–15 best."""
+    return Agent(
+        llm=llm_small,
+        function_calling_llm=llm_small,
+        role="Ibn Al-Haytham — Source Curator",
+        goal=(
+            f"Evaluate the sources discovered by Scout for '{topic}', "
+            "score each by relevance and quality, and curate the 10–15 strongest."
+        ),
+        backstory=(
+            "You are Ibn Al-Haytham's quality gate. You evaluate what Scout found "
+            "and select only the best. You may run additional targeted searches if "
+            "Scout found fewer than 10 quality sources.\n\n"
+            "Scoring criteria:\n"
+            "  - Relevance to the specific topic (1–5)\n"
+            "  - Source tier: [PRIMARY] peer-reviewed/official, "
+            "[SECONDARY] expert commentary, [TERTIARY] blogs/forums\n"
+            "  - Recency: prefer < 3 years unless foundational\n"
+            "  - ACADEMIC mode: prioritise peer-reviewed papers\n"
+            "  - GENERAL mode: prioritise authoritative outlets and recent reports\n\n"
+            "Output format:\n"
+            "## Curated Sources (10–15)\n"
+            "[SOURCE N] Title | URL | [TIER] | Relevance: X/5 | One-line summary\n\n"
+            "## Research Focus\n"
+            "[3–4 bullet points: the most important angles to investigate next]"
+        ),
+        tools=[research_search_tool],
+        allow_delegation=False,
+        verbose=True,
+        max_iter=6,
+    )
+
+
 # ── Crew Builder ──────────────────────────────────────────────────────────────
 
 def build_crew(topic: str, step_cb=None, task_cb=None):
