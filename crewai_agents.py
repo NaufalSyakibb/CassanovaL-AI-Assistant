@@ -558,6 +558,105 @@ def make_valid_task(topic: str, agent: Agent, filter_context: str) -> Task:
     )
 
 
+def make_synth_task(topic: str, agent: Agent, ideas: str, validation: str) -> Task:
+    """Phase 3-A task: merge IdeaGen + Validator outputs."""
+    ideas_ctx = ideas[:3000] if ideas else "[IdeaGen output unavailable]"
+    valid_ctx = validation[:3000] if validation else "[Validator output unavailable]"
+    return Task(
+        description=(
+            f"Merge two analyses about **{topic}** into a unified narrative.\n\n"
+            f"--- IDEAS (IdeaGen) ---\n{ideas_ctx}\n--- END ---\n\n"
+            f"--- VALIDATION (Validator) ---\n{valid_ctx}\n--- END ---\n\n"
+            "Process:\n"
+            "1. For each IDEA: check Validator's findings on the underlying claims.\n"
+            "   - VALIDATED [✓] → present confidently\n"
+            "   - WEAK [⚠]     → hedge: 'suggests', 'may indicate', 'in some cases'\n"
+            "   - CONTRADICTED  → resolve explicitly, or note the disagreement\n"
+            "2. Include all DATA GAPS [?] as an 'Open Questions' section\n"
+            "3. Write a flowing memo (not a bullet list):\n"
+            "   Overview → Key validated findings → Contested areas → "
+            "Novel angles → Open questions\n\n"
+            "Length: 500–700 words. Be honest about uncertainty — "
+            "this synthesis will be critiqued next."
+        ),
+        expected_output=(
+            "Flowing research memo (500–700 words) integrating ideas and validation, "
+            "with hedged confidence levels and an open questions section."
+        ),
+        agent=agent,
+        output_file=str(_research_dir() / "task4_synthesis.txt"),
+    )
+
+
+def make_critique_task_p3(topic: str, agent: Agent, synth_task: Task) -> Task:
+    """Phase 3-B task: logic review + produce refined synthesis."""
+    return Task(
+        description=(
+            f"Review the synthesis about **{topic}** for logical issues, "
+            "then output critique notes + a refined version.\n\n"
+            "CHECK FOR:\n"
+            "- Logical leaps (A → C without establishing B)\n"
+            "- Over-generalizations: 'always', 'all', 'never', 'obviously', 'clearly'\n"
+            "- Residual [⚠] weak claims still presented as facts\n"
+            "- Missing perspectives or systematic blind spots\n"
+            "- Structural breaks in reading flow\n\n"
+            "OUTPUT FORMAT (mandatory):\n"
+            "## CATATAN KRITIK\n"
+            "[Issue N]: [specific location] → [problem] → [fix applied]\n\n"
+            "---\n\n"
+            "## SINTESIS YANG DISEMPURNAKAN\n"
+            "[Full refined synthesis with every issue corrected]\n\n"
+            "Rule: soften, do not remove. "
+            "'X causes Y' → 'X is associated with Y' where causation is unproven."
+        ),
+        expected_output=(
+            "Two sections: CATATAN KRITIK (numbered issues with fixes) "
+            "and SINTESIS YANG DISEMPURNAKAN (complete refined synthesis)."
+        ),
+        agent=agent,
+        context=[synth_task],
+        output_file=str(_research_dir() / "task5_critique.txt"),
+    )
+
+
+def make_write_task(topic: str, agent: Agent, critique_task: Task) -> Task:
+    """Phase 3-C task: write final article with citations + reference list."""
+    return Task(
+        description=(
+            f"Write the final article about **{topic}** using the refined synthesis.\n\n"
+            "STRUCTURE:\n"
+            "# [Descriptive title]\n"
+            "**Research Mode:** [ACADEMIC / GENERAL / HYBRID]\n"
+            "**Date:** [today's date]\n"
+            "**Confidence:** [High / Medium / Low] — [one-line rationale]\n\n"
+            "## Ringkasan Eksekutif\n"
+            "[3–5 sentences directly answering the core question]\n\n"
+            "## Temuan Utama\n"
+            "[Numbered: bold claim → explanation → [Ref N]]\n\n"
+            "## [2–4 thematic sections based on synthesis content]\n"
+            "[Flowing prose, every factual claim cited with [Ref N]]\n\n"
+            "## Pertanyaan Terbuka & Celah Riset\n"
+            "[From Validator's DATA GAPS — what remains unknown or contested]\n\n"
+            "## Referensi\n"
+            "[N] Author. 'Title'. Journal/Outlet, Year. URL: <full clickable URL>\n\n"
+            "RULES:\n"
+            "- 800–1200 words for the main body\n"
+            "- Minimum 8 references, 5+ primary with full URLs\n"
+            "- Every factual claim must have [Ref N] inline\n"
+            "- Language: Bahasa Indonesia if topic was in Indonesian, English otherwise\n"
+            "Save using file_writer."
+        ),
+        expected_output=(
+            "Complete final article (800–1200 words) with header, executive summary, "
+            "key findings, thematic sections, open questions, and reference list "
+            "(8+ entries with full URLs). Saved to task6_final_report.md."
+        ),
+        agent=agent,
+        context=[critique_task],
+        output_file=str(_research_dir() / "task6_final_report.md"),
+    )
+
+
 # ── Crew Builder ──────────────────────────────────────────────────────────────
 
 def build_crew(topic: str, step_cb=None, task_cb=None):
