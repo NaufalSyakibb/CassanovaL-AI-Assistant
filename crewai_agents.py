@@ -19,6 +19,7 @@ from crewai import Agent, Task, Crew, LLM
 from crewai_tools import SerperDevTool, FileWriterTool
 from langchain_community.tools import DuckDuckGoSearchRun
 from crewai.tools import BaseTool
+from concurrent.futures import ThreadPoolExecutor
 
 load_dotenv()
 
@@ -62,11 +63,9 @@ def _make_gemma_llm(model: str, api_key_env: str, temperature: float = 0.2) -> L
 
 
 # ── Mistral LLMs (cloud) ───────────────────────────────────────────────────────
-# Main generation LLM — large model for deep reasoning
 llm_large = _make_mistral_llm("mistral-large-latest", temperature=0.3)
-
-# Fast LLM — small model for tool calls / function calling
 llm_small = _make_mistral_llm("mistral-small-latest", temperature=0.1)
+
 
 # ── Gemma4 LLMs (Google AI Studio) ────────────────────────────────────────────
 # Model names can be overridden via .env: GEMMA4_MODEL / GEMMA4_2_MODEL
@@ -97,13 +96,34 @@ llm_gemma4_2 = _get_gemma4_2_llm()
 
 # ── Tools ─────────────────────────────────────────────────────────────────────
 
-# Prefer Serper (paid, higher quality) → fall back to DuckDuckGo (free)
-_serper_key = os.getenv("SERPER_API_KEY", "")
+# LinkUp deep search tool — used by Ibnu Al-Haytham research crew
+class LinkUpSearchTool(BaseTool):
+    name: str = "LinkUp Deep Search"
+    description: str = (
+        "Perform a deep web search using LinkUp. Returns full source content. "
+        "Input should be a concise search query string."
+    )
 
-if _serper_key:
-    search_tool = SerperDevTool()
+    def _run(self, query: str) -> str:
+        from linkup import LinkupClient
+        client = LinkupClient(api_key=os.getenv("LINKUP_API_KEY", ""))
+        response = client.search(
+            query=query,
+            depth="deep",
+            output_type="sourcedAnswer",
+        )
+        return str(response)
+
+
+# Search tool priority: LinkUp > Serper > DuckDuckGo
+_linkup_key = os.getenv("LINKUP_API_KEY", "")
+_serper_key  = os.getenv("SERPER_API_KEY", "")
+
+if _linkup_key:
+    research_search_tool = LinkUpSearchTool()
+elif _serper_key:
+    research_search_tool = SerperDevTool()
 else:
-    # Wrap DuckDuckGo as a CrewAI-compatible tool
     _ddg = DuckDuckGoSearchRun()
 
     class DuckDuckGoTool(BaseTool):
@@ -116,7 +136,26 @@ else:
         def _run(self, query: str) -> str:
             return _ddg.run(query)
 
-    search_tool = DuckDuckGoTool()
+    research_search_tool = DuckDuckGoTool()
+
+# DataAnalyst crew still uses DuckDuckGo (no deep search needed there)
+_serper_key_da = os.getenv("SERPER_API_KEY", "")
+if _serper_key_da:
+    search_tool = SerperDevTool()
+else:
+    if not _linkup_key:
+        search_tool = research_search_tool  # reuse DuckDuckGo instance
+    else:
+        _ddg_da = DuckDuckGoSearchRun()
+
+        class DuckDuckGoToolDA(BaseTool):
+            name: str = "DuckDuckGo Search"
+            description: str = "Search the web. Input: concise query string."
+
+            def _run(self, query: str) -> str:
+                return _ddg_da.run(query)
+
+        search_tool = DuckDuckGoToolDA()
 
 file_writer = FileWriterTool()
 
@@ -143,166 +182,17 @@ def _research_dir() -> Path:
 
 # ── Agent Factory ─────────────────────────────────────────────────────────────
 #
-# Pipeline: Ibnu Al-Haytham (Drafter) → Ibnu Al-Haytham (Self-Critic)
+# Ibn Al-Haytham — 7-Agent Hybrid Research Pipeline
 #
-# The same persona runs twice in different modes:
-#   1. DRAFTER  — researches deeply and writes a first draft, flagging weak spots
-#   2. CRITIC   — reads the draft with a skeptic's eye, identifies logic gaps and
-#                 unsupported claims, then outputs a refined final article
-#
-# The user never sees the raw draft — only the critique notes + final version.
-
-def make_drafter(topic: str) -> Agent:
-    """Agent 1: research the topic and produce a first draft with self-flagged weak spots."""
-    return Agent(
-        llm=llm_large,
-        function_calling_llm=llm_small,
-        role="Ibnu Al-Haytham — Research Drafter",
-        goal=(
-            f"Riset topik '{topic}' secara mendalam lalu tulis draf pertama artikel. "
-            "Draf boleh belum sempurna — tandai bagian yang argumennya masih lemah "
-            "agar bisa diperbaiki pada tahap kritik."
-        ),
-        backstory=(
-            "Kamu adalah Ibnu Al-Haytham dalam mode riset dan penulisan. "
-            "Tugasmu di tahap ini adalah mengumpulkan sebanyak mungkin informasi yang "
-            "relevan, akurat, dan terkini, lalu menuangkannya ke dalam draf pertama.\n\n"
-            "Cara kerjamu:\n"
-            "1. Mulai dengan pencarian luas untuk memetakan lanskap topik\n"
-            "2. Lanjutkan dengan pencarian spesifik per aspek penting\n"
-            "3. Kumpulkan fakta, data, kutipan ahli, kontroversi, dan contoh nyata\n"
-            "4. Catat setiap URL sumber secara lengkap\n"
-            "5. Tulis draf artikel yang mengalir — pembuka, isi, penutup\n\n"
-            "Prinsip penting: setiap paragraf yang kamu rasa klaimnya masih tipis atau "
-            "belum cukup didukung data, tambahkan penanda [⚠ PERLU DIKUATKAN] tepat di "
-            "akhir paragraf tersebut. Ini bukan kelemahan — ini kejujuran intelektual "
-            "yang akan membantu tahap kritik bekerja lebih efektif."
-        ),
-        tools=[search_tool, file_writer],
-        allow_delegation=False,
-        verbose=True,
-        max_iter=15,
-    )
+# Phase 1 (sequential): Scout → Filter
+# Phase 2 (parallel):   IdeaGen ‖ Validator  (ThreadPoolExecutor)
+# Phase 3 (sequential): Synthesizer → Critic → Writer
 
 
-def make_critic(topic: str) -> Agent:
-    """Agent 2: critique the draft's logic and evidence, then output the refined final article."""
-    return Agent(
-        llm=llm_large,
-        role="Ibnu Al-Haytham — Self-Critic & Logic Refiner",
-        goal=(
-            f"Baca draf pertama tentang '{topic}' dengan mata skeptis. "
-            "Identifikasi setiap celah logika, klaim tanpa bukti, dan argumen lemah. "
-            "Hasilkan versi final yang lebih tajam, lebih jujur, dan lebih terpercaya."
-        ),
-        backstory=(
-            "Kamu adalah Ibnu Al-Haytham — tapi sekarang kamu mengenakan topi kritik. "
-            "Kamu baru saja menyelesaikan draf pertama, dan sekarang kamu membacanya ulang "
-            "bukan sebagai penulisnya, melainkan sebagai pembaca yang paling kritis.\n\n"
-            "Pertanyaan yang selalu kamu tanyakan pada tulisanmu sendiri:\n"
-            "- Apakah klaim ini benar-benar didukung bukti yang memadai?\n"
-            "- Apakah logika dari A → B → C benar-benar mengalir tanpa lompatan?\n"
-            "- Adakah perspektif penting yang sengaja atau tidak sengaja diabaikan?\n"
-            "- Apakah ada generalisasi berlebihan ('selalu', 'semua', 'tidak pernah')?\n"
-            "- Bagian mana yang akan langsung dipertanyakan pembaca kritis?\n"
-            "- Apakah bagian yang ditandai [⚠ PERLU DIKUATKAN] sudah ditangani?\n\n"
-            "Setelah mengidentifikasi masalah, kamu tidak berhenti di daftar kritik — "
-            "kamu langsung memperbaiki setiap masalah. Jika suatu klaim tidak bisa "
-            "dikuatkan, kamu hapus atau ubah menjadi pernyataan yang lebih hati-hati "
-            "('cenderung', 'dalam banyak kasus', 'ada indikasi bahwa'). "
-            "Output akhirmu adalah artikel yang lebih tajam, lebih logis, dan lebih "
-            "jujur tentang batas antara yang sudah pasti vs. yang masih spekulatif."
-        ),
-        tools=[file_writer],
-        allow_delegation=False,
-        verbose=True,
-        max_iter=6,
-    )
-
-
-# ── Task Factory ──────────────────────────────────────────────────────────────
-
-def make_draft_task(topic: str, agent: Agent) -> Task:
-    """Task 1: deep research + first draft with self-flagged weak spots."""
-    return Task(
-        description=(
-            f"Lakukan riset mendalam tentang **{topic}**, lalu tulis draf pertama artikel.\n\n"
-            "FASE 1 — RISET (gunakan search tool):\n"
-            "1. Lakukan 2-3 pencarian luas untuk memetakan topik secara umum\n"
-            f"   - '{topic}', '{topic} terbaru / latest', '{topic} data / statistik'\n"
-            "2. Identifikasi 4-5 aspek utama topik ini, riset masing-masing secara spesifik "
-            "(minimal 2 pencarian per aspek)\n"
-            "3. Kumpulkan: fakta kuantitatif, kutipan ahli, contoh nyata, kontroversi jika ada\n"
-            "4. Catat setiap URL sumber — nama sumber, URL lengkap, poin utama\n\n"
-            "FASE 2 — TULIS DRAF PERTAMA:\n"
-            "Berdasarkan riset, tulis artikel naratif dengan struktur:\n"
-            "- Pembuka yang langsung menarik perhatian (fakta mengejutkan / pertanyaan)\n"
-            "- Isi yang mengalir per aspek utama, paragraf pendek, bahasa natural\n"
-            "- Sumber disebutkan secara natural dalam teks ('menurut [sumber]...')\n"
-            "- Penutup dengan insight utama\n"
-            "- Bagian Sumber Referensi di akhir\n\n"
-            "PENANDA KEJUJURAN INTELEKTUAL:\n"
-            "Setiap paragraf yang klaimnya masih tipis atau datanya belum kuat, "
-            "tambahkan [⚠ PERLU DIKUATKAN] di akhir paragraf tersebut.\n\n"
-            "Simpan draf menggunakan file_writer."
-        ),
-        expected_output=(
-            "Draf pertama artikel Bahasa Indonesia (600-900 kata) berisi:\n"
-            "- Narasi lengkap: pembuka, isi per aspek utama, penutup\n"
-            "- Sumber disebutkan natural dalam teks\n"
-            "- Penanda [⚠ PERLU DIKUATKAN] di paragraf yang masih lemah\n"
-            "- Bagian Sumber Referensi di akhir dengan minimal 8 URL\n"
-            "Disimpan ke task1_research.txt"
-        ),
-        agent=agent,
-        output_file=str(_research_dir() / "task1_research.txt"),
-    )
-
-
-def make_critique_task(topic: str, agent: Agent, draft_task: Task) -> Task:
-    """Task 2: self-critique the draft's logic then produce the polished final article."""
-    return Task(
-        description=(
-            f"Baca draf pertama artikel tentang **{topic}** dan lakukan kritik menyeluruh, "
-            "lalu hasilkan versi final yang sudah disempurnakan.\n\n"
-            "LANGKAH 1 — KRITIK DRAF:\n"
-            "Periksa setiap bagian dan buat daftar masalah yang ditemukan:\n"
-            "- Klaim yang tidak didukung bukti memadai (termasuk semua [⚠ PERLU DIKUATKAN])\n"
-            "- Lompatan logika (dari premis A langsung ke kesimpulan C tanpa jembatan B)\n"
-            "- Generalisasi berlebihan: 'selalu', 'semua', 'tidak pernah', 'pasti'\n"
-            "- Perspektif penting yang hilang atau diabaikan\n"
-            "- Urutan atau struktur narasi yang mengganggu alur baca\n"
-            "- Istilah atau konsep yang tidak dijelaskan tapi diasumsikan dipahami\n\n"
-            "LANGKAH 2 — PERBAIKAN DAN PENULISAN FINAL:\n"
-            "Tulis versi artikel yang sudah diperbaiki:\n"
-            "- Kuatkan argumen lemah, atau ganti dengan pernyataan yang lebih berhati-hati\n"
-            "- Isi celah logika dengan penjelasan yang jelas\n"
-            "- Hapus klaim yang tidak bisa diverifikasi sama sekali\n"
-            "- Tambahkan nuansa di tempat yang perlu: 'cenderung', 'dalam banyak kasus', "
-            "'ada indikasi bahwa', 'beberapa peneliti berpendapat'\n"
-            "- Pertahankan gaya bahasa natural dan mudah dibaca\n\n"
-            "FORMAT OUTPUT WAJIB:\n"
-            "## CATATAN KRITIK\n"
-            "[Daftar masalah yang ditemukan beserta tindakan perbaikan spesifik]\n\n"
-            "---\n\n"
-            "## ARTIKEL FINAL\n"
-            "[Artikel lengkap yang sudah disempurnakan]\n\n"
-            "## Sumber Referensi\n"
-            "[Daftar URL dari draf]\n\n"
-            "Simpan menggunakan file_writer."
-        ),
-        expected_output=(
-            "Dokumen dua bagian:\n"
-            "1. CATATAN KRITIK — daftar masalah logika/bukti yang ditemukan dan "
-            "tindakan perbaikan konkret untuk masing-masing\n"
-            "2. ARTIKEL FINAL — versi yang sudah disempurnakan, logis, berimbang, "
-            "700-1000 kata, bahasa Indonesia natural\n"
-            "Disimpan ke task2_report.md"
-        ),
-        agent=agent,
-        context=[draft_task],
-        output_file=str(_research_dir() / "task2_report.md"),
-    )
+def _read_phase_output(fname: str) -> str:
+    """Read a phase output file from research dir; return empty string if missing."""
+    p = _research_dir() / fname
+    return p.read_text(encoding="utf-8") if p.exists() else ""
 
 
 # ── Crew Builder ──────────────────────────────────────────────────────────────
@@ -579,7 +469,7 @@ def main():
     print(f"\n{'='*60}")
     print(f"  CrewAI — Ibnu Al-Haytham Self-Critique Pipeline")
     print(f"  Topic: {args.topic}")
-    search_provider = "Serper" if _serper_key else "DuckDuckGo (free)"
+    search_provider = "LinkUp (deep)" if _linkup_key else ("Serper" if _serper_key else "DuckDuckGo (free)")
     print(f"  Search: {search_provider}")
     print(f"  Pipeline:")
     print(f"    [1] Drafter  → mistral-large-latest  (research + first draft)")
