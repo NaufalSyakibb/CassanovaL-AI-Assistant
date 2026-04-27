@@ -143,3 +143,28 @@ def test_build_python_code_is_runnable_string():
     assert "Candlestick" in code
     assert "Heatmap" in code
     assert "BBCA.JK" in code
+
+
+# ── _parse_json_output ────────────────────────────────────────
+
+def test_parse_json_output_extracts_json_from_message():
+    from agents.stock_agents import _parse_json_output
+    from langchain_core.messages import AIMessage
+
+    fake_result = {
+        "messages": [
+            AIMessage(content='Some text before {"verdict": "BUY", "risk": "low"} after text')
+        ]
+    }
+    parsed = _parse_json_output(fake_result)
+    assert parsed["verdict"] == "BUY"
+    assert parsed["risk"] == "low"
+
+
+def test_parse_json_output_returns_error_on_no_json():
+    from agents.stock_agents import _parse_json_output
+    from langchain_core.messages import AIMessage
+
+    fake_result = {"messages": [AIMessage(content="No JSON here at all")]}
+    parsed = _parse_json_output(fake_result)
+    assert "error" in parsed
