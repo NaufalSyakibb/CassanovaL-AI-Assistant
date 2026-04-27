@@ -102,7 +102,7 @@ def get_market_data(ticker: str, period: str = "1y") -> str:
             "market_cap": info.get("marketCap"),
             "price_change_1y_pct": round(
                 (float(latest["Close"]) - float(hist.iloc[0]["Close"])) / float(hist.iloc[0]["Close"]) * 100, 2
-            ),
+            ) if float(hist.iloc[0]["Close"]) != 0 else None,
             "macro_correlation": corr,
             "ohlcv": {
                 "dates": hist.index.strftime("%Y-%m-%d").tolist(),
@@ -203,6 +203,8 @@ def build_candlestick_json(ticker: str, ohlcv: dict) -> dict:
 
 def build_heatmap_json(ticker: str, corr: dict) -> dict:
     """Return a Plotly figure dict for a macro-correlation heatmap."""
+    if not corr:
+        return {"data": [], "layout": {"paper_bgcolor": "#0a0a0f", "title": {"text": "Korelasi tidak tersedia"}}}
     label_map = {
         "SP500": "S&P 500", "Gold": "Emas", "Oil_WTI": "Minyak (WTI)", "US_tbill_rate_3m": "T-Bill 3M"
     }
@@ -242,9 +244,10 @@ def build_python_code(ticker: str, ohlcv: dict, corr: dict) -> str:
     }
     corr_labels = [label_map.get(k, k) for k in corr]
     corr_values = [round(float(v), 3) for v in corr.values()]
+    safe_ticker = ticker.replace('"', '').replace("'", '').replace(';', '').replace('\n', '')[:20]
     return f"""import plotly.graph_objects as go
 
-# ── Data {ticker} ──────────────────────────────────────────────
+# ── Data {safe_ticker} ──────────────────────────────────────────────
 dates  = {json.dumps(ohlcv.get('dates', []))}
 open_  = {json.dumps(ohlcv.get('open',  []))}
 high   = {json.dumps(ohlcv.get('high',  []))}
@@ -254,12 +257,12 @@ close  = {json.dumps(ohlcv.get('close', []))}
 # ── Candlestick Chart ──────────────────────────────────────────
 fig1 = go.Figure(data=[go.Candlestick(
     x=dates, open=open_, high=high, low=low, close=close,
-    name="{ticker}",
+    name="{safe_ticker}",
     increasing_line_color="#00ff88",
     decreasing_line_color="#ff4444",
 )])
 fig1.update_layout(
-    title="{ticker} — Harga 1 Tahun",
+    title="{safe_ticker} — Harga 1 Tahun",
     template="plotly_dark",
     xaxis_title="Tanggal",
     yaxis_title="Harga",
@@ -274,14 +277,14 @@ corr_values = {json.dumps(corr_values)}
 fig2 = go.Figure(data=go.Heatmap(
     z=[corr_values],
     x=corr_labels,
-    y=["{ticker}"],
+    y=["{safe_ticker}"],
     colorscale=[[0, "#ff4444"], [0.5, "#333340"], [1, "#00ff88"]],
     zmin=-1, zmax=1,
     text=[[f"{{v:+.2f}}" for v in corr_values]],
     texttemplate="%{{text}}",
 ))
 fig2.update_layout(
-    title="{ticker} — Korelasi vs Indikator Makro (1 Tahun)",
+    title="{safe_ticker} — Korelasi vs Indikator Makro (1 Tahun)",
     template="plotly_dark",
 )
 fig2.show()
