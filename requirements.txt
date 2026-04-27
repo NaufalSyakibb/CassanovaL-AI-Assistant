@@ -14,3 +14,9 @@ fastapi
 uvicorn[standard]
 python-multipart
 discord.py>=2.3
+linkup-sdk
+crewai
+crewai-tools
+yfinance
+pandas
+plotly
