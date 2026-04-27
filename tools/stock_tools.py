@@ -55,17 +55,18 @@ def _fetch_ddg(query: str, max_results: int) -> list:
 # ── LangChain tools ───────────────────────────────────────────────────────────
 
 @tool
-def get_market_data(ticker: str) -> str:
+def get_market_data(ticker: str, period: str = "1y") -> str:
     """
-    Fetch 1-year historical OHLCV + key financial ratios for a stock ticker.
+    Fetch historical OHLCV + key financial ratios for a stock ticker.
     Args:
         ticker: Stock ticker symbol (e.g. 'BBCA.JK', 'AAPL').
+        period: History period (default '1y'). Options: 1mo, 3mo, 6mo, 1y, 2y, 5y.
     Returns:
         JSON string with market data summary and OHLCV for charting.
     """
     try:
         tk = yf.Ticker(ticker)
-        hist = tk.history(period="1y")
+        hist = tk.history(period=period)
         if hist.empty:
             return json.dumps({"error": f"No data found for ticker '{ticker}'"})
 
@@ -79,7 +80,7 @@ def get_market_data(ticker: str) -> str:
         returns_df[ticker] = hist["Close"].pct_change().dropna()
         for symbol, name in macro_symbols.items():
             try:
-                mhist = yf.Ticker(symbol).history(period="1y")
+                mhist = yf.Ticker(symbol).history(period=period)
                 if not mhist.empty:
                     returns_df[name] = mhist["Close"].pct_change().dropna()
             except Exception:
@@ -118,19 +119,20 @@ def get_market_data(ticker: str) -> str:
 
 
 @tool
-def get_news_sentiment(query: str) -> str:
+def get_news_sentiment(query: str, max_results: int = 10) -> str:
     """
     Search recent financial news about a stock or topic.
     Args:
         query: Search query (e.g. 'BBCA Bank Central Asia saham 2025').
+        max_results: Maximum number of articles to return (default 10).
     Returns:
         JSON string — list of {title, source, snippet, date}.
     """
     try:
-        articles = _fetch_serper(query, 10)
+        articles = _fetch_serper(query, max_results)
         if not articles:
-            articles = _fetch_ddg(query, 10)
-        return json.dumps(articles[:10])
+            articles = _fetch_ddg(query, max_results)
+        return json.dumps(articles[:max_results])
     except Exception as e:
         return json.dumps({"error": str(e)})
 
