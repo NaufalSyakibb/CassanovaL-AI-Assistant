@@ -1,3 +1,4 @@
+import asyncio
 import json
 import sys
 import io
@@ -11,7 +12,7 @@ from datetime import datetime
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List
 from dotenv import load_dotenv
@@ -247,6 +248,85 @@ async def get_budget_summary():
         }
 
 
+# ─── Stock Terminal ───────────────────────────────────────────────────────────
+
+def _sse(data: dict) -> str:
+    return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+@app.get("/api/stock/analyze")
+async def stock_analyze(ticker: str):
+    if not ticker or len(ticker) > 20:
+        raise HTTPException(status_code=400, detail="Invalid ticker symbol")
+
+    async def generate():
+        try:
+            from agents.stock_agents import run_quant, run_newsroom, run_economist, run_critic
+            from tools.stock_tools import build_candlestick_json, build_heatmap_json, build_python_code
+            loop = asyncio.get_event_loop()
+
+            # ── Phase 1: Quant (sequential) ───────────────────────────
+            yield _sse({"event": "step", "agent": "Quant", "status": "running"})
+            quant_data = await loop.run_in_executor(None, run_quant, ticker)
+            price  = quant_data.get("current_price", "N/A")
+            pe     = quant_data.get("pe_ratio", "N/A")
+            change = quant_data.get("price_change_1y", "N/A")
+            trend  = quant_data.get("technical_trend", "N/A")
+            yield _sse({"event": "log", "text": f"Harga: {price} | P/E: {pe} | Perubahan 1Y: {change}"})
+            yield _sse({"event": "log", "text": f"Tren Teknikal: {trend}"})
+            yield _sse({"event": "step", "agent": "Quant", "status": "done"})
+
+            # ── Phase 2: Newsroom + Economist (parallel) ───────────────
+            yield _sse({"event": "step", "agent": "Newsroom",  "status": "running"})
+            yield _sse({"event": "step", "agent": "Economist", "status": "running"})
+            newsroom_data, economist_data = await asyncio.gather(
+                loop.run_in_executor(None, run_newsroom, ticker),
+                loop.run_in_executor(None, run_economist, quant_data),
+            )
+            sentiment = newsroom_data.get("sentiment_score", "N/A")
+            macro_v   = economist_data.get("macro_verdict", "N/A")
+            yield _sse({"event": "log", "text": f"Skor Sentimen: {sentiment} | Makro: {macro_v}"})
+            yield _sse({"event": "step", "agent": "Newsroom",  "status": "done"})
+            yield _sse({"event": "step", "agent": "Economist", "status": "done"})
+
+            # ── Phase 3: Critic (sequential) ───────────────────────────
+            yield _sse({"event": "step", "agent": "Critic", "status": "running"})
+            critic_data = await loop.run_in_executor(
+                None, run_critic, ticker, quant_data, newsroom_data, economist_data
+            )
+            yield _sse({"event": "step", "agent": "Critic", "status": "done"})
+
+            # ── Charts + code ──────────────────────────────────────────
+            ohlcv = quant_data.get("ohlcv", {})
+            corr  = quant_data.get("macro_correlation", {})
+            candlestick_json = build_candlestick_json(ticker, ohlcv)
+            heatmap_json     = build_heatmap_json(ticker, corr)
+            python_code      = build_python_code(ticker, ohlcv, corr)
+
+            yield _sse({"event": "chart", "candlestick": candlestick_json, "heatmap": heatmap_json})
+            yield _sse({"event": "code",  "python": python_code})
+
+            # ── Final report ───────────────────────────────────────────
+            report = {
+                "executive_summary": critic_data.get("executive_summary", ""),
+                "fundamental":       quant_data.get("summary",    "") + "\n\n" + critic_data.get("fundamental_analysis", ""),
+                "sentiment":         newsroom_data.get("summary", "") + "\n\n" + economist_data.get("summary", "") + "\n\n" + critic_data.get("sentiment_macro", ""),
+                "risk":              critic_data.get("risk_assessment", "") + "\n\n" + critic_data.get("counter_arguments", ""),
+                "verdict":           critic_data.get("verdict", "HOLD"),
+                "verdict_reasoning": critic_data.get("verdict_reasoning", ""),
+            }
+            yield _sse({"event": "done", "report": report})
+
+        except Exception as e:
+            yield _sse({"event": "error", "message": str(e)})
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
 # ─── CrewAI Multi-Agent Endpoints ────────────────────────────────────────────
 
 _crew_jobs: dict = {}  # job_id → job state dict
@@ -254,14 +334,16 @@ _crew_jobs: dict = {}  # job_id → job state dict
 
 class CrewKickoffRequest(BaseModel):
     topic: str
-    crew_type: str = "research"            # "research" | "dataanalyst"
+    crew_type: str = "research"            # "research" | "dataanalyst" | "career"
     filename: Optional[str] = None         # required when crew_type == "dataanalyst"
+    cv_text: Optional[str] = None          # optional CV text for career ops
     agents: Optional[List[dict]] = None    # future: custom agent configs
 
 
 def _run_crew_background(job_id: str, topic: str,
                           crew_type: str = "research",
-                          filename: Optional[str] = None) -> None:
+                          filename: Optional[str] = None,
+                          cv_text: Optional[str] = None) -> None:
     """Run a CrewAI pipeline in a background thread and update _crew_jobs."""
     job = _crew_jobs[job_id]
     import traceback as _tb
@@ -279,6 +361,9 @@ def _run_crew_background(job_id: str, topic: str,
         if crew_type == "dataanalyst":
             from crewai_agents import build_data_crew
             crew = build_data_crew(filename or topic, step_cb=_log, task_cb=_log)
+        elif crew_type == "career":
+            from crewai_agents import build_career_crew
+            crew = build_career_crew(topic, cv_text or "", step_cb=_log, task_cb=_log)
         else:
             from crewai_agents import build_crew
             crew = build_crew(topic, step_cb=_log, task_cb=_log)
@@ -314,10 +399,25 @@ def _run_crew_background(job_id: str, topic: str,
                         )
             except Exception:
                 pass
+        elif crew_type == "career":
+            from crewai_agents import _career_dir
+            career_out = _career_dir()
+            for fname in (
+                "career_archetype.txt", "career_scores.txt",
+                "career_cv_advice.txt", "career_eval_report.md",
+            ):
+                p = career_out / fname
+                if p.exists():
+                    outputs[fname] = p.read_text(encoding="utf-8")
         else:
             from crewai_agents import _research_dir
             research_out = _research_dir()
-            for fname in ("task1_research.txt", "task2_report.md"):
+            for fname in (
+                "task1_scout.txt", "task2_filter.txt",
+                "task3a_ideas.txt", "task3b_validation.txt",
+                "task4_synthesis.txt", "task5_critique.txt",
+                "task6_final_report.md",
+            ):
                 p = research_out / fname
                 if p.exists():
                     outputs[fname] = p.read_text(encoding="utf-8")
@@ -355,7 +455,7 @@ async def crew_kickoff(req: CrewKickoffRequest):
 
     t = threading.Thread(
         target=_run_crew_background,
-        args=(job_id, topic, req.crew_type, req.filename),
+        args=(job_id, topic, req.crew_type, req.filename, req.cv_text),
         daemon=True,
     )
     t.start()
@@ -384,6 +484,8 @@ async def crew_jobs():
 
 Path("static").mkdir(exist_ok=True)
 Path("static/avatars").mkdir(exist_ok=True)
+Path("static/stock").mkdir(exist_ok=True)
+app.mount("/stock", StaticFiles(directory="static/stock", html=True), name="stock")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
