@@ -251,7 +251,7 @@ async def get_budget_summary():
 # ─── Stock Terminal ───────────────────────────────────────────────────────────
 
 def _sse(data: dict) -> str:
-    return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+    return f"data: {json.dumps(data, ensure_ascii=False, default=float)}\n\n"
 
 
 @app.get("/api/stock/analyze")
@@ -263,7 +263,7 @@ async def stock_analyze(ticker: str):
         try:
             from agents.stock_agents import run_quant, run_newsroom, run_economist, run_critic
             from tools.stock_tools import build_candlestick_json, build_heatmap_json, build_python_code
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
 
             # ── Phase 1: Quant (sequential) ───────────────────────────
             yield _sse({"event": "step", "agent": "Quant", "status": "running"})
