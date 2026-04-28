@@ -73,9 +73,9 @@ def _summarize_financials(tk) -> tuple[dict, dict, dict, dict]:
                 fin_summary["revenue_3yr"] = {str(k.date()): int(v) for k, v in revs.items()}
                 vals = revs.tolist()
                 if len(vals) >= 2 and vals[-1] not in (0, None):
-                    n = len(vals) - 1
+                    n_years = len(vals) - 1
                     growth["revenue_cagr_pct"] = round(
-                        ((vals[0] / vals[-1]) ** (1 / n) - 1) * 100, 2
+                        ((vals[0] / vals[-1]) ** (1 / n_years) - 1) * 100, 2
                     )
 
             if ni_row is not None and rev_row is not None:
@@ -85,9 +85,9 @@ def _summarize_financials(tk) -> tuple[dict, dict, dict, dict]:
                 for col in cols:
                     if col in rev_row.index and col in ni_row.index:
                         r = float(rev_row.get(col) or 0)
-                        n = float(ni_row.get(col) or 0)
+                        ni_val = float(ni_row.get(col) or 0)
                         if r != 0:
-                            margins.append(round(n / r * 100, 2))
+                            margins.append(round(ni_val / r * 100, 2))
                 growth["net_margin_trend_pct"] = margins
     except Exception:
         pass
@@ -123,7 +123,7 @@ def _summarize_financials(tk) -> tuple[dict, dict, dict, dict]:
             )
             if debt_row is not None and eq_row is not None:
                 c0 = cols[0]
-                eq_v   = float(eq_row.get(c0) or 1)
+                eq_v   = float(eq_row.get(c0) or 0)
                 debt_v = float(debt_row.get(c0) or 0)
                 bal_summary["debt_to_equity_computed"] = round(debt_v / eq_v, 3) if eq_v != 0 else None
     except Exception:
@@ -133,11 +133,8 @@ def _summarize_financials(tk) -> tuple[dict, dict, dict, dict]:
         cf = tk.cashflow
         if cf is not None and not cf.empty:
             cols = cf.columns[:3]
-            fcf_row = next(
-                (cf.loc[k] for k in ("Free Cash Flow", "Capital Expenditure") if k in cf.index),
-                None
-            )
-            if fcf_row is not None:
+            if "Free Cash Flow" in cf.index:
+                fcf_row = cf.loc["Free Cash Flow"]
                 cf_summary["fcf_3yr"] = {str(k.date()): int(v) for k, v in fcf_row[cols].dropna().items()}
     except Exception:
         pass
@@ -148,7 +145,7 @@ def _summarize_financials(tk) -> tuple[dict, dict, dict, dict]:
 @tool
 def get_market_data(ticker: str, period: str = "1y") -> str:
     """
-    Fetch historical OHLCV, key financial ratios, 5-year financial statements,
+    Fetch historical OHLCV, key financial ratios, 3-year financial statements,
     analyst price targets, and macro correlations for a stock ticker.
     Args:
         ticker: Stock ticker symbol (e.g. 'BBCA.JK', 'AAPL').
@@ -197,9 +194,9 @@ def get_market_data(ticker: str, period: str = "1y") -> str:
             recs = tk.recommendations
             if recs is not None and not recs.empty:
                 latest_recs = recs.tail(10)
-                col = latest_recs.columns[0] if not latest_recs.empty else None
-                if col:
-                    counts = latest_recs[col].value_counts().to_dict()
+                grade_col = "To Grade" if "To Grade" in latest_recs.columns else (latest_recs.columns[0] if not latest_recs.empty else None)
+                if grade_col:
+                    counts = latest_recs[grade_col].value_counts().to_dict()
                     analyst_data["recommendation_counts"] = {str(k): int(v) for k, v in counts.items()}
         except Exception:
             pass
