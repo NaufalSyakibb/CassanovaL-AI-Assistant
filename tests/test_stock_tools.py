@@ -148,8 +148,8 @@ def test_get_news_sentiment_volume_anomaly_true_when_many_recent():
 
 def test_get_macro_indicators_removed_from_stock_tools():
     from tools import stock_tools
-    assert not hasattr(stock_tools, "get_macro_indicators") or \
-           "get_macro_indicators" not in [t.name for t in stock_tools.STOCK_TOOLS]
+    tool_names = [t.name for t in stock_tools.STOCK_TOOLS]
+    assert "get_macro_indicators" not in tool_names
 
 
 # ── Plotly builder helpers ────────────────────────────────────

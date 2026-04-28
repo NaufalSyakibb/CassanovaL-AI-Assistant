@@ -277,6 +277,8 @@ def get_news_sentiment(query: str, max_results: int = 15) -> str:
                 article.get("title", ""), article.get("snippet", "")
             )
 
+        # volume_anomaly uses date-string heuristics tuned for Serper ("2 hours ago").
+        # DDG returns ISO dates; anomaly will always be False with DDG fallback.
         recent_count = sum(
             1 for a in articles
             if any(k in a.get("date", "").lower() for k in ("hour", "min", "second"))
@@ -285,7 +287,7 @@ def get_news_sentiment(query: str, max_results: int = 15) -> str:
 
         return json.dumps({"articles": articles, "volume_anomaly": volume_anomaly})
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return json.dumps({"articles": [], "volume_anomaly": False, "error": str(e)})
 
 
 STOCK_TOOLS = [get_market_data, get_news_sentiment]
