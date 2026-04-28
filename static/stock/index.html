@@ -534,7 +534,10 @@ function renderStrategy(data) {
   document.getElementById('strategy-body').style.display = 'block';
   document.getElementById('st-entry').textContent   = data.entry_zone    || '—';
   document.getElementById('st-exit').textContent    = data.exit_target   || '—';
-  document.getElementById('st-stop').textContent    = data.stop_loss     || '—';
+  const stopLabel = data.stop_loss
+    ? (data.stop_loss_pct ? data.stop_loss + ' (−' + data.stop_loss_pct + '%)' : data.stop_loss)
+    : '—';
+  document.getElementById('st-stop').textContent = stopLabel;
   document.getElementById('st-rr').textContent      = data.risk_reward_ratio || '—';
   const horizonDetail = data.time_horizon_detail
     ? data.time_horizon + ' (' + data.time_horizon_detail + ')'
