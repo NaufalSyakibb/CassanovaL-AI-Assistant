@@ -191,6 +191,57 @@
   .str { color: #c3e88d; }
   .cm  { color: var(--text-dim); font-style: italic; }
   .num { color: var(--yellow); }
+
+  /* ── Conviction bar ── */
+  #conviction-bar {
+    display: flex; gap: 3px; margin-top: 6px;
+  }
+  .conviction-block {
+    width: 14px; height: 14px; border-radius: 2px;
+    background: var(--border); transition: background 0.3s;
+  }
+  .conviction-block.filled-buy  { background: var(--green); }
+  .conviction-block.filled-hold { background: var(--yellow); }
+  .conviction-block.filled-sell { background: var(--red); }
+  #conviction-label { color: var(--text-dim); font-size: 11px; margin-top: 4px; }
+
+  /* ── Strategy tab ── */
+  .strategy-cards {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;
+  }
+  .strategy-card {
+    padding: 14px; border: 1px solid var(--border); border-radius: 2px; text-align: center;
+  }
+  .strategy-card .card-label { color: var(--text-dim); font-size: 10px; letter-spacing: 1px; margin-bottom: 6px; }
+  .strategy-card .card-value { font-size: 18px; font-weight: 700; }
+  .strategy-card.entry  { border-color: var(--green); }
+  .strategy-card.entry  .card-value { color: var(--green); }
+  .strategy-card.exit   { border-color: var(--yellow); }
+  .strategy-card.exit   .card-value { color: var(--yellow); }
+  .strategy-card.stop   { border-color: var(--red); }
+  .strategy-card.stop   .card-value { color: var(--red); }
+  .strategy-meta {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;
+  }
+  .strategy-meta-item {
+    background: var(--bg2); border: 1px solid var(--border); padding: 10px; border-radius: 2px;
+  }
+  .strategy-meta-item .meta-label { color: var(--text-dim); font-size: 10px; letter-spacing: 1px; margin-bottom: 4px; }
+  .strategy-meta-item .meta-value { color: var(--text); font-size: 13px; }
+  .position-bar-wrap { margin-top: 10px; background: var(--bg2); border: 1px solid var(--border); padding: 10px; border-radius: 2px; }
+  .position-bar-track { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+  .position-bar-fill  { height: 100%; background: var(--yellow); border-radius: 3px; transition: width 0.5s; }
+
+  /* ── Bull/Bear case ── */
+  .bull-bear-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .case-box { padding: 12px; border: 1px solid var(--border); border-radius: 2px; }
+  .case-box.bull { border-color: #1a3a1a; background: #0d1a0d; }
+  .case-box.bear { border-color: #3a1a1a; background: #1a0d0d; }
+  .case-box h4 { font-size: 10px; letter-spacing: 1px; margin-bottom: 8px; }
+  .case-box.bull h4 { color: var(--green); }
+  .case-box.bear h4 { color: var(--red); }
+  .case-box ul { padding-left: 14px; color: var(--text-dim); font-size: 11px; line-height: 1.8; }
+  .investment-memo { padding: 12px; background: var(--bg2); border: 1px solid var(--border); border-radius: 2px; font-size: 12px; line-height: 1.7; color: var(--text); }
 </style>
 </head>
 <body>
@@ -220,24 +271,24 @@
   <div id="feed-panel">
     <div id="feed-header">AGENT FEED</div>
     <div id="agent-status">
-      <div class="agent-row" id="row-Quant">
+      <div class="agent-row" id="row-DeepResearch">
         <div class="agent-dot"></div>
-        <span class="agent-name">The Quant</span>
+        <span class="agent-name">DeepResearch</span>
         <span class="agent-tick"></span>
       </div>
-      <div class="agent-row" id="row-Newsroom">
+      <div class="agent-row" id="row-NewsIntelligence">
         <div class="agent-dot"></div>
-        <span class="agent-name">The Newsroom</span>
+        <span class="agent-name">NewsIntelligence</span>
         <span class="agent-tick"></span>
       </div>
-      <div class="agent-row" id="row-Economist">
+      <div class="agent-row" id="row-Strategy">
         <div class="agent-dot"></div>
-        <span class="agent-name">The Economist</span>
+        <span class="agent-name">Strategy</span>
         <span class="agent-tick"></span>
       </div>
-      <div class="agent-row" id="row-Critic">
+      <div class="agent-row" id="row-FinalVerdict">
         <div class="agent-dot"></div>
-        <span class="agent-name">The Critic</span>
+        <span class="agent-name">FinalVerdict</span>
         <span class="agent-tick"></span>
       </div>
     </div>
@@ -248,7 +299,9 @@
   <div id="report-panel">
     <div id="tab-bar">
       <button class="tab-btn active" data-tab="summary">SUMMARY</button>
+      <button class="tab-btn" data-tab="strategy">STRATEGY</button>
       <button class="tab-btn" data-tab="charts">CHARTS</button>
+      <button class="tab-btn" data-tab="verdict">VERDICT</button>
       <button class="tab-btn" data-tab="code">CODE</button>
     </div>
 
@@ -281,8 +334,65 @@
           <div id="verdict-box">
             <div class="verdict-label">REKOMENDASI</div>
             <div class="verdict-value" id="txt-verdict">&#8212;</div>
+            <div id="conviction-bar">
+              <div class="conviction-block" id="cb-1"></div>
+              <div class="conviction-block" id="cb-2"></div>
+              <div class="conviction-block" id="cb-3"></div>
+              <div class="conviction-block" id="cb-4"></div>
+              <div class="conviction-block" id="cb-5"></div>
+              <div class="conviction-block" id="cb-6"></div>
+              <div class="conviction-block" id="cb-7"></div>
+              <div class="conviction-block" id="cb-8"></div>
+              <div class="conviction-block" id="cb-9"></div>
+              <div class="conviction-block" id="cb-10"></div>
+            </div>
+            <div id="conviction-label"></div>
             <div class="verdict-reason" id="txt-verdict-reason"></div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Strategy Tab -->
+    <div id="tab-strategy" class="tab-content">
+      <div id="strategy-placeholder" style="padding:40px;text-align:center;color:var(--text-dim);font-size:11px">
+        Strategi akan muncul setelah Strategy agent selesai...
+      </div>
+      <div id="strategy-body" style="display:none">
+        <div class="strategy-cards">
+          <div class="strategy-card entry">
+            <div class="card-label">ENTRY ZONE</div>
+            <div class="card-value" id="st-entry">—</div>
+          </div>
+          <div class="strategy-card exit">
+            <div class="card-label">EXIT TARGET</div>
+            <div class="card-value" id="st-exit">—</div>
+          </div>
+          <div class="strategy-card stop">
+            <div class="card-label">STOP LOSS</div>
+            <div class="card-value" id="st-stop">—</div>
+          </div>
+        </div>
+        <div class="strategy-meta">
+          <div class="strategy-meta-item">
+            <div class="meta-label">RISK / REWARD</div>
+            <div class="meta-value" id="st-rr">—</div>
+          </div>
+          <div class="strategy-meta-item">
+            <div class="meta-label">TIME HORIZON</div>
+            <div class="meta-value" id="st-horizon">—</div>
+          </div>
+        </div>
+        <div class="position-bar-wrap">
+          <div class="meta-label">POSITION SIZING</div>
+          <div class="position-bar-track">
+            <div class="position-bar-fill" id="st-pos-bar" style="width:0%"></div>
+          </div>
+          <div style="color:var(--yellow);font-size:12px;margin-top:4px" id="st-pos-label">—</div>
+        </div>
+        <div class="report-section" style="margin-top:16px">
+          <h3>Rationale</h3>
+          <p id="st-rationale"></p>
         </div>
       </div>
     </div>
@@ -291,6 +401,33 @@
     <div id="tab-charts" class="tab-content">
       <div id="chart-candlestick" style="height:380px"></div>
       <div id="chart-heatmap" style="height:200px"></div>
+    </div>
+
+    <!-- Verdict Tab -->
+    <div id="tab-verdict" class="tab-content">
+      <div id="verdict-placeholder" style="padding:40px;text-align:center;color:var(--text-dim);font-size:11px">
+        Verdict lengkap akan muncul setelah FinalVerdict agent selesai...
+      </div>
+      <div id="verdict-body" style="display:none">
+        <div class="bull-bear-grid">
+          <div class="case-box bull">
+            <h4>BULL CASE</h4>
+            <ul id="bull-case-list"></ul>
+          </div>
+          <div class="case-box bear">
+            <h4>BEAR CASE</h4>
+            <ul id="bear-case-list"></ul>
+          </div>
+        </div>
+        <div class="report-section">
+          <h3>Investment Memo</h3>
+          <div class="investment-memo" id="investment-memo"></div>
+        </div>
+        <div class="report-section">
+          <h3>Counter Arguments</h3>
+          <p id="counter-arguments"></p>
+        </div>
+      </div>
     </div>
 
     <!-- Code Tab -->
@@ -350,14 +487,22 @@ function appendLog(text, isError) {
 }
 
 function resetUI() {
-  ['Quant','Newsroom','Economist','Critic'].forEach(a => setAgentStatus(a, ''));
+  ['DeepResearch', 'NewsIntelligence', 'Strategy', 'FinalVerdict'].forEach(a => setAgentStatus(a, ''));
   document.getElementById('log-stream').innerHTML = '';
   document.getElementById('placeholder').style.display = 'flex';
   document.getElementById('report-body').style.display = 'none';
+  document.getElementById('strategy-placeholder').style.display = 'block';
+  document.getElementById('strategy-body').style.display = 'none';
+  document.getElementById('verdict-placeholder').style.display = 'block';
+  document.getElementById('verdict-body').style.display = 'none';
   document.getElementById('code-block').innerHTML =
     '<span style="color:var(--text-dim)">// Kode Python akan muncul setelah analisis selesai</span>';
   document.getElementById('chart-candlestick').innerHTML = '';
   document.getElementById('chart-heatmap').innerHTML = '';
+  for (let i = 1; i <= 10; i++) {
+    const cb = document.getElementById('cb-' + i);
+    if (cb) cb.className = 'conviction-block';
+  }
 }
 
 function renderReport(report) {
@@ -369,10 +514,53 @@ function renderReport(report) {
   document.getElementById('txt-risk').textContent        = report.risk || '';
 
   const verdict = (report.verdict || 'HOLD').toUpperCase();
-  const box = document.getElementById('verdict-box');
+  const score   = parseInt(report.conviction_score || 5, 10);
+  const box     = document.getElementById('verdict-box');
   box.className = verdict.toLowerCase();
   document.getElementById('txt-verdict').textContent        = verdict;
-  document.getElementById('txt-verdict-reason').textContent = report.verdict_reasoning || '';
+  document.getElementById('txt-verdict-reason').textContent = report.investment_memo || '';
+
+  const colorClass = verdict === 'BUY' ? 'filled-buy' : verdict === 'SELL' ? 'filled-sell' : 'filled-hold';
+  for (let i = 1; i <= 10; i++) {
+    const cb = document.getElementById('cb-' + i);
+    if (cb) cb.className = 'conviction-block' + (i <= score ? ' ' + colorClass : '');
+  }
+  document.getElementById('conviction-label').textContent =
+    score + '/10 — ' + (score >= 8 ? 'Very High Conviction' : score >= 6 ? 'High Conviction' : score >= 4 ? 'Moderate' : 'Low Conviction');
+}
+
+function renderStrategy(data) {
+  document.getElementById('strategy-placeholder').style.display = 'none';
+  document.getElementById('strategy-body').style.display = 'block';
+  document.getElementById('st-entry').textContent   = data.entry_zone    || '—';
+  document.getElementById('st-exit').textContent    = data.exit_target   || '—';
+  document.getElementById('st-stop').textContent    = data.stop_loss     || '—';
+  document.getElementById('st-rr').textContent      = data.risk_reward_ratio || '—';
+  const horizonDetail = data.time_horizon_detail
+    ? data.time_horizon + ' (' + data.time_horizon_detail + ')'
+    : (data.time_horizon || '—');
+  document.getElementById('st-horizon').textContent = horizonDetail;
+  const pct = parseFloat(data.position_size) || 0;
+  document.getElementById('st-pos-bar').style.width  = Math.min(pct, 100) + '%';
+  document.getElementById('st-pos-label').textContent = data.position_size || '—';
+  document.getElementById('st-rationale').textContent = data.rationale || '';
+}
+
+function renderVerdict(data) {
+  document.getElementById('verdict-placeholder').style.display = 'none';
+  document.getElementById('verdict-body').style.display = 'block';
+  const bullList = document.getElementById('bull-case-list');
+  const bearList = document.getElementById('bear-case-list');
+  bullList.innerHTML = '';
+  bearList.innerHTML = '';
+  (data.bull_case || []).forEach(item => {
+    const li = document.createElement('li'); li.textContent = item; bullList.appendChild(li);
+  });
+  (data.bear_case || []).forEach(item => {
+    const li = document.createElement('li'); li.textContent = item; bearList.appendChild(li);
+  });
+  document.getElementById('investment-memo').textContent   = data.investment_memo   || '';
+  document.getElementById('counter-arguments').textContent = data.counter_arguments || '';
 }
 
 function renderCharts(candlestick, heatmap) {
@@ -418,6 +606,12 @@ document.getElementById('analyze-btn').addEventListener('click', () => {
       case 'log':
         appendLog(msg.text);
         break;
+      case 'strategy':
+        renderStrategy(msg.data || {});
+        break;
+      case 'verdict':
+        renderVerdict(msg.data || {});
+        break;
       case 'chart':
         renderCharts(msg.candlestick, msg.heatmap);
         break;
@@ -448,7 +642,6 @@ document.getElementById('analyze-btn').addEventListener('click', () => {
   };
 });
 
-// Submit on Enter
 document.getElementById('ticker-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('analyze-btn').click();
 });
