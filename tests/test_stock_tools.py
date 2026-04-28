@@ -145,6 +145,85 @@ def test_build_python_code_is_runnable_string():
     assert "BBCA.JK" in code
 
 
+def _make_fake_financials():
+    """Return a minimal fake yfinance financials DataFrame (rows=items, cols=dates)."""
+    fake_dates = pd.to_datetime(["2023-12-31", "2022-12-31", "2021-12-31"])
+    return pd.DataFrame({
+        fake_dates[0]: [1_200_000, 140_000],
+        fake_dates[1]: [1_100_000, 120_000],
+        fake_dates[2]: [1_000_000, 100_000],
+    }, index=["Total Revenue", "Net Income"])
+
+
+def test_get_market_data_includes_new_fields():
+    from tools.stock_tools import get_market_data
+    fake_hist = _make_hist_df()
+    fake_fin = _make_fake_financials()
+
+    with patch("yfinance.Ticker") as MockTicker:
+        inst = MockTicker.return_value
+        inst.history.return_value = fake_hist
+        inst.info = {}
+        inst.financials = fake_fin
+        inst.balance_sheet = pd.DataFrame()
+        inst.cashflow = pd.DataFrame()
+        inst.analyst_price_targets = {"mean": 115.0, "high": 130.0, "low": 95.0}
+        inst.recommendations = pd.DataFrame()
+
+        raw = get_market_data.invoke("BBCA.JK")
+        data = json.loads(raw)
+
+    assert "financials" in data
+    assert "growth_trend" in data
+    assert "analyst_consensus" in data
+
+
+def test_get_market_data_analyst_consensus_price_target():
+    from tools.stock_tools import get_market_data
+    fake_hist = _make_hist_df()
+    fake_fin = _make_fake_financials()
+
+    with patch("yfinance.Ticker") as MockTicker:
+        inst = MockTicker.return_value
+        inst.history.return_value = fake_hist
+        inst.info = {}
+        inst.financials = fake_fin
+        inst.balance_sheet = pd.DataFrame()
+        inst.cashflow = pd.DataFrame()
+        inst.analyst_price_targets = {"mean": 115.0, "high": 130.0, "low": 95.0}
+        inst.recommendations = pd.DataFrame()
+
+        raw = get_market_data.invoke("AAPL")
+        data = json.loads(raw)
+
+    assert data["analyst_consensus"].get("price_target_mean") == 115.0
+    assert data["analyst_consensus"].get("price_target_high") == 130.0
+
+
+def test_get_market_data_revenue_cagr_computed():
+    from tools.stock_tools import get_market_data
+    fake_hist = _make_hist_df()
+    fake_fin = _make_fake_financials()
+
+    with patch("yfinance.Ticker") as MockTicker:
+        inst = MockTicker.return_value
+        inst.history.return_value = fake_hist
+        inst.info = {}
+        inst.financials = fake_fin
+        inst.balance_sheet = pd.DataFrame()
+        inst.cashflow = pd.DataFrame()
+        inst.analyst_price_targets = {}
+        inst.recommendations = pd.DataFrame()
+
+        raw = get_market_data.invoke("AAPL")
+        data = json.loads(raw)
+
+    # revenue grows 1.0M → 1.2M over 2 years: CAGR = (1.2/1.0)^(1/2) - 1 ≈ 9.54%
+    cagr = data["growth_trend"].get("revenue_cagr_pct")
+    assert cagr is not None
+    assert 9.0 < cagr < 11.0
+
+
 # ── _parse_json_output ────────────────────────────────────────
 
 def test_parse_json_output_extracts_json_from_message():

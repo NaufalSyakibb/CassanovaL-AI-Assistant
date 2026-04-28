@@ -54,15 +54,107 @@ def _fetch_ddg(query: str, max_results: int) -> list:
 
 # ── LangChain tools ───────────────────────────────────────────────────────────
 
+def _summarize_financials(tk) -> tuple[dict, dict, dict, dict]:
+    """Extract financials/balance/cashflow summaries and compute growth trends."""
+    fin_summary = {}
+    bal_summary = {}
+    cf_summary = {}
+    growth = {}
+
+    try:
+        fin = tk.financials
+        if fin is not None and not fin.empty:
+            cols = fin.columns[:3]
+            rev_row = fin.loc["Total Revenue"] if "Total Revenue" in fin.index else None
+            ni_row  = fin.loc["Net Income"]    if "Net Income"    in fin.index else None
+
+            if rev_row is not None:
+                revs = rev_row[cols].dropna()
+                fin_summary["revenue_3yr"] = {str(k.date()): int(v) for k, v in revs.items()}
+                vals = revs.tolist()
+                if len(vals) >= 2 and vals[-1] not in (0, None):
+                    n = len(vals) - 1
+                    growth["revenue_cagr_pct"] = round(
+                        ((vals[0] / vals[-1]) ** (1 / n) - 1) * 100, 2
+                    )
+
+            if ni_row is not None and rev_row is not None:
+                nis = ni_row[cols].dropna()
+                fin_summary["net_income_3yr"] = {str(k.date()): int(v) for k, v in nis.items()}
+                margins = []
+                for col in cols:
+                    if col in rev_row.index and col in ni_row.index:
+                        r = float(rev_row.get(col) or 0)
+                        n = float(ni_row.get(col) or 0)
+                        if r != 0:
+                            margins.append(round(n / r * 100, 2))
+                growth["net_margin_trend_pct"] = margins
+    except Exception:
+        pass
+
+    try:
+        bs = tk.balance_sheet
+        if bs is not None and not bs.empty:
+            cols = bs.columns[:3]
+            eq_row = next(
+                (bs.loc[k] for k in ("Stockholders Equity", "Total Stockholder Equity", "Common Stock Equity") if k in bs.index),
+                None
+            )
+            ni_row_bs = None
+            try:
+                f = tk.financials
+                if f is not None and not f.empty and "Net Income" in f.index:
+                    ni_row_bs = f.loc["Net Income"]
+            except Exception:
+                pass
+
+            if eq_row is not None and ni_row_bs is not None:
+                roe_list = []
+                for col in cols:
+                    eq  = float(eq_row.get(col) or 0)
+                    ni_ = float(ni_row_bs.get(col) if col in ni_row_bs.index else 0 or 0)
+                    if eq != 0:
+                        roe_list.append(round(ni_ / eq * 100, 2))
+                growth["roe_trend_pct"] = roe_list
+
+            debt_row = next(
+                (bs.loc[k] for k in ("Total Debt", "Long Term Debt And Capital Lease Obligation") if k in bs.index),
+                None
+            )
+            if debt_row is not None and eq_row is not None:
+                c0 = cols[0]
+                eq_v   = float(eq_row.get(c0) or 1)
+                debt_v = float(debt_row.get(c0) or 0)
+                bal_summary["debt_to_equity_computed"] = round(debt_v / eq_v, 3) if eq_v != 0 else None
+    except Exception:
+        pass
+
+    try:
+        cf = tk.cashflow
+        if cf is not None and not cf.empty:
+            cols = cf.columns[:3]
+            fcf_row = next(
+                (cf.loc[k] for k in ("Free Cash Flow", "Capital Expenditure") if k in cf.index),
+                None
+            )
+            if fcf_row is not None:
+                cf_summary["fcf_3yr"] = {str(k.date()): int(v) for k, v in fcf_row[cols].dropna().items()}
+    except Exception:
+        pass
+
+    return fin_summary, bal_summary, cf_summary, growth
+
+
 @tool
 def get_market_data(ticker: str, period: str = "1y") -> str:
     """
-    Fetch historical OHLCV + key financial ratios for a stock ticker.
+    Fetch historical OHLCV, key financial ratios, 5-year financial statements,
+    analyst price targets, and macro correlations for a stock ticker.
     Args:
         ticker: Stock ticker symbol (e.g. 'BBCA.JK', 'AAPL').
         period: History period (default '1y'). Options: 1mo, 3mo, 6mo, 1y, 2y, 5y.
     Returns:
-        JSON string with market data summary and OHLCV for charting.
+        JSON string with market data, fundamentals, and OHLCV for charting.
     """
     try:
         tk = yf.Ticker(ticker)
@@ -74,7 +166,6 @@ def get_market_data(ticker: str, period: str = "1y") -> str:
         latest = hist.iloc[-1]
         info = tk.info or {}
 
-        # Correlation: daily returns vs macro indices
         macro_symbols = {"^GSPC": "SP500", "GC=F": "Gold", "CL=F": "Oil_WTI", "^IRX": "US_tbill_rate_3m"}
         returns_df = pd.DataFrame()
         returns_df[ticker] = hist["Close"].pct_change().dropna()
@@ -90,30 +181,58 @@ def get_market_data(ticker: str, period: str = "1y") -> str:
         if ticker in returns_df.columns and len(returns_df.columns) > 1:
             corr = returns_df.corr()[ticker].drop(ticker).round(3).to_dict()
 
+        fin_summary, bal_summary, cf_summary, growth = _summarize_financials(tk)
+
+        analyst_data = {}
+        try:
+            targets = tk.analyst_price_targets
+            if isinstance(targets, dict):
+                analyst_data["price_target_mean"] = round(float(targets.get("mean") or 0), 2)
+                analyst_data["price_target_high"] = round(float(targets.get("high") or 0), 2)
+                analyst_data["price_target_low"]  = round(float(targets.get("low")  or 0), 2)
+        except Exception:
+            pass
+
+        try:
+            recs = tk.recommendations
+            if recs is not None and not recs.empty:
+                latest_recs = recs.tail(10)
+                col = latest_recs.columns[0] if not latest_recs.empty else None
+                if col:
+                    counts = latest_recs[col].value_counts().to_dict()
+                    analyst_data["recommendation_counts"] = {str(k): int(v) for k, v in counts.items()}
+        except Exception:
+            pass
+
         summary = {
             "ticker": ticker,
             "current_price": round(float(latest["Close"]), 2),
             "52w_high": round(float(hist["High"].max()), 2),
-            "52w_low": round(float(hist["Low"].min()), 2),
+            "52w_low":  round(float(hist["Low"].min()),  2),
             "avg_volume_30d": int(hist["Volume"].tail(30).mean()),
-            "pe_ratio": info.get("trailingPE"),
-            "roe": info.get("returnOnEquity"),
+            "pe_ratio":       info.get("trailingPE"),
+            "roe":            info.get("returnOnEquity"),
             "debt_to_equity": info.get("debtToEquity"),
-            "market_cap": info.get("marketCap"),
+            "market_cap":     info.get("marketCap"),
             "price_change_1y_pct": round(
                 (float(latest["Close"]) - float(hist.iloc[0]["Close"])) / float(hist.iloc[0]["Close"]) * 100, 2
             ) if float(hist.iloc[0]["Close"]) != 0 else None,
+            "financials":        fin_summary,
+            "balance_sheet":     bal_summary,
+            "cashflow":          cf_summary,
+            "growth_trend":      growth,
+            "analyst_consensus": analyst_data,
             "macro_correlation": corr,
             "ohlcv": {
-                "dates": hist.index.strftime("%Y-%m-%d").tolist(),
-                "open":  hist["Open"].round(2).tolist(),
-                "high":  hist["High"].round(2).tolist(),
-                "low":   hist["Low"].round(2).tolist(),
-                "close": hist["Close"].round(2).tolist(),
+                "dates":  hist.index.strftime("%Y-%m-%d").tolist(),
+                "open":   hist["Open"].round(2).tolist(),
+                "high":   hist["High"].round(2).tolist(),
+                "low":    hist["Low"].round(2).tolist(),
+                "close":  hist["Close"].round(2).tolist(),
                 "volume": hist["Volume"].tolist(),
             },
         }
-        return json.dumps(summary)
+        return json.dumps(summary, default=float)
     except Exception as e:
         return json.dumps({"error": str(e)})
 
