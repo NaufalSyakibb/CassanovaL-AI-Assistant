@@ -52,17 +52,126 @@ def _fetch_ddg(query: str, max_results: int) -> list:
         return []
 
 
+# ── Event classification ──────────────────────────────────────────────────────
+
+_EVENT_KEYWORDS: dict[str, set[str]] = {
+    "earnings":   {"earnings", "revenue", "profit", "eps", "quarterly", "results"},
+    "M&A":        {"merger", "acquisition", "acquire", "takeover", "buyout"},
+    "management": {"ceo", "cfo", "director", "resign", "appoint", "executive"},
+    "regulatory": {"sec", "regulation", "fine", "lawsuit", "probe", "penalty"},
+    "macro":      {"fed", "interest rate", "inflation", "gdp", "central bank"},
+}
+
+
+def _classify_event(title: str, snippet: str) -> str:
+    """Classify a news article into an event type using keyword heuristics."""
+    text = (title + " " + snippet).lower()
+    for event_type, keywords in _EVENT_KEYWORDS.items():
+        if any(kw in text for kw in keywords):
+            return event_type
+    return "other"
+
+
 # ── LangChain tools ───────────────────────────────────────────────────────────
+
+def _summarize_financials(tk) -> tuple[dict, dict, dict, dict]:
+    """Extract financials/balance/cashflow summaries and compute growth trends."""
+    fin_summary = {}
+    bal_summary = {}
+    cf_summary = {}
+    growth = {}
+
+    try:
+        fin = tk.financials
+        if fin is not None and not fin.empty:
+            cols = fin.columns[:3]
+            rev_row = fin.loc["Total Revenue"] if "Total Revenue" in fin.index else None
+            ni_row  = fin.loc["Net Income"]    if "Net Income"    in fin.index else None
+
+            if rev_row is not None:
+                revs = rev_row[cols].dropna()
+                fin_summary["revenue_3yr"] = {str(k.date()): int(v) for k, v in revs.items()}
+                vals = revs.tolist()
+                if len(vals) >= 2 and vals[-1] not in (0, None):
+                    n_years = len(vals) - 1
+                    growth["revenue_cagr_pct"] = round(
+                        ((vals[0] / vals[-1]) ** (1 / n_years) - 1) * 100, 2
+                    )
+
+            if ni_row is not None and rev_row is not None:
+                nis = ni_row[cols].dropna()
+                fin_summary["net_income_3yr"] = {str(k.date()): int(v) for k, v in nis.items()}
+                margins = []
+                for col in cols:
+                    if col in rev_row.index and col in ni_row.index:
+                        r = float(rev_row.get(col) or 0)
+                        ni_val = float(ni_row.get(col) or 0)
+                        if r != 0:
+                            margins.append(round(ni_val / r * 100, 2))
+                growth["net_margin_trend_pct"] = margins
+    except Exception:
+        pass
+
+    try:
+        bs = tk.balance_sheet
+        if bs is not None and not bs.empty:
+            cols = bs.columns[:3]
+            eq_row = next(
+                (bs.loc[k] for k in ("Stockholders Equity", "Total Stockholder Equity", "Common Stock Equity") if k in bs.index),
+                None
+            )
+            ni_row_bs = None
+            try:
+                f = tk.financials
+                if f is not None and not f.empty and "Net Income" in f.index:
+                    ni_row_bs = f.loc["Net Income"]
+            except Exception:
+                pass
+
+            if eq_row is not None and ni_row_bs is not None:
+                roe_list = []
+                for col in cols:
+                    eq  = float(eq_row.get(col) or 0)
+                    ni_ = float(ni_row_bs.get(col) if col in ni_row_bs.index else 0 or 0)
+                    if eq != 0:
+                        roe_list.append(round(ni_ / eq * 100, 2))
+                growth["roe_trend_pct"] = roe_list
+
+            debt_row = next(
+                (bs.loc[k] for k in ("Total Debt", "Long Term Debt And Capital Lease Obligation") if k in bs.index),
+                None
+            )
+            if debt_row is not None and eq_row is not None:
+                c0 = cols[0]
+                eq_v   = float(eq_row.get(c0) or 0)
+                debt_v = float(debt_row.get(c0) or 0)
+                bal_summary["debt_to_equity_computed"] = round(debt_v / eq_v, 3) if eq_v != 0 else None
+    except Exception:
+        pass
+
+    try:
+        cf = tk.cashflow
+        if cf is not None and not cf.empty:
+            cols = cf.columns[:3]
+            if "Free Cash Flow" in cf.index:
+                fcf_row = cf.loc["Free Cash Flow"]
+                cf_summary["fcf_3yr"] = {str(k.date()): int(v) for k, v in fcf_row[cols].dropna().items()}
+    except Exception:
+        pass
+
+    return fin_summary, bal_summary, cf_summary, growth
+
 
 @tool
 def get_market_data(ticker: str, period: str = "1y") -> str:
     """
-    Fetch historical OHLCV + key financial ratios for a stock ticker.
+    Fetch historical OHLCV, key financial ratios, 3-year financial statements,
+    analyst price targets, and macro correlations for a stock ticker.
     Args:
         ticker: Stock ticker symbol (e.g. 'BBCA.JK', 'AAPL').
         period: History period (default '1y'). Options: 1mo, 3mo, 6mo, 1y, 2y, 5y.
     Returns:
-        JSON string with market data summary and OHLCV for charting.
+        JSON string with market data, fundamentals, and OHLCV for charting.
     """
     try:
         tk = yf.Ticker(ticker)
@@ -74,7 +183,6 @@ def get_market_data(ticker: str, period: str = "1y") -> str:
         latest = hist.iloc[-1]
         info = tk.info or {}
 
-        # Correlation: daily returns vs macro indices
         macro_symbols = {"^GSPC": "SP500", "GC=F": "Gold", "CL=F": "Oil_WTI", "^IRX": "US_tbill_rate_3m"}
         returns_df = pd.DataFrame()
         returns_df[ticker] = hist["Close"].pct_change().dropna()
@@ -90,87 +198,99 @@ def get_market_data(ticker: str, period: str = "1y") -> str:
         if ticker in returns_df.columns and len(returns_df.columns) > 1:
             corr = returns_df.corr()[ticker].drop(ticker).round(3).to_dict()
 
+        fin_summary, bal_summary, cf_summary, growth = _summarize_financials(tk)
+
+        analyst_data = {}
+        try:
+            targets = tk.analyst_price_targets
+            if isinstance(targets, dict):
+                analyst_data["price_target_mean"] = round(float(targets.get("mean") or 0), 2)
+                analyst_data["price_target_high"] = round(float(targets.get("high") or 0), 2)
+                analyst_data["price_target_low"]  = round(float(targets.get("low")  or 0), 2)
+        except Exception:
+            pass
+
+        try:
+            recs = tk.recommendations
+            if recs is not None and not recs.empty:
+                latest_recs = recs.tail(10)
+                grade_col = "To Grade" if "To Grade" in latest_recs.columns else (latest_recs.columns[0] if not latest_recs.empty else None)
+                if grade_col:
+                    counts = latest_recs[grade_col].value_counts().to_dict()
+                    analyst_data["recommendation_counts"] = {str(k): int(v) for k, v in counts.items()}
+        except Exception:
+            pass
+
         summary = {
             "ticker": ticker,
             "current_price": round(float(latest["Close"]), 2),
             "52w_high": round(float(hist["High"].max()), 2),
-            "52w_low": round(float(hist["Low"].min()), 2),
+            "52w_low":  round(float(hist["Low"].min()),  2),
             "avg_volume_30d": int(hist["Volume"].tail(30).mean()),
-            "pe_ratio": info.get("trailingPE"),
-            "roe": info.get("returnOnEquity"),
+            "pe_ratio":       info.get("trailingPE"),
+            "roe":            info.get("returnOnEquity"),
             "debt_to_equity": info.get("debtToEquity"),
-            "market_cap": info.get("marketCap"),
+            "market_cap":     info.get("marketCap"),
             "price_change_1y_pct": round(
                 (float(latest["Close"]) - float(hist.iloc[0]["Close"])) / float(hist.iloc[0]["Close"]) * 100, 2
             ) if float(hist.iloc[0]["Close"]) != 0 else None,
+            "financials":        fin_summary,
+            "balance_sheet":     bal_summary,
+            "cashflow":          cf_summary,
+            "growth_trend":      growth,
+            "analyst_consensus": analyst_data,
             "macro_correlation": corr,
             "ohlcv": {
-                "dates": hist.index.strftime("%Y-%m-%d").tolist(),
-                "open":  hist["Open"].round(2).tolist(),
-                "high":  hist["High"].round(2).tolist(),
-                "low":   hist["Low"].round(2).tolist(),
-                "close": hist["Close"].round(2).tolist(),
+                "dates":  hist.index.strftime("%Y-%m-%d").tolist(),
+                "open":   hist["Open"].round(2).tolist(),
+                "high":   hist["High"].round(2).tolist(),
+                "low":    hist["Low"].round(2).tolist(),
+                "close":  hist["Close"].round(2).tolist(),
                 "volume": hist["Volume"].tolist(),
             },
         }
-        return json.dumps(summary)
+        return json.dumps(summary, default=float)
     except Exception as e:
         return json.dumps({"error": str(e)})
 
 
 @tool
-def get_news_sentiment(query: str, max_results: int = 10) -> str:
+def get_news_sentiment(query: str, max_results: int = 15) -> str:
     """
-    Search recent financial news about a stock or topic.
+    Search recent financial news about a stock, classify by event type, and detect volume anomalies.
     Args:
         query: Search query (e.g. 'BBCA Bank Central Asia saham 2025').
-        max_results: Maximum number of articles to return (default 10).
+        max_results: Maximum number of articles to return (default 15).
     Returns:
-        JSON string — list of {title, source, snippet, date}.
+        JSON string — {"articles": [...], "volume_anomaly": bool}.
+        Each article has: title, source, snippet, date, event_type.
     """
     try:
         articles = _fetch_serper(query, max_results)
         if not articles:
             articles = _fetch_ddg(query, max_results)
-        return json.dumps(articles[:max_results])
+
+        articles = articles[:max_results]
+
+        for article in articles:
+            article["event_type"] = _classify_event(
+                article.get("title", ""), article.get("snippet", "")
+            )
+
+        # volume_anomaly uses date-string heuristics tuned for Serper ("2 hours ago").
+        # DDG returns ISO dates; anomaly will always be False with DDG fallback.
+        recent_count = sum(
+            1 for a in articles
+            if any(k in a.get("date", "").lower() for k in ("hour", "min", "second"))
+        )
+        volume_anomaly = recent_count >= 5
+
+        return json.dumps({"articles": articles, "volume_anomaly": volume_anomaly})
     except Exception as e:
-        return json.dumps({"error": str(e)})
+        return json.dumps({"articles": [], "volume_anomaly": False, "error": str(e)})
 
 
-@tool
-def get_macro_indicators(_: str = "") -> str:
-    """
-    Fetch macro economic indicators: US T-bill rate, S&P 500, Gold, Oil — 30-day change %.
-    Returns:
-        JSON string with macro indicator data.
-    """
-    indicators = {
-        "^IRX":  "US_tbill_rate_3m",
-        "^GSPC": "SP500",
-        "GC=F":  "Gold",
-        "CL=F":  "Oil_WTI",
-    }
-    result = {}
-    for symbol, name in indicators.items():
-        try:
-            hist = yf.Ticker(symbol).history(period="35d")
-            if len(hist) >= 2:
-                start_price = float(hist.iloc[0]["Close"])
-                end_price   = float(hist.iloc[-1]["Close"])
-                change_pct  = round((end_price - start_price) / start_price * 100, 2)
-                result[name] = {
-                    "symbol":        symbol,
-                    "current":       round(end_price, 2),
-                    "change_30d_pct": change_pct,
-                }
-            else:
-                result[name] = {"error": "insufficient data"}
-        except Exception:
-            result[name] = {"error": "fetch failed"}
-    return json.dumps(result)
-
-
-STOCK_TOOLS = [get_market_data, get_news_sentiment, get_macro_indicators]
+STOCK_TOOLS = [get_market_data, get_news_sentiment]
 
 
 # ── Plotly JSON builders (called by server.py, not agents) ───────────────────

@@ -254,6 +254,11 @@ def _sse(data: dict) -> str:
     return f"data: {json.dumps(data, ensure_ascii=False, default=float)}\n\n"
 
 
+async def _run_agent(loop, fn, *args):
+    """Run a synchronous agent function in the default executor and return its result."""
+    return await loop.run_in_executor(None, fn, *args)
+
+
 @app.get("/api/stock/analyze")
 async def stock_analyze(ticker: str):
     if not ticker or len(ticker) > 20:
@@ -261,59 +266,74 @@ async def stock_analyze(ticker: str):
 
     async def generate():
         try:
-            from agents.stock_agents import run_quant, run_newsroom, run_economist, run_critic
+            from agents.stock_agents import (
+                run_deep_research, run_news_intelligence,
+                run_strategy, run_final_verdict,
+            )
             from tools.stock_tools import build_candlestick_json, build_heatmap_json, build_python_code
             loop = asyncio.get_running_loop()
 
-            # ── Phase 1: Quant (sequential) ───────────────────────────
-            yield _sse({"event": "step", "agent": "Quant", "status": "running"})
-            quant_data = await loop.run_in_executor(None, run_quant, ticker)
-            price  = quant_data.get("current_price", "N/A")
-            pe     = quant_data.get("pe_ratio", "N/A")
-            change = quant_data.get("price_change_1y", "N/A")
-            trend  = quant_data.get("technical_trend", "N/A")
-            yield _sse({"event": "log", "text": f"Harga: {price} | P/E: {pe} | Perubahan 1Y: {change}"})
-            yield _sse({"event": "log", "text": f"Tren Teknikal: {trend}"})
-            yield _sse({"event": "step", "agent": "Quant", "status": "done"})
+            # ── Phase 1: DeepResearch ─────────────────────────────────────
+            yield _sse({"event": "step", "agent": "DeepResearch", "status": "running"})
+            deep_research_data = await _run_agent(loop, run_deep_research, ticker)
+            price  = deep_research_data.get("current_price", "N/A")
+            growth = deep_research_data.get("growth_trend", "N/A")
+            yield _sse({"event": "log", "text": f"Harga: {price} | Growth: {growth}"})
+            yield _sse({"event": "step", "agent": "DeepResearch", "status": "done"})
 
-            # ── Phase 2: Newsroom + Economist (parallel) ───────────────
-            yield _sse({"event": "step", "agent": "Newsroom",  "status": "running"})
-            yield _sse({"event": "step", "agent": "Economist", "status": "running"})
-            newsroom_data, economist_data = await asyncio.gather(
-                loop.run_in_executor(None, run_newsroom, ticker),
-                loop.run_in_executor(None, run_economist, quant_data),
+            await asyncio.sleep(5)
+
+            # ── Phase 2: NewsIntelligence ─────────────────────────────────
+            yield _sse({"event": "step", "agent": "NewsIntelligence", "status": "running"})
+            news_data = await _run_agent(loop, run_news_intelligence, ticker)
+            sentiment  = news_data.get("sentiment_score", "N/A")
+            event_type = news_data.get("event_type", "N/A")
+            yield _sse({"event": "log", "text": f"Sentimen: {sentiment} | Event: {event_type}"})
+            yield _sse({"event": "step", "agent": "NewsIntelligence", "status": "done"})
+
+            await asyncio.sleep(5)
+
+            # ── Phase 3: Strategy ─────────────────────────────────────────
+            yield _sse({"event": "step", "agent": "Strategy", "status": "running"})
+            strategy_data = await _run_agent(loop, run_strategy, deep_research_data, news_data)
+            entry = strategy_data.get("entry_zone", "N/A")
+            rr    = strategy_data.get("risk_reward_ratio", "N/A")
+            yield _sse({"event": "strategy", "data": strategy_data})
+            yield _sse({"event": "log", "text": f"Entry: {entry} | R/R: {rr}"})
+            yield _sse({"event": "step", "agent": "Strategy", "status": "done"})
+
+            await asyncio.sleep(5)
+
+            # ── Phase 4: FinalVerdict ─────────────────────────────────────
+            yield _sse({"event": "step", "agent": "FinalVerdict", "status": "running"})
+            verdict_data = await _run_agent(
+                loop, run_final_verdict, ticker, deep_research_data, news_data, strategy_data
             )
-            sentiment = newsroom_data.get("sentiment_score", "N/A")
-            macro_v   = economist_data.get("macro_verdict", "N/A")
-            yield _sse({"event": "log", "text": f"Skor Sentimen: {sentiment} | Makro: {macro_v}"})
-            yield _sse({"event": "step", "agent": "Newsroom",  "status": "done"})
-            yield _sse({"event": "step", "agent": "Economist", "status": "done"})
+            yield _sse({"event": "verdict", "data": verdict_data})
+            yield _sse({"event": "step", "agent": "FinalVerdict", "status": "done"})
 
-            # ── Phase 3: Critic (sequential) ───────────────────────────
-            yield _sse({"event": "step", "agent": "Critic", "status": "running"})
-            critic_data = await loop.run_in_executor(
-                None, run_critic, ticker, quant_data, newsroom_data, economist_data
-            )
-            yield _sse({"event": "step", "agent": "Critic", "status": "done"})
+            # ── Charts + code ─────────────────────────────────────────────
+            ohlcv = deep_research_data.get("ohlcv", {})
+            corr  = deep_research_data.get("macro_correlation", {})
+            yield _sse({"event": "chart",
+                        "candlestick": build_candlestick_json(ticker, ohlcv),
+                        "heatmap":     build_heatmap_json(ticker, corr)})
+            yield _sse({"event": "code", "python": build_python_code(ticker, ohlcv, corr)})
 
-            # ── Charts + code ──────────────────────────────────────────
-            ohlcv = quant_data.get("ohlcv", {})
-            corr  = quant_data.get("macro_correlation", {})
-            candlestick_json = build_candlestick_json(ticker, ohlcv)
-            heatmap_json     = build_heatmap_json(ticker, corr)
-            python_code      = build_python_code(ticker, ohlcv, corr)
-
-            yield _sse({"event": "chart", "candlestick": candlestick_json, "heatmap": heatmap_json})
-            yield _sse({"event": "code",  "python": python_code})
-
-            # ── Final report ───────────────────────────────────────────
+            # ── Final report ──────────────────────────────────────────────
+            risk_list = verdict_data.get("risk_assessment", [])
+            risk_text = "\n".join(risk_list) if isinstance(risk_list, list) else str(risk_list)
             report = {
-                "executive_summary": critic_data.get("executive_summary", ""),
-                "fundamental":       quant_data.get("summary",    "") + "\n\n" + critic_data.get("fundamental_analysis", ""),
-                "sentiment":         newsroom_data.get("summary", "") + "\n\n" + economist_data.get("summary", "") + "\n\n" + critic_data.get("sentiment_macro", ""),
-                "risk":              critic_data.get("risk_assessment", "") + "\n\n" + critic_data.get("counter_arguments", ""),
-                "verdict":           critic_data.get("verdict", "HOLD"),
-                "verdict_reasoning": critic_data.get("verdict_reasoning", ""),
+                "executive_summary": verdict_data.get("executive_summary", ""),
+                "fundamental":       deep_research_data.get("summary", "") + "\n\n" + verdict_data.get("fundamental_analysis", ""),
+                "sentiment":         news_data.get("summary", "") + "\n\n" + verdict_data.get("sentiment_macro", ""),
+                "risk":              risk_text + "\n\n" + verdict_data.get("counter_arguments", ""),
+                "verdict":           verdict_data.get("verdict", "HOLD"),
+                "conviction_score":  verdict_data.get("conviction_score", 5),
+                "risk_reward":       verdict_data.get("risk_reward", ""),
+                "bull_case":         verdict_data.get("bull_case", []),
+                "bear_case":         verdict_data.get("bear_case", []),
+                "investment_memo":   verdict_data.get("investment_memo", ""),
             }
             yield _sse({"event": "done", "report": report})
 

@@ -1,74 +1,25 @@
 import json
 import re
+import time
 from agents.base import build_agent
-from tools.stock_tools import get_market_data, get_news_sentiment, get_macro_indicators
+from tools.stock_tools import get_market_data, get_news_sentiment
 
-_QUANT_PROMPT = """Kamu adalah The Quant — analis kuantitatif yang presisi dan berbasis data.
-Tugasmu: Gunakan tool get_market_data untuk mengambil data saham yang diminta, lalu hasilkan
-ringkasan fundamental dan teknikal dalam Bahasa Indonesia profesional.
 
-Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
-{
-  "summary": "ringkasan 3-4 kalimat kondisi fundamental dan teknikal",
-  "current_price": 0.0,
-  "pe_ratio": "nilai atau N/A",
-  "roe": "nilai atau N/A",
-  "debt_to_equity": "nilai atau N/A",
-  "price_change_1y": "nilai% atau N/A",
-  "technical_trend": "bullish/bearish/sideways — alasan singkat 1 kalimat",
-  "ohlcv": {},
-  "macro_correlation": {}
-}
-"""
-
-_NEWSROOM_PROMPT = """Kamu adalah The Newsroom — jurnalis investigatif finansial yang kritis.
-Tugasmu: Gunakan tool get_news_sentiment untuk mencari 10 berita terbaru tentang ticker yang diberikan,
-lalu analisis sentimen pasar dalam Bahasa Indonesia profesional.
-
-Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
-{
-  "summary": "ringkasan sentimen pasar 3-4 kalimat",
-  "sentiment_score": 0.0,
-  "key_themes": ["tema1", "tema2", "tema3"],
-  "risk_signals": ["isu atau rumor negatif"],
-  "positive_signals": ["katalis positif atau peluang"]
-}
-
-sentiment_score: -1.0 (sangat negatif) hingga +1.0 (sangat positif).
-"""
-
-_ECONOMIST_PROMPT = """Kamu adalah The Economist — macro strategist yang melihat big picture.
-Tugasmu: Gunakan tool get_macro_indicators untuk mengambil data makro, lalu analisis bagaimana
-kondisi makroekonomi mempengaruhi saham target dalam Bahasa Indonesia profesional.
-
-Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
-{
-  "summary": "konteks makro 3-4 kalimat relevan ke saham target",
-  "interest_rate_impact": "dampak suku bunga saat ini terhadap saham ini",
-  "commodity_impact": "dampak harga komoditas (jika relevan)",
-  "market_correlation": "korelasi saham ini dengan pasar global",
-  "macro_verdict": "favorable/neutral/unfavorable"
-}
-"""
-
-_CRITIC_PROMPT = """Kamu adalah The Critic — quality controller dan devil's advocate investasi.
-Kamu menerima output dari tiga analis (Quant, Newsroom, Economist) sebagai konteks dalam pesan.
-Tugasmu: Gabungkan semua insight, tantang asumsi yang lemah, lalu susun laporan investasi final
-dalam Bahasa Indonesia profesional yang objektif.
-
-Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
-{
-  "executive_summary": "2-3 kalimat kondisi saham saat ini secara menyeluruh",
-  "fundamental_analysis": "paragraph analisis fundamental dan teknikal yang tajam",
-  "sentiment_macro": "paragraph gabungan sentimen berita dan konteks makro",
-  "risk_assessment": "3-5 risiko utama yang bisa membatalkan tesis investasi ini",
-  "counter_arguments": "1-2 argumen devil's advocate — apa yang bisa membuat tesis ini salah",
-  "verdict": "BUY",
-  "verdict_reasoning": "1 kalimat alasan verdict yang jelas dan tegas"
-}
-
-verdict hanya boleh: BUY, HOLD, atau SELL.
-"""
+def _invoke_with_retry(agent, messages: dict, max_retries: int = 5) -> dict:
+    """Invoke a LangGraph agent with exponential backoff on 429 rate-limit errors."""
+    delay = 20
+    last_exc = None
+    for attempt in range(max_retries):
+        try:
+            return agent.invoke(messages)
+        except Exception as e:
+            last_exc = e
+            if "429" in str(e) or "rate" in str(e).lower():
+                time.sleep(delay)
+                delay = min(delay * 2, 120)
+            else:
+                raise
+    raise last_exc
 
 
 def _parse_json_output(agent_result: dict) -> dict:
@@ -88,38 +39,125 @@ def _parse_json_output(agent_result: dict) -> dict:
     return {"error": "Could not parse agent output", "raw": raw[:500]}
 
 
-def run_quant(ticker: str) -> dict:
-    agent = build_agent(_QUANT_PROMPT, [get_market_data])
-    result = agent.invoke({"messages": [{"role": "user", "content": f"Analisis saham: {ticker}"}]})
-    return _parse_json_output(result)
+_DEEP_RESEARCH_PROMPT = """Kamu adalah DeepResearch Agent — analis fundamental mendalam yang menggabungkan analisis kuantitatif dan konteks makroekonomi.
+Tugasmu: Gunakan tool get_market_data untuk mengambil data lengkap saham target, termasuk laporan keuangan 3 tahun, target analis, dan korelasi makro. Hasilkan analisis komprehensif dalam Bahasa Indonesia profesional.
+
+Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
+{
+  "summary": "ringkasan 3-4 kalimat kondisi fundamental, valuasi, dan konteks makro",
+  "valuation": "analisis P/E, P/B, atau EV/EBITDA vs peers — mahal/murah/wajar",
+  "growth_trend": "CAGR revenue 3 tahun terakhir dan tren margin (naik/stabil/turun)",
+  "financial_health": "kondisi hutang, free cash flow, dan neraca keuangan",
+  "analyst_consensus": "rata-rata target price analis dan distribusi rekomendasi",
+  "macro_context": "dampak kondisi makro saat ini terhadap saham ini",
+  "current_price": 0.0,
+  "ohlcv": {},
+  "macro_correlation": {}
+}
+"""
+
+_NEWS_INTELLIGENCE_PROMPT = """Kamu adalah NewsIntelligence Agent — analis berita finansial yang cerdas dengan kemampuan deteksi sinyal tersembunyi.
+Tugasmu: Gunakan tool get_news_sentiment untuk mengambil 15 berita terbaru tentang ticker yang diberikan. Analisis sentimen, klasifikasi event, dan deteksi anomali dalam Bahasa Indonesia profesional.
+
+Data dari tool berisi field: articles (list dengan event_type per artikel) dan volume_anomaly (boolean).
+
+Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
+{
+  "summary": "ringkasan sentimen pasar 3-4 kalimat",
+  "sentiment_score": 0.0,
+  "event_type": "jenis event dominan: earnings/M&A/management/regulatory/macro/other",
+  "key_events": ["event penting 1", "event penting 2"],
+  "risk_signals": ["sinyal negatif atau risiko"],
+  "catalyst_signals": ["katalis positif atau peluang"],
+  "anomaly_detected": false
+}
+
+sentiment_score: -1.0 (sangat negatif) hingga +1.0 (sangat positif).
+anomaly_detected: true jika volume_anomaly dari tool adalah true atau ada event major.
+"""
+
+_STRATEGY_PROMPT = """Kamu adalah Strategy Agent — ahli strategi trading yang terinspirasi dari metodologi ValueCell.
+Kamu menerima output dari DeepResearch dan NewsIntelligence sebagai konteks dalam pesan.
+Tugasmu: Berdasarkan analisis fundamental, teknikal, dan sentimen, susun strategi trading yang konkret dan actionable dalam Bahasa Indonesia profesional.
+
+Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
+{
+  "entry_zone": "zona harga entry yang disarankan (mis. 9500-9800)",
+  "exit_target": "target harga keluar berdasarkan resistance dan target analis",
+  "stop_loss": "level stop loss yang disarankan",
+  "stop_loss_pct": 0.0,
+  "time_horizon": "short|medium|long",
+  "time_horizon_detail": "estimasi durasi investasi (mis. 3-6 bulan)",
+  "position_size": "rekomendasi % portofolio (mis. 5%)",
+  "risk_reward_ratio": "rasio risk/reward (mis. 1:3.5)",
+  "rationale": "1-2 kalimat alasan strategi ini berdasarkan data"
+}
+
+time_horizon: gunakan short (< 1 bulan), medium (1-6 bulan), atau long (> 6 bulan).
+stop_loss_pct: persentase penurunan dari entry price sebagai stop loss (angka positif).
+"""
+
+_FINAL_VERDICT_PROMPT = """Kamu adalah FinalVerdict Agent — investment committee chairman yang bertindak sebagai devil's advocate.
+Kamu menerima output dari DeepResearch, NewsIntelligence, dan Strategy sebagai konteks dalam pesan.
+Tugasmu: Gabungkan semua insight, tantang setiap asumsi yang lemah, lalu susun laporan investasi final profesional dalam Bahasa Indonesia.
+
+Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
+{
+  "executive_summary": "2-3 kalimat kondisi saham menyeluruh yang objektif",
+  "fundamental_analysis": "paragraph analisis fundamental dan teknikal yang tajam",
+  "sentiment_macro": "paragraph gabungan sentimen berita dan konteks makro",
+  "risk_assessment": ["risiko utama 1", "risiko utama 2", "risiko utama 3"],
+  "counter_arguments": "devil's advocate — 1-2 argumen mengapa tesis ini bisa salah",
+  "bull_case": ["skenario positif 1", "skenario positif 2", "skenario positif 3"],
+  "bear_case": ["skenario negatif 1", "skenario negatif 2", "skenario negatif 3"],
+  "verdict": "BUY",
+  "conviction_score": 7,
+  "risk_reward": "1:3.5",
+  "investment_memo": "memo investasi profesional 3-4 kalimat yang berisi tesis lengkap"
+}
+
+verdict hanya boleh: BUY, HOLD, atau SELL.
+conviction_score: integer 1 (sangat tidak yakin) hingga 10 (sangat yakin).
+"""
 
 
-def run_newsroom(ticker: str) -> dict:
-    agent = build_agent(_NEWSROOM_PROMPT, [get_news_sentiment])
-    result = agent.invoke({
-        "messages": [{"role": "user", "content": f"Cari berita dan analisis sentimen pasar untuk: {ticker}"}]
+def run_deep_research(ticker: str) -> dict:
+    agent = build_agent(_DEEP_RESEARCH_PROMPT, [get_market_data])
+    result = _invoke_with_retry(agent, {
+        "messages": [{"role": "user", "content": f"Lakukan analisis mendalam saham: {ticker}"}]
     })
     return _parse_json_output(result)
 
 
-def run_economist(quant_output: dict) -> dict:
-    agent = build_agent(_ECONOMIST_PROMPT, [get_macro_indicators])
-    context = json.dumps({k: v for k, v in quant_output.items() if k != "ohlcv"}, ensure_ascii=False)
-    result = agent.invoke({
-        "messages": [{"role": "user", "content": f"Analisis konteks makro. Data saham: {context}"}]
+def run_news_intelligence(ticker: str) -> dict:
+    agent = build_agent(_NEWS_INTELLIGENCE_PROMPT, [get_news_sentiment])
+    result = _invoke_with_retry(agent, {
+        "messages": [{"role": "user", "content": f"Analisis berita dan sentimen untuk saham: {ticker}"}]
     })
     return _parse_json_output(result)
 
 
-def run_critic(ticker: str, quant: dict, newsroom: dict, economist: dict) -> dict:
-    agent = build_agent(_CRITIC_PROMPT, [])
-    combined = json.dumps({
-        "ticker":    ticker,
-        "quant":     {k: v for k, v in quant.items() if k != "ohlcv"},
-        "newsroom":  newsroom,
-        "economist": economist,
+def run_strategy(deep_research: dict, news_intelligence: dict) -> dict:
+    agent = build_agent(_STRATEGY_PROMPT, [])
+    context = json.dumps({
+        "deep_research":    {k: v for k, v in deep_research.items() if k != "ohlcv"},
+        "news_intelligence": news_intelligence,
     }, ensure_ascii=False)
-    result = agent.invoke({
+    result = _invoke_with_retry(agent, {
+        "messages": [{"role": "user", "content": f"Susun strategi trading berdasarkan data ini: {context}"}]
+    })
+    return _parse_json_output(result)
+
+
+def run_final_verdict(ticker: str, deep_research: dict, news_intelligence: dict, strategy: dict) -> dict:
+    agent = build_agent(_FINAL_VERDICT_PROMPT, [])
+    combined = json.dumps({
+        "ticker":            ticker,
+        "deep_research":     {k: v for k, v in deep_research.items() if k != "ohlcv"},
+        "news_intelligence": news_intelligence,
+        "strategy":          strategy,
+    }, ensure_ascii=False)
+    result = _invoke_with_retry(agent, {
         "messages": [{"role": "user", "content": f"Buat laporan investasi final: {combined}"}]
     })
     return _parse_json_output(result)
