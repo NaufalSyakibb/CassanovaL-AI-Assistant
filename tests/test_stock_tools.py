@@ -64,10 +64,10 @@ def test_get_news_sentiment_uses_serper_when_available():
     with patch("os.getenv", return_value="FAKE_SERPER_KEY"), \
          patch("requests.post", return_value=fake_serper_resp):
         raw = get_news_sentiment.invoke("BBCA Bank Central Asia")
-        articles = json.loads(raw)
+        result = json.loads(raw)
 
-    assert isinstance(articles, list)
-    assert articles[0]["title"] == "BBCA naik"
+    assert "articles" in result
+    assert result["articles"][0]["title"] == "BBCA naik"
 
 
 def test_get_news_sentiment_falls_back_to_ddg():
@@ -78,28 +78,78 @@ def test_get_news_sentiment_falls_back_to_ddg():
          patch("duckduckgo_search.DDGS") as MockDDGS:
         MockDDGS.return_value.__enter__.return_value.news.return_value = fake_ddg_result
         raw = get_news_sentiment.invoke("BBCA")
-        articles = json.loads(raw)
+        result = json.loads(raw)
 
-    assert isinstance(articles, list)
+    assert "articles" in result
+    assert isinstance(result["articles"], list)
 
 
-# ── get_macro_indicators ──────────────────────────────────────
+def test_get_news_sentiment_returns_dict_with_articles_and_anomaly():
+    from tools.stock_tools import get_news_sentiment
+    fake_serper_resp = MagicMock()
+    fake_serper_resp.status_code = 200
+    fake_serper_resp.json.return_value = {
+        "news": [
+            {"title": "BBCA naik", "source": "Kompas", "snippet": "Saham naik setelah earnings", "date": "2 hours ago"},
+            {"title": "Merger deal", "source": "Bloomberg", "snippet": "acquisition talks", "date": "1 hour ago"},
+        ]
+    }
 
-def test_get_macro_indicators_returns_four_symbols():
-    from tools.stock_tools import get_macro_indicators
-    fake_hist = _make_hist_df()
+    with patch("os.getenv", return_value="FAKE_KEY"), \
+         patch("requests.post", return_value=fake_serper_resp):
+        raw = get_news_sentiment.invoke("BBCA")
+        result = json.loads(raw)
 
-    with patch("yfinance.Ticker") as MockTicker:
-        MockTicker.return_value.history.return_value = fake_hist
-        raw = get_macro_indicators.invoke("")
-        data = json.loads(raw)
+    assert "articles" in result
+    assert "volume_anomaly" in result
+    assert isinstance(result["articles"], list)
+    assert isinstance(result["volume_anomaly"], bool)
 
-    assert "SP500" in data
-    assert "Gold" in data
-    assert "Oil_WTI" in data
-    assert "US_tbill_rate_3m" in data
-    for key in data:
-        assert "change_30d_pct" in data[key]
+
+def test_get_news_sentiment_classifies_event_type():
+    from tools.stock_tools import get_news_sentiment
+    fake_serper_resp = MagicMock()
+    fake_serper_resp.status_code = 200
+    fake_serper_resp.json.return_value = {
+        "news": [
+            {"title": "Quarterly earnings beat expectations", "source": "Reuters",
+             "snippet": "revenue and EPS exceeded estimates", "date": "3 hours ago"},
+        ]
+    }
+
+    with patch("os.getenv", return_value="FAKE_KEY"), \
+         patch("requests.post", return_value=fake_serper_resp):
+        raw = get_news_sentiment.invoke("AAPL earnings")
+        result = json.loads(raw)
+
+    article = result["articles"][0]
+    assert article["event_type"] == "earnings"
+
+
+def test_get_news_sentiment_volume_anomaly_true_when_many_recent():
+    from tools.stock_tools import get_news_sentiment
+    fake_serper_resp = MagicMock()
+    fake_serper_resp.status_code = 200
+    # 6 articles from within the last hour → anomaly
+    fake_serper_resp.json.return_value = {
+        "news": [
+            {"title": f"News {i}", "source": "X", "snippet": "snippet", "date": "30 minutes ago"}
+            for i in range(6)
+        ]
+    }
+
+    with patch("os.getenv", return_value="FAKE_KEY"), \
+         patch("requests.post", return_value=fake_serper_resp):
+        raw = get_news_sentiment.invoke("BBCA")
+        result = json.loads(raw)
+
+    assert result["volume_anomaly"] is True
+
+
+def test_get_macro_indicators_removed_from_stock_tools():
+    from tools import stock_tools
+    assert not hasattr(stock_tools, "get_macro_indicators") or \
+           "get_macro_indicators" not in [t.name for t in stock_tools.STOCK_TOOLS]
 
 
 # ── Plotly builder helpers ────────────────────────────────────

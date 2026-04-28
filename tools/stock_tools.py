@@ -52,6 +52,26 @@ def _fetch_ddg(query: str, max_results: int) -> list:
         return []
 
 
+# ── Event classification ──────────────────────────────────────────────────────
+
+_EVENT_KEYWORDS: dict[str, set[str]] = {
+    "earnings":   {"earnings", "revenue", "profit", "eps", "quarterly", "results"},
+    "M&A":        {"merger", "acquisition", "acquire", "takeover", "buyout"},
+    "management": {"ceo", "cfo", "director", "resign", "appoint", "executive"},
+    "regulatory": {"sec", "regulation", "fine", "lawsuit", "probe", "penalty"},
+    "macro":      {"fed", "interest rate", "inflation", "gdp", "central bank"},
+}
+
+
+def _classify_event(title: str, snippet: str) -> str:
+    """Classify a news article into an event type using keyword heuristics."""
+    text = (title + " " + snippet).lower()
+    for event_type, keywords in _EVENT_KEYWORDS.items():
+        if any(kw in text for kw in keywords):
+            return event_type
+    return "other"
+
+
 # ── LangChain tools ───────────────────────────────────────────────────────────
 
 def _summarize_financials(tk) -> tuple[dict, dict, dict, dict]:
@@ -235,58 +255,40 @@ def get_market_data(ticker: str, period: str = "1y") -> str:
 
 
 @tool
-def get_news_sentiment(query: str, max_results: int = 10) -> str:
+def get_news_sentiment(query: str, max_results: int = 15) -> str:
     """
-    Search recent financial news about a stock or topic.
+    Search recent financial news about a stock, classify by event type, and detect volume anomalies.
     Args:
         query: Search query (e.g. 'BBCA Bank Central Asia saham 2025').
-        max_results: Maximum number of articles to return (default 10).
+        max_results: Maximum number of articles to return (default 15).
     Returns:
-        JSON string — list of {title, source, snippet, date}.
+        JSON string — {"articles": [...], "volume_anomaly": bool}.
+        Each article has: title, source, snippet, date, event_type.
     """
     try:
         articles = _fetch_serper(query, max_results)
         if not articles:
             articles = _fetch_ddg(query, max_results)
-        return json.dumps(articles[:max_results])
+
+        articles = articles[:max_results]
+
+        for article in articles:
+            article["event_type"] = _classify_event(
+                article.get("title", ""), article.get("snippet", "")
+            )
+
+        recent_count = sum(
+            1 for a in articles
+            if any(k in a.get("date", "").lower() for k in ("hour", "min", "second"))
+        )
+        volume_anomaly = recent_count >= 5
+
+        return json.dumps({"articles": articles, "volume_anomaly": volume_anomaly})
     except Exception as e:
         return json.dumps({"error": str(e)})
 
 
-@tool
-def get_macro_indicators(_: str = "") -> str:
-    """
-    Fetch macro economic indicators: US T-bill rate, S&P 500, Gold, Oil — 30-day change %.
-    Returns:
-        JSON string with macro indicator data.
-    """
-    indicators = {
-        "^IRX":  "US_tbill_rate_3m",
-        "^GSPC": "SP500",
-        "GC=F":  "Gold",
-        "CL=F":  "Oil_WTI",
-    }
-    result = {}
-    for symbol, name in indicators.items():
-        try:
-            hist = yf.Ticker(symbol).history(period="35d")
-            if len(hist) >= 2:
-                start_price = float(hist.iloc[0]["Close"])
-                end_price   = float(hist.iloc[-1]["Close"])
-                change_pct  = round((end_price - start_price) / start_price * 100, 2)
-                result[name] = {
-                    "symbol":        symbol,
-                    "current":       round(end_price, 2),
-                    "change_30d_pct": change_pct,
-                }
-            else:
-                result[name] = {"error": "insufficient data"}
-        except Exception:
-            result[name] = {"error": "fetch failed"}
-    return json.dumps(result)
-
-
-STOCK_TOOLS = [get_market_data, get_news_sentiment, get_macro_indicators]
+STOCK_TOOLS = [get_market_data, get_news_sentiment]
 
 
 # ── Plotly JSON builders (called by server.py, not agents) ───────────────────
