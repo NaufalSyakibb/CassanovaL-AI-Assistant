@@ -856,6 +856,203 @@ def make_darwin_task(
     )
 
 
+# ── Academic Swarm Pipeline Orchestrator ─────────────────────────────────────
+
+class AcademicSwarmPipeline:
+    """Meta-orchestrated academic researcher swarm.
+
+    Modes (selected by Al-Biruni):
+      quick:    Hypatia → Darwin                              (~2 min)
+      deep:     Hypatia → Bacon → Averroes → Sokrates(×1) → Darwin  (~5 min)
+      academic: Hypatia → [Bacon ‖ Popper] → Leibniz → Averroes → Sokrates(×3) → Darwin (~10 min)
+    """
+
+    def __init__(self, topic: str, step_cb=None, task_cb=None):
+        self.topic = topic
+        self.step_cb = step_cb
+        self.task_cb = task_cb
+        self.ts: str = ""
+
+    def _make_crew(self, agents, tasks):
+        return Crew(
+            agents=agents,
+            tasks=tasks,
+            verbose=self.step_cb is None,
+            step_callback=self.step_cb,
+            task_callback=self.task_cb,
+        )
+
+    def _log(self, msg: str) -> None:
+        if self.step_cb:
+            self.step_cb(msg)
+        else:
+            print(msg)
+
+    def _wiki_ingest(self, out_dir: Path) -> None:
+        report_path = out_dir / f"swarm_{self.ts}_final_report.md"
+        if not report_path.exists():
+            self._log("[SWARM] WikiIngester: final report not found, skipping")
+            return
+        try:
+            from tools.wiki_tools import write_research_to_wiki
+            report_text = report_path.read_text(encoding="utf-8")
+            write_research_to_wiki.invoke({"topic": self.topic, "content": report_text})
+            self._log("[SWARM] WikiIngester → report ingested to wiki")
+        except Exception as exc:
+            self._log(f"[SWARM] WikiIngester warning (non-fatal): {exc}")
+
+    def kickoff(self):
+        topic = self.topic
+        self.ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        ts = self.ts
+        out_dir = _research_dir()
+
+        # ── Phase 0: Al-Biruni classifies topic ──────────────────────────────
+        self._log(f"[SWARM] Al-Biruni classifying topic: '{topic}'…")
+        meta = _classify_topic(topic)
+        mode = meta.get("mode", "deep")
+        angles = meta.get("angles", [topic])
+        (out_dir / f"swarm_{ts}_0_meta.txt").write_text(
+            json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+        self._log(f"[SWARM] Al-Biruni → mode={mode.upper()} | {meta.get('rationale', '')}")
+
+        # ── Phase 1: Hypatia (all modes) ─────────────────────────────────────
+        self._log("[SWARM] Hypatia searching academic sources…")
+        hypatia = make_hypatia(topic)
+        hypatia_task = make_hypatia_task(
+            topic, hypatia, angles,
+            _swarm_path(out_dir, ts, "1_scout.txt")
+        )
+        self._make_crew([hypatia], [hypatia_task]).kickoff()
+        scout_out = _read_swarm_file(out_dir, ts, "1_scout.txt")
+        self._log(f"[SWARM] Hypatia complete — {len(scout_out)} chars")
+
+        if mode == "quick":
+            self._log("[SWARM] Quick mode: Hypatia → Darwin")
+            darwin = make_darwin(topic)
+            darwin_task = make_darwin_task(
+                topic, darwin, scout_out, [], mode,
+                _swarm_path(out_dir, ts, "final_report.md")
+            )
+            self._make_crew([darwin], [darwin_task]).kickoff()
+            self._wiki_ingest(out_dir)
+            return {"mode": mode, "ts": ts}
+
+        # ── Phase 2: Bacon + optional Popper ─────────────────────────────────
+        bacon = make_bacon(topic)
+        bacon_task = make_bacon_task(
+            topic, bacon, scout_out,
+            _swarm_path(out_dir, ts, "2_analysis.txt")
+        )
+        bacon_out = "[PARTIAL: Bacon unavailable]"
+        popper_out = ""
+
+        if mode == "academic":
+            self._log("[SWARM] Academic mode: Bacon ‖ Popper (parallel)")
+            popper = make_popper(topic)
+            popper_task = make_popper_task(
+                topic, popper, scout_out,
+                _swarm_path(out_dir, ts, "3_validation.txt")
+            )
+            bacon_crew  = self._make_crew([bacon], [bacon_task])
+            popper_crew = self._make_crew([popper], [popper_task])
+            with ThreadPoolExecutor(max_workers=2) as ex:
+                f_bacon  = ex.submit(bacon_crew.kickoff)
+                f_popper = ex.submit(popper_crew.kickoff)
+                try:
+                    f_bacon.result(timeout=300)
+                    bacon_out = _read_swarm_file(out_dir, ts, "2_analysis.txt")
+                except Exception as exc:
+                    bacon_out = f"[PARTIAL: Bacon failed — {exc}]"
+                try:
+                    f_popper.result(timeout=300)
+                    popper_out = _read_swarm_file(out_dir, ts, "3_validation.txt")
+                except Exception as exc:
+                    popper_out = f"[PARTIAL: Popper failed — {exc}]"
+        else:
+            self._log("[SWARM] Deep mode: Bacon analyzing papers")
+            self._make_crew([bacon], [bacon_task]).kickoff()
+            bacon_out = _read_swarm_file(out_dir, ts, "2_analysis.txt")
+
+        # ── Phase 3: Leibniz (academic only) ─────────────────────────────────
+        leibniz_out = ""
+        if mode == "academic":
+            self._log("[SWARM] Leibniz tracing citation chains…")
+            leibniz = make_leibniz(topic)
+            leibniz_task = make_leibniz_task(
+                topic, leibniz, scout_out,
+                _swarm_path(out_dir, ts, "4_citations.txt")
+            )
+            self._make_crew([leibniz], [leibniz_task]).kickoff()
+            leibniz_out = _read_swarm_file(out_dir, ts, "4_citations.txt")
+
+        # ── Phase 4: Averroes synthesizes ────────────────────────────────────
+        self._log("[SWARM] Averroes synthesizing findings…")
+        averroes = make_averroes(topic)
+        averroes_task = make_averroes_task(
+            topic, averroes, scout_out, bacon_out, popper_out, leibniz_out,
+            _swarm_path(out_dir, ts, "5_synthesis.txt")
+        )
+        self._make_crew([averroes], [averroes_task]).kickoff()
+        synthesis = _read_swarm_file(out_dir, ts, "5_synthesis.txt")
+
+        # ── Phase 5: Sokrates critic loop ────────────────────────────────────
+        max_rounds = 3 if mode == "academic" else 1
+        critic_rounds = []
+
+        for round_num in range(1, max_rounds + 1):
+            self._log(f"[SWARM] Sokrates critic round {round_num}/{max_rounds}…")
+            sokrates = make_sokrates(topic)
+            sokrates_task = make_sokrates_task(
+                topic, sokrates, synthesis, round_num,
+                _swarm_path(out_dir, ts, "6_critique.txt")
+            )
+            self._make_crew([sokrates], [sokrates_task]).kickoff()
+            critique_raw = _read_swarm_file(out_dir, ts, "6_critique.txt")
+            critique = _parse_critic_output(critique_raw)
+            critique["round"] = round_num
+            critic_rounds.append(critique)
+            self._log(
+                f"[SWARM] Sokrates → score={critique.get('score')}, "
+                f"verdict={critique.get('verdict')}"
+            )
+
+            if critique.get("verdict") == "PASS" or critique.get("score", 0) >= 8:
+                self._log("[SWARM] Sokrates PASS — proceeding to Darwin")
+                break
+
+            if round_num < max_rounds:
+                self._log(f"[SWARM] Sokrates REVISE — Averroes revising (round {round_num + 1})…")
+                averroes2 = make_averroes(topic)
+                revision_task = make_averroes_revision_task(
+                    topic, averroes2, synthesis,
+                    critique.get("feedback", ""),
+                    _swarm_path(out_dir, ts, "5_synthesis.txt")
+                )
+                self._make_crew([averroes2], [revision_task]).kickoff()
+                synthesis = _read_swarm_file(out_dir, ts, "5_synthesis.txt")
+
+        # ── Phase 6: Darwin writes final report ──────────────────────────────
+        self._log("[SWARM] Darwin writing final report…")
+        darwin = make_darwin(topic)
+        darwin_task = make_darwin_task(
+            topic, darwin, synthesis, critic_rounds, mode,
+            _swarm_path(out_dir, ts, "final_report.md")
+        )
+        self._make_crew([darwin], [darwin_task]).kickoff()
+        self._log("[SWARM] Darwin complete")
+
+        self._wiki_ingest(out_dir)
+        return {"mode": mode, "ts": ts, "critic_rounds": len(critic_rounds)}
+
+
+def build_academic_swarm(
+    topic: str, step_cb=None, task_cb=None
+) -> AcademicSwarmPipeline:
+    return AcademicSwarmPipeline(topic, step_cb, task_cb)
+
+
 # ── Agent Factory ─────────────────────────────────────────────────────────────
 #
 # Ibn Al-Haytham — 7-Agent Hybrid Research Pipeline

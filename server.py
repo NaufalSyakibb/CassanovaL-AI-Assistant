@@ -108,6 +108,55 @@ async def scan_receipt(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"Gagal memproses struk: {str(e)}")
 
 
+# ─── Chat History Logger ─────────────────────────────────────────────────────
+
+_AGENT_FILENAMES = {
+    "task":     "alfred",
+    "notes":    "cicero",
+    "news":     "najwa",
+    "coding":   "linus",
+    "schedule": "miyamoto",
+    "budget":   "mansa",
+    "fitness":  "lavoisier",
+    "journal":  "dostoyevsky",
+    "davinci":  "davinci",
+}
+
+
+def _my_ai_dir() -> Path:
+    vault = os.getenv("OBSIDIAN_VAULT_PATH", "").strip()
+    base = (Path(vault) / "My AI") if vault \
+           else (Path(__file__).parent / "AI Data" / "My AI")
+    base.mkdir(parents=True, exist_ok=True)
+    return base
+
+
+def _save_chat_history(agent_key: str, agent_display: str, user_msg: str, ai_response: str) -> None:
+    """Append one conversation turn to AI Data/My AI/<agent>.md"""
+    try:
+        filename = _AGENT_FILENAMES.get(agent_key, agent_key.lower())
+        filepath = _my_ai_dir() / f"{filename}.md"
+
+        # Write header if file is new
+        if not filepath.exists():
+            filepath.write_text(
+                f"# Conversation History — {agent_display}\n\n",
+                encoding="utf-8",
+            )
+
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        entry = (
+            f"## {ts}\n\n"
+            f"**You:** {user_msg}\n\n"
+            f"**{agent_display}:** {ai_response}\n\n"
+            f"---\n\n"
+        )
+        with filepath.open("a", encoding="utf-8") as f:
+            f.write(entry)
+    except Exception:
+        pass  # Never let logging break the chat response
+
+
 # ─── Chat ────────────────────────────────────────────────────────────────────
 
 @app.post("/api/chat")
@@ -118,6 +167,11 @@ async def chat(req: ChatRequest):
             agent_name, response = supervisor.chat_direct(req.agent, req.message)
         else:
             agent_name, response = supervisor.chat(req.message)
+
+        # Save to AI Data/My AI/<agent>.md
+        agent_key = req.agent or agent_name.lower()
+        _save_chat_history(agent_key, agent_name, req.message, response)
+
         return {"agent": agent_name, "response": response}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -268,7 +322,7 @@ async def stock_analyze(ticker: str):
         try:
             from agents.stock_agents import (
                 run_deep_research, run_news_intelligence,
-                run_strategy, run_final_verdict,
+                run_strategy, run_final_verdict, run_buy_timing,
             )
             from tools.stock_tools import build_candlestick_json, build_heatmap_json, build_python_code
             loop = asyncio.get_running_loop()
@@ -311,6 +365,17 @@ async def stock_analyze(ticker: str):
             )
             yield _sse({"event": "verdict", "data": verdict_data})
             yield _sse({"event": "step", "agent": "FinalVerdict", "status": "done"})
+
+            await asyncio.sleep(5)
+
+            # ── Phase 5: BuyTiming ────────────────────────────────────────
+            yield _sse({"event": "step", "agent": "BuyTiming", "status": "running"})
+            timing_data = await _run_agent(loop, run_buy_timing, ticker, strategy_data, verdict_data)
+            signal     = timing_data.get("timing_signal", "WAIT")
+            confidence = timing_data.get("confidence", 5)
+            yield _sse({"event": "timing", "data": timing_data})
+            yield _sse({"event": "log", "text": f"Timing: {signal} | Confidence: {confidence}/10"})
+            yield _sse({"event": "step", "agent": "BuyTiming", "status": "done"})
 
             # ── Charts + code ─────────────────────────────────────────────
             ohlcv = deep_research_data.get("ohlcv", {})
@@ -381,14 +446,19 @@ def _run_crew_background(job_id: str, topic: str,
         if crew_type == "dataanalyst":
             from crewai_agents import build_data_crew
             crew = build_data_crew(filename or topic, step_cb=_log, task_cb=_log)
+            result = crew.kickoff()
         elif crew_type == "career":
             from crewai_agents import build_career_crew
             crew = build_career_crew(topic, cv_text or "", step_cb=_log, task_cb=_log)
+            result = crew.kickoff()
+        elif crew_type == "academic_swarm":
+            from crewai_agents import build_academic_swarm
+            pipeline = build_academic_swarm(topic, step_cb=_log, task_cb=_log)
+            result = pipeline.kickoff()
         else:
             from crewai_agents import build_crew
             crew = build_crew(topic, step_cb=_log, task_cb=_log)
-
-        result = crew.kickoff()
+            result = crew.kickoff()
         job["logs"] = logs
 
         # ── Collect output files ──────────────────────────────────────────────
@@ -429,6 +499,19 @@ def _run_crew_background(job_id: str, topic: str,
                 p = career_out / fname
                 if p.exists():
                     outputs[fname] = p.read_text(encoding="utf-8")
+        elif crew_type == "academic_swarm":
+            from crewai_agents import _research_dir
+            research_out = _research_dir()
+            ts = (result or {}).get("ts", "")
+            if ts:
+                for suffix in (
+                    "0_meta.txt", "1_scout.txt", "2_analysis.txt",
+                    "3_validation.txt", "4_citations.txt",
+                    "5_synthesis.txt", "6_critique.txt", "final_report.md",
+                ):
+                    p = research_out / f"swarm_{ts}_{suffix}"
+                    if p.exists():
+                        outputs[f"swarm_{ts}_{suffix}"] = p.read_text(encoding="utf-8")
         else:
             from crewai_agents import _research_dir
             research_out = _research_dir()
@@ -500,11 +583,160 @@ async def crew_jobs():
     ]}
 
 
+# ─── Flashcards API ──────────────────────────────────────────────────────────
+
+@app.get("/api/flashcards")
+async def list_flashcards(course: str = ""):
+    """Return all flashcard sets, optionally filtered by course."""
+    import json as _json
+    fc_path = Path("data/flashcards.json")
+    if not fc_path.exists():
+        return {"sets": [], "total": 0}
+    try:
+        data = _json.loads(fc_path.read_text(encoding="utf-8"))
+        sets = data.get("sets", [])
+        if course:
+            sets = [s for s in sets if course.lower() in s.get("course", "").lower()]
+        return {"sets": sets, "total": len(sets)}
+    except Exception:
+        return {"sets": [], "total": 0}
+
+
+# ─── News Feed API ────────────────────────────────────────────────────────────
+
+_NEWS_CATEGORIES = {
+    "technology": "technology AI startup news today",
+    "business":   "business economy finance news today",
+    "world":      "world news today",
+    "indonesia":  "Indonesia news today",
+    "science":    "science health research news today",
+}
+
+# Simple in-memory cache: {category: (fetched_at_datetime, articles_list)}
+_news_cache: dict = {}
+_NEWS_CACHE_TTL = 600  # seconds (10 minutes)
+
+
+@app.get("/api/news/feed")
+async def news_feed(category: str = "all"):
+    """Return structured news articles for the news page, bypassing the agent."""
+    import asyncio
+    import concurrent.futures
+    from datetime import timezone
+
+    now_utc = datetime.now(timezone.utc)
+
+    # Serve from cache if fresh
+    cached = _news_cache.get(category)
+    if cached:
+        cached_at, cached_articles = cached
+        if (now_utc - cached_at).total_seconds() < _NEWS_CACHE_TTL:
+            return {"articles": cached_articles, "fetched_at": cached_at.isoformat()}
+
+    from tools.news_tools import _search_news
+
+    queries = list(_NEWS_CATEGORIES.items()) if category == "all" else [
+        (category, _NEWS_CATEGORIES.get(category, f"{category} news today"))
+    ]
+
+    def fetch_one(cat_query):
+        cat, query = cat_query
+        results = _search_news(query, 8)
+        return [
+            {
+                "title":    r.get("title", "").strip(),
+                "source":   r.get("source", ""),
+                "snippet":  r.get("snippet", ""),
+                "date":     r.get("date", ""),
+                "url":      r.get("url", ""),
+                "imageUrl": r.get("imageUrl", ""),
+                "category": cat,
+            }
+            for r in results if r.get("title", "").strip()
+        ]
+
+    def fetch_all_blocking():
+        raw: list = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as ex:
+            fs = {ex.submit(fetch_one, q): q for q in queries}
+            try:
+                for fut in concurrent.futures.as_completed(fs, timeout=25):
+                    try:
+                        raw.extend(fut.result())
+                    except Exception:
+                        pass
+            except concurrent.futures.TimeoutError:
+                # Return whatever completed within the timeout
+                for fut in fs:
+                    if fut.done():
+                        try:
+                            raw.extend(fut.result())
+                        except Exception:
+                            pass
+        return raw
+
+    # Run the blocking fetch in a thread so the event loop stays free
+    raw = await asyncio.to_thread(fetch_all_blocking)
+
+    # Deduplicate by title
+    seen: set = set()
+    articles = []
+    for a in raw:
+        key = a["title"].lower()
+        if key not in seen:
+            seen.add(key)
+            articles.append(a)
+
+    _news_cache[category] = (now_utc, articles)
+    return {"articles": articles, "fetched_at": now_utc.isoformat()}
+
+
 # ─── Frontend ─────────────────────────────────────────────────────────────────
 
 Path("static").mkdir(exist_ok=True)
 Path("static/avatars").mkdir(exist_ok=True)
 Path("static/stock").mkdir(exist_ok=True)
+Path("static/news").mkdir(exist_ok=True)
+Path("static/notes").mkdir(exist_ok=True)
+
+
+@app.get("/news", include_in_schema=False)
+@app.get("/news/", include_in_schema=False)
+async def serve_news_page():
+    news_index = Path("static/news/index.html")
+    if news_index.exists():
+        return FileResponse(str(news_index))
+    return JSONResponse({"error": "News page not found"}, status_code=404)
+
+
+@app.get("/notes", include_in_schema=False)
+@app.get("/notes/", include_in_schema=False)
+async def serve_notes_page():
+    notes_index = Path("static/notes/index.html")
+    if notes_index.exists():
+        return FileResponse(str(notes_index))
+    return JSONResponse({"error": "Notes page not found"}, status_code=404)
+
+
+@app.get("/stock", include_in_schema=False)
+@app.get("/stock/", include_in_schema=False)
+async def serve_stock_terminal():
+    stock_index = Path("static/stock/index.html")
+    if stock_index.exists():
+        return FileResponse(str(stock_index))
+    return JSONResponse({"error": "Stock terminal not found"}, status_code=404)
+
+
+@app.get("/stock/v2", include_in_schema=False)
+@app.get("/stock/v2/", include_in_schema=False)
+async def serve_stock_terminal_v2():
+    stock_v2_index = Path("static/stock/index_v2.html")
+    if stock_v2_index.exists():
+        return FileResponse(str(stock_v2_index))
+    return JSONResponse({"error": "Stock terminal v2 not found"}, status_code=404)
+
+
+# Mounts must come AFTER explicit routes so Starlette checks routes first
 app.mount("/stock", StaticFiles(directory="static/stock", html=True), name="stock")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -528,4 +760,5 @@ async def serve_frontend(full_path: str):
 
 
 if __name__ == "__main__":
-    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("server:app", host="0.0.0.0", port=port, reload=True)
