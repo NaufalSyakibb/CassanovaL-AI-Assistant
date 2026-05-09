@@ -1,0 +1,30 @@
+**Data Cleaning Report**
+
+**Dataset:** `customers-100.csv`
+
+### **Before Cleaning**
+- **Shape:** 100 rows × 12 columns
+- **Columns:**
+  `Index, Customer Id, First Name, Last Name, Company, City, Country, Phone 1, Phone 2, Email, Subscription Date, Website`
+- **Missing Values:** 0 (0.0%)
+- **Duplicate Rows:** 0
+
+### **After Cleaning**
+- **Shape:** 100 rows × 12 columns
+- **Columns (Standardized):**
+  `index, customer_id, first_name, last_name, company, city, country, phone_1, phone_2, email, subscription_date, website`
+- **Missing Values:** 0 (0.0%)
+- **Duplicate Rows:** 0
+
+### **Operations Performed**
+1. **Column Name Standardization:**
+   - Renamed all 12 columns to lowercase with underscores (e.g., `Customer Id` → `customer_id`).
+2. **Null Handling:**
+   - No rows/columns dropped (no values exceeded 50% null threshold).
+   - No missing values filled (dataset was already complete).
+3. **Duplicate Removal:**
+   - No duplicate rows found or removed.
+
+### **Saved File**
+- **Path:** `customers-100_cleaned.csv`
+- **Reload Command:** `load_dataset('customers-100_cleaned.csv')`

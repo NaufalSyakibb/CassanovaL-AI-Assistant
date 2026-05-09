@@ -1,0 +1,95 @@
+<h2>Najwa — News View Layout</h2>
+<p class="subtitle">The user wants real news from BBC, Bloomberg, etc., split by category. Which approach fits best?</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#1a1a2e;padding:16px;font-family:monospace;font-size:11px;color:#aaa;border-radius:6px;">
+      <div style="color:#e2c97e;font-weight:bold;margin-bottom:8px;font-size:12px;">📰 NAJWA — News Feed</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div style="background:#0f0f1a;padding:8px;border-radius:4px;border-top:2px solid #4a90d9;">
+          <div style="color:#4a90d9;font-size:9px;margin-bottom:4px;">TECHNOLOGY</div>
+          <div style="color:#ddd;font-size:10px;margin-bottom:3px;">OpenAI releases GPT-5...</div>
+          <div style="color:#888;font-size:9px;">Bloomberg · 2h ago</div>
+          <div style="height:1px;background:#222;margin:6px 0;"></div>
+          <div style="color:#ddd;font-size:10px;margin-bottom:3px;">Apple unveils Vision Pro 2...</div>
+          <div style="color:#888;font-size:9px;">BBC · 4h ago</div>
+        </div>
+        <div style="background:#0f0f1a;padding:8px;border-radius:4px;border-top:2px solid #e05c5c;">
+          <div style="color:#e05c5c;font-size:9px;margin-bottom:4px;">POLITICS</div>
+          <div style="color:#ddd;font-size:10px;margin-bottom:3px;">G7 summit concludes with...</div>
+          <div style="color:#888;font-size:9px;">Reuters · 1h ago</div>
+          <div style="height:1px;background:#222;margin:6px 0;"></div>
+          <div style="color:#ddd;font-size:10px;margin-bottom:3px;">Senate votes on new...</div>
+          <div style="color:#888;font-size:9px;">BBC · 3h ago</div>
+        </div>
+        <div style="background:#0f0f1a;padding:8px;border-radius:4px;border-top:2px solid #5cb85c;">
+          <div style="color:#5cb85c;font-size:9px;margin-bottom:4px;">FINANCE</div>
+          <div style="color:#ddd;font-size:10px;margin-bottom:3px;">Fed signals rate cut...</div>
+          <div style="color:#888;font-size:9px;">Bloomberg · 30m ago</div>
+          <div style="height:1px;background:#222;margin:6px 0;"></div>
+          <div style="color:#ddd;font-size:10px;margin-bottom:3px;">S&amp;P 500 closes at record...</div>
+          <div style="color:#888;font-size:9px;">Reuters · 2h ago</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Column Grid (Overview Tab)</h3>
+      <p>A multi-column news dashboard under the "Overview" tab. Each category gets its own column with live headlines from BBC, Bloomberg, Reuters. Chat tab stays for asking Najwa questions.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#1a1a2e;padding:16px;font-family:monospace;font-size:11px;color:#aaa;border-radius:6px;">
+      <div style="color:#e2c97e;font-weight:bold;margin-bottom:8px;font-size:12px;">📰 NAJWA — Structured Chat</div>
+      <div style="background:#0f0f1a;padding:10px;border-radius:4px;border-left:3px solid #e2c97e;">
+        <div style="color:#e2c97e;font-size:9px;font-weight:bold;margin-bottom:6px;">Today's Briefing · 24h</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+          <span style="background:#4a90d9;color:#fff;font-size:8px;padding:1px 5px;border-radius:2px;">TECH</span>
+          <span style="color:#ddd;font-size:10px;">OpenAI releases GPT-5...</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+          <span style="background:#e05c5c;color:#fff;font-size:8px;padding:1px 5px;border-radius:2px;">POL</span>
+          <span style="color:#ddd;font-size:10px;">G7 summit concludes...</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="background:#5cb85c;color:#fff;font-size:8px;padding:1px 5px;border-radius:2px;">FIN</span>
+          <span style="color:#ddd;font-size:10px;">Fed signals rate cut in...</span>
+        </div>
+      </div>
+      <div style="margin-top:6px;color:#888;font-size:9px;">Najwa · Just now</div>
+    </div>
+    <div class="card-body">
+      <h3>B — Tagged Chat Responses</h3>
+      <p>Keep the same chat interface. Najwa's briefings are auto-formatted with colored category badges ([TECH] [FIN] [POL] etc.) inline in the chat. No new tab needed — just richer message formatting.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#1a1a2e;padding:16px;font-family:monospace;font-size:11px;color:#aaa;border-radius:6px;">
+      <div style="color:#e2c97e;font-weight:bold;margin-bottom:8px;font-size:12px;">📰 NAJWA — Feed + Chat</div>
+      <div style="display:flex;gap:8px;">
+        <div style="flex:1;background:#0f0f1a;padding:8px;border-radius:4px;">
+          <div style="color:#888;font-size:9px;margin-bottom:6px;border-bottom:1px solid #222;padding-bottom:4px;">LIVE FEED</div>
+          <div style="display:flex;gap:4px;margin-bottom:6px;">
+            <span style="background:#4a90d9;color:#fff;font-size:8px;padding:1px 5px;border-radius:2px;cursor:pointer;">Tech</span>
+            <span style="background:#222;color:#888;font-size:8px;padding:1px 5px;border-radius:2px;cursor:pointer;">Finance</span>
+            <span style="background:#222;color:#888;font-size:8px;padding:1px 5px;border-radius:2px;cursor:pointer;">Politics</span>
+          </div>
+          <div style="color:#ddd;font-size:10px;margin-bottom:3px;">OpenAI releases GPT-5</div>
+          <div style="color:#888;font-size:9px;margin-bottom:5px;">Bloomberg · 2h</div>
+          <div style="color:#ddd;font-size:10px;margin-bottom:3px;">Apple Vision Pro 2...</div>
+          <div style="color:#888;font-size:9px;">BBC · 4h</div>
+        </div>
+        <div style="flex:1;background:#0f0f1a;padding:8px;border-radius:4px;">
+          <div style="color:#888;font-size:9px;margin-bottom:6px;border-bottom:1px solid #222;padding-bottom:4px;">ASK NAJWA</div>
+          <div style="color:#888;font-size:10px;font-style:italic;">"What's happening in AI today?"</div>
+          <div style="margin-top:6px;color:#ddd;font-size:10px;">Three major developments...</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Split: Live Feed + Chat</h3>
+      <p>Two-pane view: left side shows a live categorized news feed with filter tabs (Tech / Finance / Politics / World). Right side is the Najwa chat for deeper Q&amp;A. Filter tabs let you switch between categories.</p>
+    </div>
+  </div>
+</div>

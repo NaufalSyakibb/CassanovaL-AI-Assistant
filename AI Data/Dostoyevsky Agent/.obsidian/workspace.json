@@ -1,0 +1,199 @@
+{
+  "main": {
+    "id": "2bfd6139b9f5f665",
+    "type": "split",
+    "children": [
+      {
+        "id": "d7584ac70ac2a253",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "b4abcd3978c954fe",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Journal_2026-04-11.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Journal_2026-04-11"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "e21341d72983f16f",
+    "type": "split",
+    "children": [
+      {
+        "id": "8ed2922b1f80acf0",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "60c73fb31ad042ec",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Penjelajah berkas"
+            }
+          },
+          {
+            "id": "96cc51f6358d4ddb",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Penelusuran"
+            }
+          },
+          {
+            "id": "60951887abb23ec2",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Penanda"
+            }
+          }
+        ],
+        "currentTab": 1
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "773f29585600704e",
+    "type": "split",
+    "children": [
+      {
+        "id": "b9e75421690f14ec",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "4a0e402005363052",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "Dostoyevsky Agent.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlink pada Dostoyevsky Agent"
+            }
+          },
+          {
+            "id": "284b366ac7201f39",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Dostoyevsky Agent.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Tautan keluar dari Dostoyevsky Agent"
+            }
+          },
+          {
+            "id": "673137f048f07d89",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tag"
+            }
+          },
+          {
+            "id": "b16fa71f52702a73",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "Semua properti"
+            }
+          },
+          {
+            "id": "8933f83b9fd42c99",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Dostoyevsky Agent.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Kerangka dari Dostoyevsky Agent"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Buka peralih cepat": false,
+      "graph:Buka tampilan grafik": false,
+      "canvas:Buat kanvas baru": false,
+      "daily-notes:Buka catatan hari ini": false,
+      "templates:Masukkan template": false,
+      "command-palette:Buka palet perintah": false,
+      "bases:Buat basis baru": false
+    }
+  },
+  "active": "b4abcd3978c954fe",
+  "lastOpenFiles": [
+    "Journal_2026-04-17.md",
+    "Tanpa judul.canvas",
+    "Journal_2026-04-14.md",
+    "Journal_2026-04-16.md",
+    "Journal_2026-04-11.md",
+    "Journal_2026-04-12.md",
+    "Dostoyevsky Agent.md",
+    "deskripsi_kode_java_kantin.txt",
+    "Home.md"
+  ]
+}

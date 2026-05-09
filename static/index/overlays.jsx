@@ -21,8 +21,6 @@ function CommandPalette({ onClose, setAgent, setTab, toggleTheme, theme }) {
       })),
       { type:'tab',    key:'overview', label:'Open the Dashboard',     sub:'Ledger · roster · recent' },
       { type:'tab',    key:'chat',     label:'Open the Dialogue',       sub:'Return to the active agent' },
-      { type:'link',   key:'/notes',   label:'Open Study Page',         sub:'Cicero · flashcards · notes · quizzes' },
-      { type:'link',   key:'/news',    label:'Open News Feed',          sub:'Najwa · live headlines · briefings' },
       { type:'link',   key:'/stock',   label:'Open Stock Terminal',     sub:'Bloomberg-style analysis terminal' },
       { type:'link',   key:'/stock/v2',label:'Open Pixel Terminal v2',  sub:'Retro pixel stock terminal' },
       { type:'theme',  key:'theme',    label: theme==='dark' ? 'Switch to light mode' : 'Switch to dark mode',

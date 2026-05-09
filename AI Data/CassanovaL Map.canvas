@@ -1,0 +1,368 @@
+{
+  "nodes": [
+    {
+      "id": "home",
+      "type": "file",
+      "file": "Home.md",
+      "x": 0,
+      "y": 0,
+      "width": 280,
+      "height": 70,
+      "color": "6"
+    },
+    {
+      "id": "alfred",
+      "type": "file",
+      "file": "Alfred Agent/Alfred Agent.md",
+      "x": -140,
+      "y": -800,
+      "width": 280,
+      "height": 70,
+      "color": "4"
+    },
+    {
+      "id": "cicero",
+      "type": "file",
+      "file": "Cicero Agent/Cicero Agent.md",
+      "x": 340,
+      "y": -620,
+      "width": 280,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "najwa",
+      "type": "file",
+      "file": "Najwa Agent/Najwa Agent.md",
+      "x": 610,
+      "y": -165,
+      "width": 280,
+      "height": 70,
+      "color": "3"
+    },
+    {
+      "id": "calcore",
+      "type": "file",
+      "file": "CalCore Agent/CalCore Agent.md",
+      "x": 510,
+      "y": 340,
+      "width": 280,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "mansa",
+      "type": "file",
+      "file": "Mansa Agent/Mansa Agent.md",
+      "x": 115,
+      "y": 680,
+      "width": 280,
+      "height": 70,
+      "color": "3"
+    },
+    {
+      "id": "lavoiser",
+      "type": "file",
+      "file": "Lavoiser Agent/Lavoiser Agent.md",
+      "x": -395,
+      "y": 680,
+      "width": 280,
+      "height": 70,
+      "color": "1"
+    },
+    {
+      "id": "dostoyevsky",
+      "type": "file",
+      "file": "Dostoyevsky Agent/Dostoyevsky Agent.md",
+      "x": -800,
+      "y": 340,
+      "width": 280,
+      "height": 70,
+      "color": "6"
+    },
+    {
+      "id": "ferry",
+      "type": "file",
+      "file": "Ferry Agent/Ferry Agent.md",
+      "x": -880,
+      "y": -165,
+      "width": 280,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "linus",
+      "type": "file",
+      "file": "Linus Agent/Linus Agent.md",
+      "x": -625,
+      "y": -620,
+      "width": 280,
+      "height": 70,
+      "color": "6"
+    },
+    {
+      "id": "news-log",
+      "type": "file",
+      "file": "Najwa Agent/News_2026-04-10.md",
+      "x": 1060,
+      "y": -165,
+      "width": 320,
+      "height": 70,
+      "color": "3"
+    },
+    {
+      "id": "schedule-log",
+      "type": "file",
+      "file": "CalCore Agent/Schedule_2026-04-11.md",
+      "x": 870,
+      "y": 480,
+      "width": 320,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "mansa-budget",
+      "type": "file",
+      "file": "Mansa Agent/Budget_2026-04.md",
+      "x": 500,
+      "y": 900,
+      "width": 320,
+      "height": 70,
+      "color": "3"
+    },
+    {
+      "id": "mansa-financial",
+      "type": "file",
+      "file": "Mansa Agent/Financial_2026-04-10.md",
+      "x": 115,
+      "y": 1000,
+      "width": 320,
+      "height": 70,
+      "color": "3"
+    },
+    {
+      "id": "lavoiser-chat",
+      "type": "file",
+      "file": "Lavoiser Agent/Makanan_2026-04-10.md",
+      "x": -780,
+      "y": 900,
+      "width": 320,
+      "height": 70,
+      "color": "1"
+    },
+    {
+      "id": "food-sum-09",
+      "type": "file",
+      "file": "Lavoiser Agent/FoodSummary_2026-04-09.md",
+      "x": -780,
+      "y": 1000,
+      "width": 320,
+      "height": 70,
+      "color": "1"
+    },
+    {
+      "id": "food-sum-10",
+      "type": "file",
+      "file": "Lavoiser Agent/FoodSummary_2026-04-10.md",
+      "x": -780,
+      "y": 1100,
+      "width": 320,
+      "height": 70,
+      "color": "1"
+    },
+    {
+      "id": "dosty-journal",
+      "type": "file",
+      "file": "Dostoyevsky Agent/Journal_2026-04-11.md",
+      "x": -1160,
+      "y": 480,
+      "width": 320,
+      "height": 70,
+      "color": "6"
+    },
+    {
+      "id": "linus-code",
+      "type": "file",
+      "file": "Linus Agent/Code_2026-04-11.md",
+      "x": -960,
+      "y": -780,
+      "width": 320,
+      "height": 70,
+      "color": "6"
+    },
+    {
+      "id": "title-card",
+      "type": "text",
+      "text": "# CassanovaL AI Assistant\n9 Agent · Mistral AI · Personal Knowledge Vault",
+      "x": -220,
+      "y": -1080,
+      "width": 740,
+      "height": 80,
+      "color": "6"
+    },
+    {
+      "id": "group-finance",
+      "type": "group",
+      "label": "Finance",
+      "x": 80,
+      "y": 650,
+      "width": 780,
+      "height": 480
+    },
+    {
+      "id": "group-fitness",
+      "type": "group",
+      "label": "Fitness & Nutrition",
+      "x": -820,
+      "y": 650,
+      "width": 780,
+      "height": 500
+    },
+    {
+      "id": "group-journal",
+      "type": "group",
+      "label": "Journal",
+      "x": -1200,
+      "y": 310,
+      "width": 700,
+      "height": 280
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-home-alfred",
+      "fromNode": "home",
+      "fromSide": "top",
+      "toNode": "alfred",
+      "toSide": "bottom",
+      "label": "Tasks"
+    },
+    {
+      "id": "e-home-cicero",
+      "fromNode": "home",
+      "fromSide": "top",
+      "toNode": "cicero",
+      "toSide": "bottom",
+      "label": "Notes"
+    },
+    {
+      "id": "e-home-najwa",
+      "fromNode": "home",
+      "fromSide": "right",
+      "toNode": "najwa",
+      "toSide": "left",
+      "label": "News"
+    },
+    {
+      "id": "e-home-calcore",
+      "fromNode": "home",
+      "fromSide": "right",
+      "toNode": "calcore",
+      "toSide": "left",
+      "label": "Schedule"
+    },
+    {
+      "id": "e-home-mansa",
+      "fromNode": "home",
+      "fromSide": "bottom",
+      "toNode": "mansa",
+      "toSide": "top",
+      "label": "Finance"
+    },
+    {
+      "id": "e-home-lavoiser",
+      "fromNode": "home",
+      "fromSide": "bottom",
+      "toNode": "lavoiser",
+      "toSide": "top",
+      "label": "Fitness"
+    },
+    {
+      "id": "e-home-dostoyevsky",
+      "fromNode": "home",
+      "fromSide": "left",
+      "toNode": "dostoyevsky",
+      "toSide": "right",
+      "label": "Journal"
+    },
+    {
+      "id": "e-home-ferry",
+      "fromNode": "home",
+      "fromSide": "left",
+      "toNode": "ferry",
+      "toSide": "right",
+      "label": "Research"
+    },
+    {
+      "id": "e-home-linus",
+      "fromNode": "home",
+      "fromSide": "top",
+      "toNode": "linus",
+      "toSide": "bottom",
+      "label": "Coding"
+    },
+    {
+      "id": "e-najwa-news",
+      "fromNode": "najwa",
+      "fromSide": "right",
+      "toNode": "news-log",
+      "toSide": "left"
+    },
+    {
+      "id": "e-calcore-schedule",
+      "fromNode": "calcore",
+      "fromSide": "right",
+      "toNode": "schedule-log",
+      "toSide": "left"
+    },
+    {
+      "id": "e-mansa-budget",
+      "fromNode": "mansa",
+      "fromSide": "right",
+      "toNode": "mansa-budget",
+      "toSide": "left"
+    },
+    {
+      "id": "e-mansa-financial",
+      "fromNode": "mansa",
+      "fromSide": "bottom",
+      "toNode": "mansa-financial",
+      "toSide": "top"
+    },
+    {
+      "id": "e-lavoiser-chat",
+      "fromNode": "lavoiser",
+      "fromSide": "left",
+      "toNode": "lavoiser-chat",
+      "toSide": "right"
+    },
+    {
+      "id": "e-lavoiser-sum09",
+      "fromNode": "lavoiser",
+      "fromSide": "bottom",
+      "toNode": "food-sum-09",
+      "toSide": "top"
+    },
+    {
+      "id": "e-lavoiser-sum10",
+      "fromNode": "lavoiser",
+      "fromSide": "bottom",
+      "toNode": "food-sum-10",
+      "toSide": "top"
+    },
+    {
+      "id": "e-dosty-journal",
+      "fromNode": "dostoyevsky",
+      "fromSide": "left",
+      "toNode": "dosty-journal",
+      "toSide": "right"
+    },
+    {
+      "id": "e-linus-code",
+      "fromNode": "linus",
+      "fromSide": "left",
+      "toNode": "linus-code",
+      "toSide": "right"
+    }
+  ]
+}

@@ -37,7 +37,7 @@ def _fetch_serper(query: str, max_results: int) -> list:
 
 def _fetch_ddg(query: str, max_results: int) -> list:
     try:
-        from duckduckgo_search import DDGS
+        from ddgs import DDGS
         results = []
         with DDGS() as ddgs:
             for r in ddgs.news(query, max_results=max_results):
@@ -290,7 +290,128 @@ def get_news_sentiment(query: str, max_results: int = 15) -> str:
         return json.dumps({"articles": [], "volume_anomaly": False, "error": str(e)})
 
 
-STOCK_TOOLS = [get_market_data, get_news_sentiment]
+@tool
+def get_technical_indicators(ticker: str) -> str:
+    """
+    Compute technical analysis indicators: RSI(14), MACD(12,26,9), Bollinger Bands(20),
+    Moving Averages (MA20/50/200), support/resistance, and volume trend.
+    Args:
+        ticker: Stock ticker symbol (e.g. 'BBCA.JK', 'AAPL').
+    Returns:
+        JSON with all indicator values, status labels, and cross signals.
+    """
+    try:
+        tk = yf.Ticker(ticker)
+        hist = tk.history(period="1y")
+        if hist.empty or len(hist) < 30:
+            return json.dumps({"error": f"Not enough data for '{ticker}'"})
+
+        hist = hist.dropna()
+        close = hist["Close"]
+        vol   = hist["Volume"]
+        current_price = float(close.iloc[-1])
+
+        # ── RSI(14) via EWM ───────────────────────────────────────────────────
+        delta     = close.diff()
+        avg_gain  = delta.where(delta > 0, 0.0).ewm(com=13, adjust=False).mean()
+        avg_loss  = (-delta.where(delta < 0, 0.0)).ewm(com=13, adjust=False).mean()
+        rs        = avg_gain / avg_loss.replace(0, float("nan"))
+        rsi_val   = round(float((100 - 100 / (1 + rs)).iloc[-1]), 2)
+        if rsi_val < 30:        rsi_status = "oversold"
+        elif rsi_val > 70:      rsi_status = "overbought"
+        elif rsi_val < 45:      rsi_status = "approaching_oversold"
+        elif rsi_val > 55:      rsi_status = "approaching_overbought"
+        else:                   rsi_status = "neutral"
+
+        # ── MACD(12, 26, 9) ───────────────────────────────────────────────────
+        macd_line   = close.ewm(span=12, adjust=False).mean() - close.ewm(span=26, adjust=False).mean()
+        signal_line = macd_line.ewm(span=9, adjust=False).mean()
+        histogram   = macd_line - signal_line
+        hist_now, hist_prev = float(histogram.iloc[-1]), float(histogram.iloc[-2])
+        if hist_prev < 0 <= hist_now:           macd_signal = "bullish_crossover"
+        elif hist_prev > 0 >= hist_now:         macd_signal = "bearish_crossover"
+        elif hist_now > 0 and hist_now > hist_prev: macd_signal = "bullish_accelerating"
+        elif hist_now > 0:                      macd_signal = "bullish_decelerating"
+        elif hist_now < 0 and hist_now < hist_prev: macd_signal = "bearish_accelerating"
+        else:                                   macd_signal = "bearish_decelerating"
+
+        # ── Bollinger Bands(20, ±2σ) ──────────────────────────────────────────
+        bb_mid = close.rolling(20).mean()
+        bb_std = close.rolling(20).std()
+        bb_up  = round(float((bb_mid + 2 * bb_std).iloc[-1]), 2)
+        bb_mid_val = round(float(bb_mid.iloc[-1]), 2)
+        bb_lo  = round(float((bb_mid - 2 * bb_std).iloc[-1]), 2)
+        bb_pct = (current_price - bb_lo) / (bb_up - bb_lo) if bb_up != bb_lo else 0.5
+        if bb_pct < 0.10:      bb_position = "at_lower_band"
+        elif bb_pct < 0.30:    bb_position = "near_lower_band"
+        elif bb_pct > 0.90:    bb_position = "at_upper_band"
+        elif bb_pct > 0.70:    bb_position = "near_upper_band"
+        else:                  bb_position = "mid_range"
+
+        # ── Moving Averages ───────────────────────────────────────────────────
+        def _ma(n):
+            return round(float(close.rolling(n).mean().iloc[-1]), 2) if len(close) >= n else None
+
+        ma20, ma50, ma200 = _ma(20), _ma(50), _ma(200)
+
+        def _vs(ma):
+            if ma is None: return "n/a"
+            pct = (current_price - ma) / ma * 100
+            if pct > 3:   return f"above +{round(pct,1)}%"
+            if pct < -3:  return f"below {round(pct,1)}%"
+            return f"near {round(pct,1)}%"
+
+        # Golden / Death cross
+        cross_signal = None
+        if ma50 and ma200 and len(close) >= 202:
+            ma50_p  = float(close.rolling(50).mean().iloc[-2])
+            ma200_p = float(close.rolling(200).mean().iloc[-2])
+            if ma50 > ma200 and ma50_p <= ma200_p:   cross_signal = "golden_cross"
+            elif ma50 < ma200 and ma50_p >= ma200_p: cross_signal = "death_cross"
+
+        # ── Support / Resistance (60-session range) ───────────────────────────
+        recent = hist.tail(60)
+        support    = round(float(recent["Low"].min()), 2)
+        resistance = round(float(recent["High"].max()), 2)
+
+        # ── Volume trend ──────────────────────────────────────────────────────
+        vol_ratio = round(float(vol.tail(5).mean()) / float(vol.tail(20).mean()), 2)
+        if vol_ratio > 1.3:   volume_trend = "expanding"
+        elif vol_ratio < 0.7: volume_trend = "contracting"
+        else:                 volume_trend = "neutral"
+
+        return json.dumps({
+            "ticker":           ticker,
+            "current_price":    round(current_price, 2),
+            "rsi_14":           rsi_val,
+            "rsi_status":       rsi_status,
+            "macd_line":        round(float(macd_line.iloc[-1]), 4),
+            "macd_signal_line": round(float(signal_line.iloc[-1]), 4),
+            "macd_histogram":   round(hist_now, 4),
+            "macd_signal":      macd_signal,
+            "bb_upper":         bb_up,
+            "bb_mid":           bb_mid_val,
+            "bb_lower":         bb_lo,
+            "bb_position":      bb_position,
+            "ma20":             ma20,
+            "ma50":             ma50,
+            "ma200":            ma200,
+            "price_vs_ma20":    _vs(ma20),
+            "price_vs_ma50":    _vs(ma50),
+            "price_vs_ma200":   _vs(ma200),
+            "cross_signal":     cross_signal,
+            "support_60d":      support,
+            "resistance_60d":   resistance,
+            "volume_trend":     volume_trend,
+            "volume_ratio":     vol_ratio,
+            "pct_above_52w_low": round((current_price / float(hist["Low"].min()) - 1) * 100, 1),
+            "pct_below_52w_high": round((1 - current_price / float(hist["High"].max())) * 100, 1),
+        }, default=float)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+STOCK_TOOLS = [get_market_data, get_news_sentiment, get_technical_indicators]
 
 
 # ── Plotly JSON builders (called by server.py, not agents) ───────────────────

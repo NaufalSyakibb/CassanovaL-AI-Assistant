@@ -1,0 +1,81 @@
+<h2>3 Pendekatan Redesign Agent Pipeline</h2>
+<p class="subtitle">Pilih arsitektur yang paling sesuai untuk Bloomberg Terminal baru kamu</p>
+
+<div class="options">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Incremental Replacement <span style="font-size:11px;background:#2a2a3a;padding:2px 8px;border-radius:3px;margin-left:6px;color:#00ff88">RECOMMENDED</span></h3>
+      <p>Ganti 4 agen lama dengan 4 agen baru yang lebih powerful, pakai SSE pipeline yang sama. Tiap agen punya <strong>skillset yang jauh lebih dalam</strong> dari sebelumnya.</p>
+      <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px">
+        <div style="background:#0d1a0d;border:1px solid #1a3a1a;padding:8px;border-radius:4px">
+          <div style="color:#888;margin-bottom:4px">SEBELUM</div>
+          <div style="color:#ff6666">Quant → angka dasar</div>
+          <div style="color:#ff6666">Newsroom → scraping</div>
+          <div style="color:#ff6666">Economist → macro</div>
+          <div style="color:#ff6666">Critic → verdict</div>
+        </div>
+        <div style="background:#0d1a0d;border:1px solid #1a3a1a;padding:8px;border-radius:4px">
+          <div style="color:#888;margin-bottom:4px">SESUDAH</div>
+          <div style="color:#00ff88">DeepResearch → lap.keuangan + PDF</div>
+          <div style="color:#00ff88">NewsIntelligence → sentiment AI</div>
+          <div style="color:#00ff88">Strategy → entry/exit + signals</div>
+          <div style="color:#00ff88">FinalVerdict → risk + rekomendasi</div>
+        </div>
+      </div>
+      <div class="pros-cons" style="margin-top:10px">
+        <div class="pros"><h4>Pros</h4><ul><li>Cepat diimplementasi</li><li>UI existing tetap jalan</li><li>SSE pipeline tidak berubah</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Struktur masih linear</li><li>Agen tidak bisa collaborate</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Skills-Based Modular System</h3>
+      <p>Inspired by Vibe-Trading: tiap agen punya <strong>skills library</strong> yang bisa di-call secara modular. Agen bisa invoke skill lain saat dibutuhkan.</p>
+      <div style="margin-top:10px;font-size:11px;background:#0d0d20;border:1px solid #1e1e3e;padding:10px;border-radius:4px">
+        <div style="color:#4488ff;margin-bottom:6px">SKILLS LIBRARY</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+          <div style="color:#aaa">📊 fetch_fundamentals</div>
+          <div style="color:#aaa">📰 sentiment_analysis</div>
+          <div style="color:#aaa">📈 technical_patterns</div>
+          <div style="color:#aaa">🔢 monte_carlo_sim</div>
+          <div style="color:#aaa">📄 parse_annual_report</div>
+          <div style="color:#aaa">⚡ generate_strategy</div>
+        </div>
+      </div>
+      <div class="pros-cons" style="margin-top:10px">
+        <div class="pros"><h4>Pros</h4><ul><li>Sangat fleksibel</li><li>Skills reusable</li><li>Mudah di-extend</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Kompleks dibangun</li><li>Lebih banyak API calls</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Hierarchical DAG Pipeline</h3>
+      <p>Inspired by Vibe-Trading's investment committee: ada <strong>Coordinator Agent</strong> yang mengatur agen-agen di bawahnya. Agen bisa jalan paralel berdasarkan dependency graph.</p>
+      <div style="margin-top:10px;font-size:11px;background:#0d0d20;border:1px solid #1e1e3e;padding:10px;border-radius:4px">
+        <div style="color:#ffcc00;text-align:center;margin-bottom:8px">COORDINATOR</div>
+        <div style="display:flex;justify-content:space-around;color:#aaa">
+          <div style="text-align:center">Research<br>⬇<br>Strategy</div>
+          <div style="text-align:center">News<br>⬇<br>Risk</div>
+        </div>
+        <div style="text-align:center;color:#00ff88;margin-top:8px">→ FinalReport</div>
+      </div>
+      <div class="pros-cons" style="margin-top:10px">
+        <div class="pros"><h4>Pros</h4><ul><li>Paling powerful</li><li>True parallelism</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Sangat kompleks</li><li>Sulit debug</li><li>Overkill untuk fase ini</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:16px;padding:12px;background:#0d1520;border:1px solid #1e2a3e;border-radius:4px;font-size:12px;color:#8090a0">
+  💡 <strong>Rekomendasi saya:</strong> Mulai dengan <strong>A (Incremental)</strong> untuk Sub-project 1, lalu upgrade ke B (Skills) di Sub-project 2/3 saat fondasi sudah kuat.
+</div>

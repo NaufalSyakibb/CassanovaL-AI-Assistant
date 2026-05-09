@@ -1,2 +1,23 @@
-# Task: Fix Gemini 429 RESOURCE_EXHAUSTED Error\n\n## Analysis\n- Codebase uses **Mistral AI exclusively** - no Gemini integration found.\n- Error from **external source** (another script/project/terminal/extension using gemini-2.5-flash free tier).\n- Free tier quota: 20 requests/day exceeded.\n\n## Status: ✅ COMPLETE\n**No code changes needed.** App runs fine with Mistral.\n\n## Verification Commands\n```bash\npython main.py          # CLI interface\nuvicorn server:app --reload  # Web UI at http://localhost:8000\n```\n\n## Recommendations\n1. **Kill other terminals** using Gemini\n2. **Wait 24h** for quota reset OR upgrade to paid tier\n3. **Switch external code** to Mistral (like this project)\n4. Monitor: https://ai.google.dev/gemini-api/docs/rate-limits
+# TODO
 
+## Status as of 2026-04-25
+
+### ✅ Completed
+- **Ibn Al-Haytham 7-agent research pipeline** — fully implemented in `crewai_agents.py`
+  - Phase 1: Scout → Filter (sequential, mistral-small)
+  - Phase 2: IdeaGen ‖ Validator (parallel, gemma-4)
+  - Phase 3: Synthesizer → Critic → Writer (sequential, mistral-large)
+  - `IbnAlHaythamPipeline` class + `build_crew()` wired up
+- **Server output file list** updated to 7 new files (`task1_scout.txt` … `task6_final_report.md`)
+- **CrewDrawer UI** updated: 7 nodes with phase separators, LLM badges, parallel badge
+- **Documentation** updated: CLAUDE.md, DOCUMENTATION.md, spec status, plan tasks marked done
+- **requirements.txt** updated with `crewai`, `crewai-tools`
+
+### 🔜 Potential next steps
+- Run a full end-to-end smoke test:
+  ```bash
+  $env:PYTHONUTF8=1; python crewai_agents.py --topic "CRISPR gene editing mechanism"
+  ```
+  Verify `task1_scout.txt` contains `[MODE: ACADEMIC]` and `task6_final_report.md` contains `[Ref N]` citations.
+- Set up `GEMMA4_API_KEY` in `.env` to enable native Gemma models in Phase 2
+- Set up `LINKUP_API_KEY` for deeper search quality

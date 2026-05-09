@@ -1,4 +1,4 @@
-# PIXEL.AI — Full Codebase Documentation
+# Personal AI Assistant — Full Codebase Documentation
 ### A Reverse Engineer's Guide to Every File, Function, and Data Flow
 
 ---
@@ -14,13 +14,15 @@
    - [server.py — Web Mode](#serverpy--web-mode)
 6. [The Brain — router.py](#6-the-brain--routerpy)
 7. [Agent Factory — agents/base.py](#7-agent-factory--agentsbasepy)
-8. [The Six Agents](#8-the-six-agents)
-   - [task_agent.py](#task_agentpy)
-   - [notes_agent.py](#notes_agentpy)
-   - [news_agent.py](#news_agentpy)
-   - [coding_agent.py](#coding_agentpy)
-   - [schedule_agent.py](#schedule_agentpy)
-   - [budget_agent.py](#budget_agentpy)
+8. [The Chat Agents](#8-the-chat-agents)
+   - [task_agent.py (Alfred)](#task_agentpy)
+   - [notes_agent.py (Cicero)](#notes_agentpy)
+   - [news_agent.py (Najwa)](#news_agentpy)
+   - [coding_agent.py (Linus)](#coding_agentpy)
+   - [schedule_agent.py (CalCore)](#schedule_agentpy)
+   - [budget_agent.py (Mansa)](#budget_agentpy)
+   - [research_agent.py (Ferry)](#research_agentpy)
+   - [davinci_agent.py + journal_agent.py](#davinci_agentpy--journal_agentpy)
 9. [Tools Layer](#9-tools-layer)
    - [task_tools.py](#task_toolspy)
    - [notes_tools.py](#notes_toolspy)
@@ -28,33 +30,40 @@
    - [schedule_tools.py](#schedule_toolspy)
    - [budget_tools.py](#budget_toolspy)
 10. [Data Storage](#10-data-storage)
-11. [Frontend — static/index.html](#11-frontend--staticindexhtml)
-12. [API Reference](#12-api-reference)
-13. [Key Concepts Explained](#13-key-concepts-explained)
-14. [Dependencies](#14-dependencies)
-15. [Setup & Configuration](#15-setup--configuration)
+11. [CrewAI Pipelines — crewai_agents.py](#11-crewai-pipelines--crewai_agentspy)
+    - [Ibn Al-Haytham Research Pipeline (7 agents)](#ibn-al-haytham-research-pipeline-7-agents)
+    - [DataAnalyst Crew (3 agents)](#dataanalyst-crew-3-agents)
+12. [Frontend — static/index/](#12-frontend--staticindex)
+13. [API Reference](#13-api-reference)
+14. [Key Concepts Explained](#14-key-concepts-explained)
+15. [Dependencies](#15-dependencies)
+16. [Setup & Configuration](#16-setup--configuration)
 
 ---
 
 ## 1. Project Overview
 
-This is a **multi-agent AI personal assistant** built in Python. It has six specialist AI agents, each an expert in one domain. A supervisor router reads your message and automatically sends it to the right agent. No need to switch modes or use commands — just talk naturally.
+This is a **multi-agent AI personal assistant** built in Python. It has nine specialist chat agents (each an expert in one domain) plus two autonomous CrewAI pipelines for research and data analysis.
+
+A supervisor router reads your message and automatically sends it to the right chat agent. No commands needed — just talk naturally. For heavy research jobs, the "Crew Mode" in the web UI dispatches a multi-agent pipeline that runs in the background.
 
 ```
-"add buy groceries to my tasks"         → goes to QUEST  (task agent)
-"what's the tech news today?"           → goes to TICKER (news agent)
-"explain Python decorators"             → goes to SENSEI (coding agent)
-"add expense 50000 for lunch"           → goes to VAULT  (budget agent)
+"add buy groceries to my tasks"         → goes to Alfred    (task agent)
+"what's the tech news today?"           → goes to Najwa     (news agent)
+"explain Python decorators"             → goes to Linus     (coding agent)
+"add expense 50000 for lunch"           → goes to Mansa     (budget agent)
+"research CRISPR gene editing"          → goes to Ferry     (research agent)
 ```
 
 **Two ways to run it:**
-- **CLI mode** → runs in your terminal (`python main.py`)
-- **Web mode** → serves a browser UI at `http://localhost:8000` (`python server.py`)
+- **CLI mode** → chat agents in your terminal (`python main.py`)
+- **Web mode** → browser UI at `http://localhost:8000` (`python server.py`) + Crew Mode for pipelines
 
 ---
 
 ## 2. Architecture — The Big Picture
 
+### Chat Agent Flow
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        USER INPUT                           │
@@ -74,19 +83,28 @@ This is a **multi-agent AI personal assistant** built in Python. It has six spec
 │  Step 1: classify()  — asks mistral-small "which agent?"   │
 │  Step 2: _load_agent() — lazy-loads the right agent        │
 │  Step 3: agent.invoke() — sends message + history          │
-└──────┬──────┬──────┬──────┬──────┬──────┬──────────────────┘
-       │      │      │      │      │      │
-       ▼      ▼      ▼      ▼      ▼      ▼
-    task   notes  news  coding sched  budget
-    agent  agent  agent agent  agent  agent
-       │      │      │      │      │      │
-       ▼      ▼      ▼      ▼      ▼      ▼
-   TASK_  NOTES_ NEWS_  CODING SCHED_ BUDGET_
-   TOOLS  TOOLS  TOOLS  TOOLS  TOOLS  TOOLS
-       │      │      │      │      │      │
-       ▼      ▼      ▼      ▼      ▼      │
-  tasks.json notes.json  DuckDuckGo   budget.json
-                                      Google Calendar
+└──────┬──────┬──────┬──────┬──────┬──────┬──────┬──────┬───┘
+       │      │      │      │      │      │      │      │
+       ▼      ▼      ▼      ▼      ▼      ▼      ▼      ▼
+    task   notes  news coding sched budget research journal
+```
+
+### CrewAI Pipeline Flow (Crew Mode)
+```
+Browser Crew Mode → POST /api/crew/kickoff
+    │
+    ▼
+server.py: background thread → crewai_agents.build_crew(topic)
+    │
+    ▼
+IbnAlHaythamPipeline.kickoff()
+    │
+    ├─ Phase 1 sequential: Scout → Filter
+    ├─ Phase 2 parallel:   IdeaGen ‖ Validator
+    └─ Phase 3 sequential: Synthesizer → Critic → Writer
+    │
+    ▼
+Output files written → GET /api/crew/status/{job_id} polls until done
 ```
 
 **Key design principle: every agent is independent.** Each agent has its own:
@@ -101,41 +119,66 @@ This is a **multi-agent AI personal assistant** built in Python. It has six spec
 ```
 ai_python/
 │
-├── main.py              ← CLI entry point (terminal interface)
-├── server.py            ← Web entry point (FastAPI server)
-├── router.py            ← Supervisor: classifies and routes messages
+├── main.py              ← CLI entry point (chat agents only)
+├── server.py            ← FastAPI web server (chat + crew endpoints)
+├── router.py            ← Supervisor: classifies and routes chat messages
+├── crewai_agents.py     ← CrewAI pipelines: Ibn Al-Haytham (7-agent) + DataAnalyst (3-agent)
 │
-├── agents/              ← One file per agent
-│   ├── base.py          ← Shared factory function that builds any agent
-│   ├── task_agent.py    ← QUEST: to-do list manager
-│   ├── notes_agent.py   ← SCRIBE: note-taking + research
-│   ├── news_agent.py    ← TICKER: 24h news briefings
-│   ├── coding_agent.py  ← SENSEI: programming tutor
-│   ├── schedule_agent.py← CLOCKWORK: Google Calendar
-│   └── budget_agent.py  ← VAULT: personal finance
+├── agents/              ← LangChain/LangGraph chat agents
+│   ├── base.py          ← Shared factory: build_agent(system_prompt, tools, temperature)
+│   ├── task_agent.py    ← Alfred: to-do list manager
+│   ├── notes_agent.py   ← Cicero: note-taking + wiki integration
+│   ├── news_agent.py    ← Najwa: 24h news briefings
+│   ├── coding_agent.py  ← Linus: programming tutor
+│   ├── schedule_agent.py← CalCore: Google Calendar
+│   ├── budget_agent.py  ← Mansa: personal finance
+│   ├── research_agent.py← Ferry: deep autonomous research
+│   ├── davinci_agent.py ← Da Vinci: creative thinking
+│   └── journal_agent.py ← Dostoyevsky: personal journaling
 │
-├── tools/               ← One file per tool group
+├── tools/               ← LangChain tool definitions
 │   ├── task_tools.py    ← add/list/complete/delete/update tasks
 │   ├── notes_tools.py   ← create/read/search/update/delete notes + URL fetch
 │   ├── news_tools.py    ← DuckDuckGo search (last 24h)
-│   ├── schedule_tools.py← Google Calendar API (list/create/update/delete events)
-│   └── budget_tools.py  ← add income/expense, balance, monthly summary
+│   ├── schedule_tools.py← Google Calendar API
+│   ├── budget_tools.py  ← add income/expense, balance, monthly summary
+│   ├── research_tools.py← deep web search, iterative search, URL fetch, compile report
+│   ├── wiki_tools.py    ← Obsidian-style wiki (write/query/ingest/update/lint)
+│   └── autoresearch_tools.py ← persistent experiment log for research programs
 │
-├── data/                ← JSON flat-file "database"
+├── data/                ← JSON flat-file storage
 │   ├── tasks.json       ← list of task objects
 │   ├── notes.json       ← list of note objects
 │   └── budget.json      ← list of transaction objects
 │
-├── credentials/         ← Google OAuth (never commit these)
+├── credentials/         ← Google OAuth (never commit)
 │   ├── credentials.json ← Downloaded from Google Cloud Console
 │   └── token.pickle     ← Auto-generated after first OAuth login
 │
 ├── static/
-│   └── index.html       ← Entire React frontend (single file)
+│   ├── index.html       ← Redirect stub (points to /index/)
+│   ├── index/           ← Multi-file React frontend
+│   │   ├── index.html   ← HTML shell (loads JSX + CSS via Babel CDN)
+│   │   ├── app.jsx      ← Root App component, theme, keyboard shortcuts
+│   │   ├── views.jsx    ← ChatView, DashboardView, Sidebar, RightPanel, Masthead
+│   │   ├── overlays.jsx ← CommandPalette, CrewDrawer, ResultModal
+│   │   ├── data.jsx     ← AGENTS config, MOCK data, API helpers
+│   │   ├── icons.jsx    ← SVG icon components
+│   │   └── styles.css   ← All styles (CSS variables, dark/light theme)
+│   ├── avatars/         ← Agent avatar images (one JPG per agent)
+│   └── uploads/         ← CSV uploads for DataAnalyst pipeline
+│
+├── AI Data/             ← Agent output files, wiki, research reports
+│   └── Ferry Agent/     ← Ibn Al-Haytham pipeline output (task1_scout.txt … task6_final_report.md)
+│
+├── docs/superpowers/    ← Design specs and implementation plans
+│   ├── specs/
+│   └── plans/
 │
 ├── .env                 ← API keys (never commit)
 ├── requirements.txt     ← Python dependencies
-└── CLAUDE.md            ← Project instructions
+├── CLAUDE.md            ← Project instructions for Claude Code
+└── DOCUMENTATION.md     ← This file
 ```
 
 ---
@@ -397,16 +440,13 @@ It returns a `CompiledStateGraph` — a LangGraph state machine that:
 
 ---
 
-## 8. The Six Agents
+## 8. The Chat Agents
 
-Each agent file has just two things: a **system prompt** and a **factory function**.
+Each agent file has two things: a **system prompt** and a **factory function**.
 
 ### task_agent.py
+**Agent name:** Alfred
 ```python
-SYSTEM_PROMPT = """You are a personal task management assistant...
-Be concise and organized. Format task lists clearly.
-If the user speaks in Indonesian, respond in Indonesian."""
-
 def create_task_agent():
     return build_agent(SYSTEM_PROMPT, TASK_TOOLS)
 ```
@@ -415,51 +455,50 @@ def create_task_agent():
 - **Bilingual:** responds in Indonesian if the user writes in Indonesian
 
 ### notes_agent.py
-```python
-SYSTEM_PROMPT = """You are a professional note-taking and research assistant, like Notion + a research summarizer.
-...Use bullet points for key insights. Organize notes with relevant tags."""
-```
-- **Tools available:** `create_note`, `list_notes`, `read_note`, `search_notes`, `update_note`, `delete_note`, `fetch_and_summarize_url`
-- **Special ability:** can fetch a URL and return text content for the LLM to summarize
-- **Data store:** `data/notes.json`
+**Agent name:** Cicero
+- **Tools available:** `create_note`, `list_notes`, `read_note`, `search_notes`, `update_note`, `delete_note`, `fetch_and_summarize_url`, plus wiki tools (`write_research_to_wiki`, `query_wiki`, `ingest_source`, `update_wiki_entity`, `lint_wiki`)
+- **Special ability:** fetches URLs and summarizes content; writes findings to an Obsidian-style wiki
+- **Data store:** `data/notes.json` + `AI Data/wiki/`
 
 ### news_agent.py
-```python
-def create_news_agent():
-    return build_agent(SYSTEM_PROMPT, NEWS_TOOLS, temperature=0.1)
-```
+**Agent name:** Najwa
 - **Tools available:** `get_recent_news`, `get_top_headlines`
 - **Data store:** none — uses live DuckDuckGo search
 - **Low temperature (0.1):** news reporting should be factual, not creative
 - **Time filter:** DuckDuckGo configured with `time="d"` (last 24 hours only)
 
 ### coding_agent.py
-```python
-# NOTE: This agent defines its own tool inline, not in tools/
-@tool
-def search_documentation(query: str) -> str:
-    result = _web_search.run(f"{query} documentation site:docs.python.org OR ...")
-    return result
-```
-- **Unique:** the only agent that defines its tool **inside its own file** rather than in `tools/`
-- **Why?** The search tool is tightly coupled to coding context (specific site filters)
+**Agent name:** Linus
+- **Unique:** defines its own `search_documentation` tool inline, not in `tools/` — tightly coupled to coding-specific site filters
 - **Temperature 0.3:** coding explanations benefit from some variation
 
 ### schedule_agent.py
-```python
-SYSTEM_PROMPT = """...Use Asia/Jakarta timezone by default..."""
-```
+**Agent name:** CalCore
 - **Tools available:** `list_upcoming_events`, `get_today_schedule`, `create_event`, `delete_event`, `update_event`
+- **Timezone:** Asia/Jakarta (UTC+7) by default
 - **Requires:** `credentials/credentials.json` from Google Cloud Console
-- **Auth flow:** On first use, opens a browser for OAuth. Saves token to `credentials/token.pickle` — never needs re-auth unless token expires.
+- **Auth flow:** On first use, opens a browser for OAuth. Saves token to `credentials/token.pickle`.
 
 ### budget_agent.py
-```python
-SYSTEM_PROMPT = """...use Rupiah (Rp) as the default currency..."""
-```
+**Agent name:** Mansa
 - **Tools available:** `add_income`, `add_expense`, `get_balance`, `list_transactions`, `get_monthly_summary`, `delete_transaction`
 - **Data store:** `data/budget.json`
-- **Localized:** uses Rupiah by default, responds in Indonesian if addressed in Indonesian
+- **Localized:** uses Rupiah (Rp) by default, responds in Indonesian if addressed in Indonesian
+
+### research_agent.py
+**Agent name:** Ferry
+A 4-phase autonomous deep-research agent. Runs layered searches, cross-references sources, and produces a structured report.
+- **Tools available:** deep web search, iterative search, URL fetch, multi-source synthesis, compile report + full wiki integration suite
+- **Phases:** (1) Scope & plan, (2) Layered search execution, (3) Quality checks, (4) Final report
+- **Wiki integration:** after every research session, automatically writes results to `AI Data/wiki/` and updates related entity pages
+- **AutoResearch:** reads/logs/updates a persistent experiment program that tracks which research strategies produce the most accurate plans
+- **Output:** saved to `AI Data/Ferry Agent/` as dated markdown reports
+- **Temperature 0.1:** highly factual, near-deterministic
+
+### davinci_agent.py + journal_agent.py
+**Da Vinci** — creative thinking, brainstorming, lateral thinking exercises. Pure LLM reasoning, no external tools.
+
+**Dostoyevsky** — personal journaling. Tools: `create_journal_entry`, `read_journal`, `search_journal`. Data store: `AI Data/Dostoyevsky Agent/`.
 
 ---
 
@@ -689,9 +728,148 @@ All data is stored as **JSON flat files** in `data/`. There is no database.
 
 ---
 
-## 11. Frontend — static/index.html
+## 11. CrewAI Pipelines — crewai_agents.py
 
-The entire frontend is a **single HTML file** with inline React (loaded via CDN). No build step, no `npm install`.
+### Ibn Al-Haytham Research Pipeline (7 agents)
+
+A phase-based hybrid research system. `build_crew(topic)` returns an `IbnAlHaythamPipeline` instance; call `.kickoff()` to run.
+
+```
+Phase 1 — Sequential
+  Scout  (mistral-small)  → task1_scout.txt       topic map + [MODE: ACADEMIC/GENERAL/HYBRID]
+  Filter (mistral-small)  → task2_filter.txt      curated sources (10–15 best)
+
+Phase 2 — Parallel (ThreadPoolExecutor, max_workers=2)
+  IdeaGen   (gemma-4)     → task3a_ideas.txt      hypotheses + novel angles
+  Validator (gemma-4)     → task3b_validation.txt cross-checked claims, [⚠] flags
+
+Phase 3 — Sequential
+  Synthesizer (mistral-large) → task4_synthesis.txt  unified narrative
+  Critic      (mistral-large) → task5_critique.txt   logic review
+  Writer      (mistral-large) → task6_final_report.md final article with [Ref N] citations
+```
+
+**Key implementation details:**
+- `_read_phase_output(fname)` reads a phase output file, returns `""` on any OS error
+- Phase 2 context: filter output is embedded as a string in each task's `description` (sliced to 4000 chars) — cannot use CrewAI `context=[task]` across separate Crew objects
+- Error handling: if one Phase 2 thread fails, Synthesizer proceeds with `[PARTIAL: ...]` note; if both fail, raises `RuntimeError`
+- Phase 2 timeout: 300 seconds per thread
+- LLM fallbacks: if `GEMMA4_API_KEY` absent, Phase 2 agents fall back to Mistral automatically
+
+**Auto-detect mode:** Scout outputs one of three tags on its first line:
+- `[MODE: ACADEMIC]` → prioritise arXiv, PubMed, IEEE, Nature
+- `[MODE: GENERAL]` → prioritise news, industry reports, DuckDuckGo
+- `[MODE: HYBRID]` → balanced; also the default if Scout fails to classify
+
+**Search provider priority:** LinkUp (deep) > Serper > DuckDuckGo (free)
+
+### DataAnalyst Crew (3 agents)
+
+Cleans, analyzes, and visualizes uploaded CSV files. Triggered via `build_data_analyst_crew(filename, goal)`.
+
+```
+DataBot-Clean (mistral-small) → task1_data_clean.txt    cleaned dataset summary
+DataBot-Stats (gemma-4)       → task2_stats_analysis.txt statistical analysis
+DataBot-Viz   (gemma-4 2B)    → task2_report.md          chart descriptions
+```
+
+Upload CSVs via `POST /api/upload` → select in Crew Mode → launch.
+
+---
+
+## 12. Frontend — static/index/
+
+The frontend is a **multi-file React app** loaded via Babel CDN (no build step). All files live in `static/index/`.
+
+**File responsibilities:**
+
+| File | Responsibility |
+|------|---------------|
+| `index.html` | HTML shell — loads React, Babel, all JSX files, and `styles.css` |
+| `app.jsx` | Root `App` component: state, theme, keyboard shortcuts (`Ctrl+K` = palette, `Esc` = close) |
+| `views.jsx` | `Sidebar`, `Masthead`, `ChatView`, `DashboardView`, `RightPanel` |
+| `overlays.jsx` | `CommandPalette`, `CrewDrawer` (Crew Mode), `ResultModal` |
+| `data.jsx` | `AGENTS` config map, `AGENT_ORDER`, mock data, `chatAPI`/`tasksAPI`/`notesAPI`/`budgetAPI` helpers |
+| `icons.jsx` | SVG icon components (`IcoX`, `IcoCheck`, `IcoRocket`, etc.) |
+| `styles.css` | CSS variables (`--ink`, `--paper`, `--clay`, `--hue-*`), dark/light theme, all component styles |
+
+**State (all in `App`):**
+```javascript
+agKey        // active agent key ("task" | "notes" | "research" | ...)
+tab          // "chat" | "dashboard"
+msgs         // { [agKey]: Message[] } — separate history per agent
+loading      // true while awaiting API response
+showCmd      // CommandPalette open
+showCrew     // CrewDrawer open
+panelOpen    // RightPanel open (auto-opens at ≥1100px)
+dash         // { tStats, tasks, budget, notes, notesTotal, recentTx }
+```
+
+**CrewDrawer flow:**
+1. User picks pipeline type (Research or Data Analyst) + enters topic
+2. `POST /api/crew/kickoff` → receives `job_id`
+3. `setInterval` polls `GET /api/crew/status/{job_id}` every 2.5s
+4. On `status: "done"` → outputs displayed in `ResultModal`
+
+**Crew Mode node display (research pipeline):**
+- 7 nodes with phase separators (Phase 1 / Phase 2 with parallel badge / Phase 3)
+- Each node shows: number, agent name, role, LLM badge (`mistral-small` / `gemma-4` / `mistral-large`)
+
+---
+
+## 13. API Reference
+
+### POST /api/chat
+```json
+Request:  { "message": "add task: buy milk", "agent": "task" }
+Response: { "agent": "task", "response": "Done! Added 'buy milk'..." }
+```
+
+### GET /api/tasks
+```json
+{ "tasks": [...], "stats": { "total": 5, "pending": 3, "completed": 2, "high_priority": 1 } }
+```
+
+### GET /api/notes
+```json
+{ "notes": [...], "total": 23 }
+```
+
+### GET /api/budget/summary
+```json
+{ "balance": 4500000, "total_income": 5000000, "total_expense": 500000,
+  "monthly_income": 5000000, "monthly_expense": 500000, "recent_transactions": [...] }
+```
+
+### POST /api/crew/kickoff
+Start a CrewAI pipeline job.
+```json
+Request:  { "topic": "CRISPR gene editing", "crew_type": "research" }
+          { "topic": "Analyze sales trends", "crew_type": "dataanalyst", "filename": "sales.csv" }
+Response: { "job_id": "a1b2c3d4" }
+```
+
+### GET /api/crew/status/{job_id}
+Poll job status. Returns:
+```json
+{ "status": "running" | "done" | "error",
+  "result": "final output string (when done)",
+  "outputs": { "task1_scout.txt": "...", "task6_final_report.md": "..." },
+  "error": "traceback (when error)" }
+```
+
+### GET /api/crew/files
+List CSV files available for DataAnalyst pipeline.
+```json
+{ "files": [{ "name": "sales.csv", "size_kb": 42.3 }] }
+```
+
+### POST /api/upload
+Upload a CSV file for DataAnalyst pipeline. Form-data with `file` field.
+
+---
+
+## 14. Key Concepts Explained
 
 ### Technology stack
 | Technology | Version | How loaded |
@@ -804,79 +982,7 @@ async function sendMessage(text) {
 
 ---
 
-## 12. API Reference
-
-### POST /api/chat
-Send a message and get an AI response.
-
-**Request body:**
-```json
-{
-  "message": "add task: finish report",
-  "agent": "task"
-}
-```
-> `agent` is optional. If omitted, the router auto-classifies. If provided, skips classification.
-
-**Response:**
-```json
-{
-  "agent": "task",
-  "response": "Done! I've added 'finish report' to your task list with medium priority."
-}
-```
-
-**Error (500):**
-```json
-{ "detail": "MISTRAL_API_KEY not found in .env file" }
-```
-
----
-
-### GET /api/tasks
-Get all tasks with statistics.
-
-**Response:**
-```json
-{
-  "tasks": [ { "id": "...", "title": "...", "status": "pending", ... } ],
-  "stats": { "total": 5, "pending": 3, "completed": 2, "high_priority": 1 }
-}
-```
-
----
-
-### GET /api/notes
-Get recent notes (latest 8, sorted by `updated_at`).
-
-**Response:**
-```json
-{
-  "notes": [ { "id": "...", "title": "...", "tags": [...], ... } ],
-  "total": 23
-}
-```
-
----
-
-### GET /api/budget/summary
-Get financial summary.
-
-**Response:**
-```json
-{
-  "balance": 4500000,
-  "total_income": 5000000,
-  "total_expense": 500000,
-  "monthly_income": 5000000,
-  "monthly_expense": 500000,
-  "recent_transactions": [ { "id": "...", "type": "income", "amount": 5000000, ... } ]
-}
-```
-
----
-
-## 13. Key Concepts Explained
+## 14. Key Concepts Explained (continued)
 
 ### What is a LangChain `@tool`?
 ```python
@@ -945,7 +1051,7 @@ The `HumanMessage` / `AIMessage` classes are LangChain wrappers around the stand
 
 ---
 
-## 14. Dependencies
+## 15. Dependencies
 
 ```
 langchain          — Core framework, @tool decorator, create_agent
@@ -953,33 +1059,39 @@ langchain-mistralai — ChatMistralAI class (connects to Mistral API)
 langchain-community — DuckDuckGoSearchRun, DuckDuckGoSearchAPIWrapper
 langchain-core     — HumanMessage, AIMessage, PromptTemplate
 langgraph          — CompiledStateGraph (installed with langchain 1.x)
+crewai             — Agent, Task, Crew, LLM classes (pipeline orchestration)
+crewai-tools       — SerperDevTool, FileWriterTool
+linkup-sdk         — LinkUp deep search API client
 python-dotenv      — Reads .env file into os.environ
-requests           — HTTP client (used in fetch_and_summarize_url)
-duckduckgo-search  — DuckDuckGo search without an API key
+requests           — HTTP client (URL fetching)
+duckduckgo-search  — DuckDuckGo search (free fallback)
 google-api-python-client  — Google Calendar API client
 google-auth-httplib2      — HTTP adapter for Google auth
 google-auth-oauthlib      — OAuth 2.0 flow for Google APIs
 fastapi            — Web framework (routes, middleware, request models)
 uvicorn[standard]  — ASGI server that runs FastAPI
-python-multipart   — Required by FastAPI for form data
+python-multipart   — Required by FastAPI for file uploads
 ```
 
 ---
 
-## 15. Setup & Configuration
+## 16. Setup & Configuration
 
 ### Environment Variables (.env)
 ```
-MISTRAL_API_KEY=your_key_here
+MISTRAL_API_KEY=your_key_here          # Required — https://console.mistral.ai/
+LINKUP_API_KEY=your_key_here           # Optional — deep search
+SERPER_API_KEY=your_key_here           # Optional — search fallback
+GEMMA4_API_KEY=your_key_here           # Optional — Google AI Studio key for Phase 2
+GEMMA4_2_API_KEY=your_key_here         # Optional — can be same key as GEMMA4_API_KEY
 ```
-Get a key at: https://console.mistral.ai/
+Without Gemma keys, Phase 2 agents auto-fall back to Mistral.
 
 ### Initial data files
-The `data/` folder needs three empty JSON arrays to start:
-```
-data/tasks.json  → []
-data/notes.json  → []
-data/budget.json → []
+```bash
+echo [] > data/tasks.json
+echo [] > data/notes.json
+echo [] > data/budget.json
 ```
 
 ### Google Calendar (one-time setup)
@@ -995,25 +1107,21 @@ data/budget.json → []
 # Install dependencies
 pip install -r requirements.txt
 
-# Create data files if they don't exist
-echo [] > data/tasks.json
-echo [] > data/notes.json
-echo [] > data/budget.json
+# Web mode (recommended)
+$env:PYTHONUTF8=1; python server.py
+# Open: http://localhost:8000
 
-# CLI mode
+# CLI mode (chat agents only)
 $env:PYTHONUTF8=1; python main.py
 
-# Web mode
-
-cd "c:\Users\muham\OneDrive\Dokumen\Python\ai_python"
-$env:PYTHONUTF8=1; python server.py
-# Then open: http://localhost:8000
+# Run Ibn Al-Haytham pipeline directly
+$env:PYTHONUTF8=1; python crewai_agents.py --topic "Your research topic"
 ```
 
 ### Why `$env:PYTHONUTF8=1`?
-Windows uses `cp1252` (Windows-1252) as the default terminal encoding. This environment variable forces Python to use UTF-8 everywhere — required for emoji, Indonesian characters (é, ñ, etc.), and any non-ASCII text in the AI responses.
+Windows uses `cp1252` as the default terminal encoding. This forces Python to use UTF-8 everywhere — required for Indonesian characters, emoji, and any non-ASCII text in AI responses.
 
 ---
 
-*Documentation generated for PIXEL.AI — Multi-Agent Personal Assistant*
-*Stack: Python 3.12 · LangChain 1.x · LangGraph · Mistral AI · FastAPI · React 18*
+*Documentation updated 2026-04-25 — Personal AI Multi-Agent Assistant*
+*Stack: Python 3.12 · LangChain 1.x · LangGraph · CrewAI · Mistral AI · Gemma 4 · FastAPI · React 18*

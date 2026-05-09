@@ -1,0 +1,36 @@
+Deskripsi Kode Java: Sistem Kantin GerudaEats
+=============================================
+Dibuat oleh: Muhammad Naufal Syakib (102022500384)
+Mata Kuliah: SI4903
+
+---
+
+GAMBARAN UMUM
+
+Program ini adalah simulasi sistem pemesanan makanan di sebuah kantin bernama "GerudaEats", dibangun menggunakan Java dengan pendekatan Object-Oriented Programming (OOP). Seluruh sistem terdiri dari lima kelas utama: Main, Kantin, MenuItem, Customer, dan Order.
+
+---
+
+KELAS-KELAS UTAMA
+
+MenuItem adalah kelas yang merepresentasikan satu item makanan atau minuman. Setiap item memiliki nama, harga, kategori (makanan atau minuman), dan jumlah stok. Kelas ini menyediakan method untuk mengecek ketersediaan item, mengurangi stok, mengubah harga, dan menampilkan informasi item.
+
+Customer adalah kelas yang merepresentasikan pelanggan kantin. Setiap pelanggan memiliki nama, NIM, saldo, dan poin. Pelanggan bisa melakukan top up saldo, melakukan pembayaran (yang otomatis mengurangi saldo), dan mengumpulkan poin dari setiap pembelian. Kelas ini memiliki dua constructor: satu tanpa saldo awal dan satu dengan saldo awal.
+
+Order adalah kelas yang merepresentasikan satu transaksi pemesanan. Sebuah order terikat ke satu Customer dan bisa menampung maksimal 10 item. Status order bisa berubah dari "MENUNGGU" menjadi "SELESAI", "DIBATALKAN", atau "FAILED (Insufficient Balance)". Order bisa menghitung total harga, memproses pembayaran ke customer, dan membatalkan pesanan selama belum selesai.
+
+Kantin adalah kelas pusat yang mengelola semua menu dan riwayat order. Kantin menyimpan daftar MenuItem dan riwayat Order yang berhasil. Kelas ini bisa menampilkan menu yang masih tersedia, mencari menu berdasarkan nama, membuat order baru, memproses penyelesaian order (termasuk cek saldo dan pengurangan stok), serta menampilkan rekap total pendapatan.
+
+Main adalah titik masuk program. Di sini dibuat instance kantin "GerudaEats" dengan enam item menu, dua customer (Asep dan Teguh), lalu disimulasikan tiga skenario order: order pertama berhasil, order kedua gagal karena saldo kurang, dan order ketiga dibatalkan secara manual.
+
+---
+
+ALUR PROGRAM
+
+Program dimulai dengan mendaftarkan enam menu ke kantin, kemudian membuat dua customer dimana salah satunya langsung top up saldo. Setelah itu tiga order dibuat dan diproses. Order pertama berhasil karena saldo mencukupi, order kedua gagal karena saldo Teguh hanya Rp10.000 sementara total order Rp20.000. Order ketiga sengaja dibatalkan. Di akhir, program mencetak rekap pendapatan kantin dan informasi saldo serta poin masing-masing customer.
+
+---
+
+CATATAN TEKNIS
+
+Terdapat sedikit inkonsistensi antara kelas Order dan Kantin dalam hal siapa yang menangani pengurangan stok dan pembayaran. Kelas Order punya method prosesOrder() yang melakukan pembayaran dan pengurangan stok sendiri, tapi di program utama yang dipakai justru Kantin.selesaikanOrder() yang melakukan hal yang sama secara manual. Method prosesOrder() di Order tidak dipakai dalam simulasi ini, sehingga ada duplikasi logika.

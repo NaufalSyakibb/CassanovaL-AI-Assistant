@@ -1,0 +1,112 @@
+<h2>Mansa — Budget Panel Visualization</h2>
+<p class="subtitle">Which chart combination best shows spending data in the right-side panel?</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#1a1a2e;padding:16px;border-radius:6px;font-family:monospace;font-size:11px;">
+      <div style="color:#d4a054;font-weight:bold;margin-bottom:10px;font-size:12px;">VI · Finance · Mansa</div>
+      <!-- Donut mockup -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+        <svg width="70" height="70" viewBox="0 0 70 70">
+          <!-- Housing 40% -->
+          <path d="M35,35 L35,5 A30,30 0 0,1 63.97,50 Z" fill="#d4a054" opacity="0.9"/>
+          <!-- Food 20% -->
+          <path d="M35,35 L63.97,50 A30,30 0 0,1 20.1,62.7 Z" fill="#4a90d9" opacity="0.9"/>
+          <!-- Transport 15% -->
+          <path d="M35,35 L20.1,62.7 A30,30 0 0,1 5,35 Z" fill="#5cb85c" opacity="0.9"/>
+          <!-- Other 25% -->
+          <path d="M35,35 L5,35 A30,30 0 0,1 35,5 Z" fill="#e05c5c" opacity="0.9"/>
+          <circle cx="35" cy="35" r="16" fill="#0f0f1a"/>
+          <text x="35" y="38" text-anchor="middle" fill="#ddd" font-size="9" font-family="monospace">Rp 7.3M</text>
+        </svg>
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;"><span style="width:8px;height:8px;background:#d4a054;border-radius:50%;display:inline-block;"></span><span style="color:#ddd;font-size:9px;">Housing 40%</span></div>
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;"><span style="width:8px;height:8px;background:#4a90d9;border-radius:50%;display:inline-block;"></span><span style="color:#ddd;font-size:9px;">Food 20%</span></div>
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;"><span style="width:8px;height:8px;background:#5cb85c;border-radius:50%;display:inline-block;"></span><span style="color:#ddd;font-size:9px;">Transport 15%</span></div>
+          <div style="display:flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;background:#e05c5c;border-radius:50%;display:inline-block;"></span><span style="color:#ddd;font-size:9px;">Other 25%</span></div>
+        </div>
+      </div>
+      <div style="color:#888;font-size:9px;border-top:1px solid #222;padding-top:6px;">This month · Rp 7.3M spent</div>
+    </div>
+    <div class="card-body">
+      <h3>A — Donut Chart by Category</h3>
+      <p>Shows how spending is distributed across categories (Housing, Food, Transport, etc.) as a donut chart with legend. Instantly shows where most money goes.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#1a1a2e;padding:16px;border-radius:6px;font-family:monospace;font-size:11px;">
+      <div style="color:#d4a054;font-weight:bold;margin-bottom:10px;font-size:12px;">VI · Finance · Mansa</div>
+      <!-- Monthly bar chart -->
+      <div style="display:flex;align-items:flex-end;gap:4px;height:55px;padding-bottom:4px;border-bottom:1px solid #333;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:1px;flex:1;">
+          <div style="background:#4a90d9;width:100%;height:28px;border-radius:2px 2px 0 0;opacity:0.7;"></div>
+          <div style="background:#e05c5c;width:100%;height:18px;border-radius:2px 2px 0 0;"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:1px;flex:1;">
+          <div style="background:#4a90d9;width:100%;height:32px;border-radius:2px 2px 0 0;opacity:0.7;"></div>
+          <div style="background:#e05c5c;width:100%;height:22px;border-radius:2px 2px 0 0;"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:1px;flex:1;">
+          <div style="background:#4a90d9;width:100%;height:36px;border-radius:2px 2px 0 0;opacity:0.7;"></div>
+          <div style="background:#e05c5c;width:100%;height:20px;border-radius:2px 2px 0 0;"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:1px;flex:1;">
+          <div style="background:#4a90d9;width:100%;height:30px;border-radius:2px 2px 0 0;opacity:0.7;"></div>
+          <div style="background:#e05c5c;width:100%;height:25px;border-radius:2px 2px 0 0;"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:1px;flex:1;">
+          <div style="background:#4a90d9;width:100%;height:38px;border-radius:2px 2px 0 0;opacity:0.7;"></div>
+          <div style="background:#e05c5c;width:100%;height:16px;border-radius:2px 2px 0 0;"></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;color:#666;font-size:8px;margin-top:2px;">
+        <span>Dec</span><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:5px;">
+        <div style="display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;background:#4a90d9;opacity:0.7;display:inline-block;border-radius:1px;"></span><span style="color:#888;font-size:8px;">Income</span></div>
+        <div style="display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;background:#e05c5c;display:inline-block;border-radius:1px;"></span><span style="color:#888;font-size:8px;">Expense</span></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Monthly Bar Chart (5 months)</h3>
+      <p>Grouped bars showing income vs expense trend over the last 5 months. Makes it easy to see whether you're saving more or less over time.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#1a1a2e;padding:16px;border-radius:6px;font-family:monospace;font-size:11px;">
+      <div style="color:#d4a054;font-weight:bold;margin-bottom:8px;font-size:12px;">VI · Finance · Mansa</div>
+      <!-- Balance at top -->
+      <div style="text-align:center;margin-bottom:8px;">
+        <div style="color:#ddd;font-size:16px;font-weight:bold;">Rp 18.4M</div>
+        <div style="color:#888;font-size:8px;">Available balance</div>
+      </div>
+      <!-- Mini donut + mini bar side by side -->
+      <div style="display:flex;gap:8px;align-items:center;">
+        <svg width="45" height="45" viewBox="0 0 45 45">
+          <path d="M22.5,22.5 L22.5,3 A19.5,19.5 0 0,1 41.16,32.25 Z" fill="#d4a054" opacity="0.9"/>
+          <path d="M22.5,22.5 L41.16,32.25 A19.5,19.5 0 0,1 12.6,40.8 Z" fill="#4a90d9" opacity="0.9"/>
+          <path d="M22.5,22.5 L12.6,40.8 A19.5,19.5 0 0,1 3,22.5 Z" fill="#5cb85c" opacity="0.9"/>
+          <path d="M22.5,22.5 L3,22.5 A19.5,19.5 0 0,1 22.5,3 Z" fill="#e05c5c" opacity="0.9"/>
+          <circle cx="22.5" cy="22.5" r="10" fill="#0f0f1a"/>
+        </svg>
+        <div style="flex:1;display:flex;align-items:flex-end;gap:2px;height:40px;border-bottom:1px solid #333;">
+          <div style="background:#e05c5c;width:100%;height:20px;border-radius:1px 1px 0 0;"></div>
+          <div style="background:#e05c5c;width:100%;height:28px;border-radius:1px 1px 0 0;"></div>
+          <div style="background:#e05c5c;width:100%;height:22px;border-radius:1px 1px 0 0;"></div>
+          <div style="background:#e05c5c;width:100%;height:18px;border-radius:1px 1px 0 0;"></div>
+          <div style="background:#e05c5c;width:100%;height:24px;border-radius:1px 1px 0 0;"></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px;">
+        <div style="color:#888;font-size:8px;">Categories</div>
+        <div style="color:#888;font-size:8px;">5-month trend</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Both: Donut + Monthly Trend</h3>
+      <p>Full picture: balance at the top, then a small donut (category breakdown) alongside a 5-month expense trend bar chart. More data at a glance, slightly more compact.</p>
+    </div>
+  </div>
+</div>

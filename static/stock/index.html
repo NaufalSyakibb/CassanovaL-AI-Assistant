@@ -242,6 +242,46 @@
   .case-box.bear h4 { color: var(--red); }
   .case-box ul { padding-left: 14px; color: var(--text-dim); font-size: 11px; line-height: 1.8; }
   .investment-memo { padding: 12px; background: var(--bg2); border: 1px solid var(--border); border-radius: 2px; font-size: 12px; line-height: 1.7; color: var(--text); }
+
+  /* ── Timing tab ── */
+  #timing-signal-box {
+    display: inline-block; padding: 16px 28px;
+    border: 1px solid var(--border); margin-bottom: 16px; letter-spacing: 1px;
+  }
+  #timing-signal-box .ts-label  { color: var(--text-dim); font-size: 10px; letter-spacing: 2px; }
+  #timing-signal-box .ts-value  { font-size: 32px; font-weight: 700; margin: 4px 0; }
+  #timing-signal-box.buy-now    { border-color: var(--green); }
+  #timing-signal-box.buy-now .ts-value  { color: var(--green); }
+  #timing-signal-box.wait       { border-color: var(--yellow); }
+  #timing-signal-box.wait .ts-value    { color: var(--yellow); }
+  #timing-signal-box.dca        { border-color: var(--blue); }
+  #timing-signal-box.dca .ts-value     { color: var(--blue); }
+  #timing-signal-box.avoid      { border-color: var(--red); }
+  #timing-signal-box.avoid .ts-value   { color: var(--red); }
+
+  #timing-confidence-bar { display: flex; gap: 3px; margin-top: 6px; }
+  .timing-block { width: 14px; height: 14px; border-radius: 2px; background: var(--border); transition: background 0.3s; }
+  .timing-block.t-buy-now { background: var(--green); }
+  .timing-block.t-wait    { background: var(--yellow); }
+  .timing-block.t-dca     { background: var(--blue); }
+  .timing-block.t-avoid   { background: var(--red); }
+  #timing-confidence-label { color: var(--text-dim); font-size: 11px; margin-top: 4px; }
+
+  .timing-entry-card {
+    display: inline-block; padding: 12px 20px; margin-bottom: 16px; margin-left: 12px;
+    border: 1px solid var(--border); vertical-align: top;
+  }
+  .timing-entry-card .tec-label { color: var(--text-dim); font-size: 10px; letter-spacing: 1px; margin-bottom: 4px; }
+  .timing-entry-card .tec-value { font-size: 20px; font-weight: 700; color: var(--green); }
+
+  .tech-signals-grid {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 16px;
+  }
+  .tech-signal-item {
+    padding: 10px; border: 1px solid var(--border); border-radius: 2px; background: var(--bg2);
+  }
+  .tech-signal-item .sig-label { color: var(--text-dim); font-size: 10px; letter-spacing: 1px; margin-bottom: 4px; }
+  .tech-signal-item .sig-value { color: var(--text); font-size: 11px; line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -252,6 +292,7 @@
   <span class="sep">|</span>
   <span class="title">STOCK ANALYSIS TERMINAL</span>
   <span class="spacer"></span>
+  <a href="/stock/v2" id="v2-link" style="color:var(--text-dim);font-size:11px;text-decoration:none;border:1px solid var(--border);padding:3px 8px;letter-spacing:1px;">v2 PIXEL &#8594;</a>
   <div id="live-dot"></div>
   <span id="live-label">STANDBY</span>
 </div>
@@ -291,6 +332,11 @@
         <span class="agent-name">FinalVerdict</span>
         <span class="agent-tick"></span>
       </div>
+      <div class="agent-row" id="row-BuyTiming">
+        <div class="agent-dot"></div>
+        <span class="agent-name">BuyTiming</span>
+        <span class="agent-tick"></span>
+      </div>
     </div>
     <div id="log-stream"></div>
   </div>
@@ -300,6 +346,7 @@
     <div id="tab-bar">
       <button class="tab-btn active" data-tab="summary">SUMMARY</button>
       <button class="tab-btn" data-tab="strategy">STRATEGY</button>
+      <button class="tab-btn" data-tab="timing">TIMING</button>
       <button class="tab-btn" data-tab="charts">CHARTS</button>
       <button class="tab-btn" data-tab="verdict">VERDICT</button>
       <button class="tab-btn" data-tab="code">CODE</button>
@@ -397,6 +444,76 @@
       </div>
     </div>
 
+    <!-- Timing Tab -->
+    <div id="tab-timing" class="tab-content">
+      <div id="timing-placeholder" style="padding:40px;text-align:center;color:var(--text-dim);font-size:11px">
+        Timing signal akan muncul setelah BuyTiming agent selesai...
+      </div>
+      <div id="timing-body" style="display:none">
+        <div>
+          <div id="timing-signal-box">
+            <div class="ts-label">TIMING SIGNAL</div>
+            <div class="ts-value" id="ts-signal">—</div>
+            <div id="timing-confidence-bar">
+              <div class="timing-block" id="tb-1"></div>
+              <div class="timing-block" id="tb-2"></div>
+              <div class="timing-block" id="tb-3"></div>
+              <div class="timing-block" id="tb-4"></div>
+              <div class="timing-block" id="tb-5"></div>
+              <div class="timing-block" id="tb-6"></div>
+              <div class="timing-block" id="tb-7"></div>
+              <div class="timing-block" id="tb-8"></div>
+              <div class="timing-block" id="tb-9"></div>
+              <div class="timing-block" id="tb-10"></div>
+            </div>
+            <div id="timing-confidence-label"></div>
+          </div>
+          <div class="timing-entry-card">
+            <div class="tec-label">IDEAL ENTRY PRICE</div>
+            <div class="tec-value" id="ts-entry-price">—</div>
+          </div>
+        </div>
+        <div class="tech-signals-grid" style="margin-top:16px">
+          <div class="tech-signal-item">
+            <div class="sig-label">RSI</div>
+            <div class="sig-value" id="ts-rsi">—</div>
+          </div>
+          <div class="tech-signal-item">
+            <div class="sig-label">MACD</div>
+            <div class="sig-value" id="ts-macd">—</div>
+          </div>
+          <div class="tech-signal-item">
+            <div class="sig-label">BOLLINGER</div>
+            <div class="sig-value" id="ts-bollinger">—</div>
+          </div>
+          <div class="tech-signal-item">
+            <div class="sig-label">TREND</div>
+            <div class="sig-value" id="ts-trend">—</div>
+          </div>
+          <div class="tech-signal-item">
+            <div class="sig-label">VOLUME</div>
+            <div class="sig-value" id="ts-volume">—</div>
+          </div>
+        </div>
+        <div class="report-section">
+          <h3>Entry Condition</h3>
+          <p id="ts-entry-condition"></p>
+        </div>
+        <div class="report-section">
+          <h3>Ideal Entry Window</h3>
+          <p id="ts-entry-window"></p>
+        </div>
+        <div class="report-section">
+          <h3>DCA Plan</h3>
+          <p id="ts-dca-plan"></p>
+        </div>
+        <div class="report-section">
+          <h3>Timing Rationale</h3>
+          <p id="ts-rationale"></p>
+        </div>
+      </div>
+    </div>
+
     <!-- Charts Tab -->
     <div id="tab-charts" class="tab-content">
       <div id="chart-candlestick" style="height:380px"></div>
@@ -487,12 +604,14 @@ function appendLog(text, isError) {
 }
 
 function resetUI() {
-  ['DeepResearch', 'NewsIntelligence', 'Strategy', 'FinalVerdict'].forEach(a => setAgentStatus(a, ''));
+  ['DeepResearch', 'NewsIntelligence', 'Strategy', 'FinalVerdict', 'BuyTiming'].forEach(a => setAgentStatus(a, ''));
   document.getElementById('log-stream').innerHTML = '';
   document.getElementById('placeholder').style.display = 'flex';
   document.getElementById('report-body').style.display = 'none';
   document.getElementById('strategy-placeholder').style.display = 'block';
   document.getElementById('strategy-body').style.display = 'none';
+  document.getElementById('timing-placeholder').style.display = 'block';
+  document.getElementById('timing-body').style.display = 'none';
   document.getElementById('verdict-placeholder').style.display = 'block';
   document.getElementById('verdict-body').style.display = 'none';
   document.getElementById('code-block').innerHTML =
@@ -502,6 +621,8 @@ function resetUI() {
   for (let i = 1; i <= 10; i++) {
     const cb = document.getElementById('cb-' + i);
     if (cb) cb.className = 'conviction-block';
+    const tb = document.getElementById('tb-' + i);
+    if (tb) tb.className = 'timing-block';
   }
 }
 
@@ -566,6 +687,42 @@ function renderVerdict(data) {
   document.getElementById('counter-arguments').textContent = data.counter_arguments || '';
 }
 
+function renderTiming(data) {
+  document.getElementById('timing-placeholder').style.display = 'none';
+  document.getElementById('timing-body').style.display = 'block';
+
+  const signal = (data.timing_signal || 'WAIT').toUpperCase();
+  const score  = parseInt(data.confidence || 5, 10);
+  const box    = document.getElementById('timing-signal-box');
+  const cssMap = { BUY_NOW: 'buy-now', WAIT: 'wait', DCA: 'dca', AVOID: 'avoid' };
+  box.className = cssMap[signal] || 'wait';
+  document.getElementById('ts-signal').textContent = signal.replace('_', ' ');
+
+  const blockClass = 't-' + (cssMap[signal] || 'wait');
+  for (let i = 1; i <= 10; i++) {
+    const tb = document.getElementById('tb-' + i);
+    if (tb) tb.className = 'timing-block' + (i <= score ? ' ' + blockClass : '');
+  }
+  document.getElementById('timing-confidence-label').textContent =
+    score + '/10 — ' + (score >= 8 ? 'Very High Confidence' : score >= 6 ? 'High Confidence' : score >= 4 ? 'Moderate' : 'Low Confidence');
+
+  const price = data.ideal_entry_price;
+  document.getElementById('ts-entry-price').textContent =
+    (price && price > 0) ? price.toLocaleString() : '—';
+
+  const sigs = data.technical_signals || {};
+  document.getElementById('ts-rsi').textContent       = sigs.rsi       || '—';
+  document.getElementById('ts-macd').textContent      = sigs.macd      || '—';
+  document.getElementById('ts-bollinger').textContent = sigs.bollinger || '—';
+  document.getElementById('ts-trend').textContent     = sigs.trend     || '—';
+  document.getElementById('ts-volume').textContent    = sigs.volume    || '—';
+
+  document.getElementById('ts-entry-condition').textContent = data.entry_condition  || '';
+  document.getElementById('ts-entry-window').textContent    = data.ideal_entry_window || '';
+  document.getElementById('ts-dca-plan').textContent        = data.dca_plan          || '';
+  document.getElementById('ts-rationale').textContent       = data.timing_rationale  || '';
+}
+
 function renderCharts(candlestick, heatmap) {
   if (candlestick && candlestick.data) {
     Plotly.newPlot('chart-candlestick', candlestick.data, candlestick.layout, {responsive: true, displayModeBar: false});
@@ -614,6 +771,9 @@ document.getElementById('analyze-btn').addEventListener('click', () => {
         break;
       case 'verdict':
         renderVerdict(msg.data || {});
+        break;
+      case 'timing':
+        renderTiming(msg.data || {});
         break;
       case 'chart':
         renderCharts(msg.candlestick, msg.heatmap);

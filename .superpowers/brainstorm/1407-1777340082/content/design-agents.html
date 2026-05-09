@@ -1,0 +1,101 @@
+<h2>Design — New Agent Lineup (Sub-project 1)</h2>
+<p class="subtitle">4 agen baru menggantikan Quant, Newsroom, Economist, Critic</p>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+
+  <div class="mockup">
+    <div class="mockup-header">🔬 DeepResearch Agent</div>
+    <div class="mockup-body" style="font-size:12px">
+      <div style="color:#00ff88;font-weight:700;margin-bottom:8px">Menggantikan: Quant + Economist</div>
+      <div style="color:#aaa;margin-bottom:8px">Tools yang dipakai:</div>
+      <ul style="color:#ccc;padding-left:16px;line-height:2">
+        <li>yfinance: income statement, balance sheet, cash flow 5 tahun</li>
+        <li>yfinance: analyst price targets + recommendations</li>
+        <li>Hitung tren: ROE, profit margin, revenue growth CAGR</li>
+        <li>Korelasi makro (tetap ada)</li>
+      </ul>
+      <div style="margin-top:10px;background:#0d1a0d;border:1px solid #1a3a1a;padding:8px;border-radius:4px">
+        <div style="color:#888;font-size:11px">OUTPUT JSON:</div>
+        <div style="color:#00ff88;font-size:11px">valuation, growth_trend, financial_health,<br>analyst_consensus, macro_context</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">📰 NewsIntelligence Agent</div>
+    <div class="mockup-body" style="font-size:12px">
+      <div style="color:#4488ff;font-weight:700;margin-bottom:8px">Menggantikan: Newsroom (lebih smart)</div>
+      <div style="color:#aaa;margin-bottom:8px">Tools yang dipakai:</div>
+      <ul style="color:#ccc;padding-left:16px;line-height:2">
+        <li>Serper/DDG: 15 berita terbaru (dari 10)</li>
+        <li>Klasifikasi event: earnings/M&A/manajemen/regulasi</li>
+        <li>Sentiment per artikel (bukan aggregate saja)</li>
+        <li>Deteksi anomali: unusual volume + news spike</li>
+      </ul>
+      <div style="margin-top:10px;background:#0d1020;border:1px solid #1a1a3a;padding:8px;border-radius:4px">
+        <div style="color:#888;font-size:11px">OUTPUT JSON:</div>
+        <div style="color:#4488ff;font-size:11px">sentiment_score, event_type, key_events,<br>risk_signals, catalyst_signals</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">⚡ Strategy Agent</div>
+    <div class="mockup-body" style="font-size:12px">
+      <div style="color:#ffcc00;font-weight:700;margin-bottom:8px">BARU — Terinspirasi ValueCell</div>
+      <div style="color:#aaa;margin-bottom:8px">Input dari DeepResearch + NewsIntelligence:</div>
+      <ul style="color:#ccc;padding-left:16px;line-height:2">
+        <li>Generate entry price zone (support level)</li>
+        <li>Exit target (resistance + analyst target)</li>
+        <li>Stop loss level (% dari entry)</li>
+        <li>Time horizon (short/medium/long term)</li>
+        <li>Position sizing suggestion (% portfolio)</li>
+      </ul>
+      <div style="margin-top:10px;background:#1a1a00;border:1px solid #3a3a00;padding:8px;border-radius:4px">
+        <div style="color:#888;font-size:11px">OUTPUT JSON:</div>
+        <div style="color:#ffcc00;font-size:11px">entry_zone, exit_target, stop_loss,<br>time_horizon, position_size, rationale</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup">
+    <div class="mockup-header">⚖️ FinalVerdict Agent</div>
+    <div class="mockup-body" style="font-size:12px">
+      <div style="color:#ff8844;font-weight:700;margin-bottom:8px">Menggantikan: Critic (lebih tajam)</div>
+      <div style="color:#aaa;margin-bottom:8px">Input dari semua 3 agen di atas:</div>
+      <ul style="color:#ccc;padding-left:16px;line-height:2">
+        <li>Devil's advocate: tantang setiap asumsi</li>
+        <li>Conviction score 1–10 (bukan cuma BUY/HOLD/SELL)</li>
+        <li>Risk/Reward ratio konkret</li>
+        <li>Skenario bull case vs bear case</li>
+        <li>Investment memo final profesional</li>
+      </ul>
+      <div style="margin-top:10px;background:#1a0d00;border:1px solid #3a2000;padding:8px;border-radius:4px">
+        <div style="color:#888;font-size:11px">OUTPUT JSON:</div>
+        <div style="color:#ff8844;font-size:11px">verdict, conviction_score, risk_reward,<br>bull_case, bear_case, investment_memo</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="mockup" style="margin-bottom:16px">
+  <div class="mockup-header">Pipeline Flow</div>
+  <div class="mockup-body" style="font-size:12px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div style="background:#0d1a0d;border:1px solid #00ff88;padding:8px 14px;border-radius:4px;color:#00ff88">DeepResearch</div>
+      <div style="color:#666">→</div>
+      <div style="background:#0d1020;border:1px solid #4488ff;padding:8px 14px;border-radius:4px;color:#4488ff">NewsIntelligence</div>
+      <div style="color:#666">→</div>
+      <div style="background:#1a1a00;border:1px solid #ffcc00;padding:8px 14px;border-radius:4px;color:#ffcc00">Strategy</div>
+      <div style="color:#666">→</div>
+      <div style="background:#1a0d00;border:1px solid #ff8844;padding:8px 14px;border-radius:4px;color:#ff8844">FinalVerdict</div>
+    </div>
+    <div style="color:#666;font-size:11px;margin-top:8px">Sequential dengan jeda 5s antar agen • SSE streaming tetap sama • Output Bahasa Indonesia</div>
+  </div>
+</div>
+
+<div style="padding:12px;background:#0d1520;border:1px solid #1e2a3e;border-radius:4px;font-size:12px;color:#8090a0">
+  📋 <strong>UI yang berubah:</strong> Nama agen di feed panel + section baru "Trading Strategy" (entry/exit/stop loss) + Conviction Score di verdict box.<br>
+  ✅ <strong>Yang tetap sama:</strong> Bloomberg dark theme, SSE pipeline, Plotly charts, Python code tab.
+</div>

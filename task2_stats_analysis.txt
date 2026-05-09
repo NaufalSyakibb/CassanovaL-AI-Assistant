@@ -1,0 +1,68 @@
+**Statistical Analysis Report**
+
+---
+
+### **1. Descriptive Statistics**
+|          | index       |
+|----------|-------------|
+| count    | 100.000     |
+| mean     | 50.500      |
+| std      | 29.011      |
+| min      | 1.000       |
+| 25%      | 25.750      |
+| 50%      | 50.500      |
+| 75%      | 75.250      |
+| max      | 100.000     |
+| skewness | 0.0         |
+| kurtosis | -1.2        |
+
+**Interpretation**:
+- The `index` column is uniformly distributed (skewness = 0.0, kurtosis = -1.2), as expected for an index.
+- No other numeric columns were detected for analysis. **Feature engineering is required** to extract numeric features (e.g., from `subscription_date` or categorical variables).
+
+---
+
+### **2. Correlation Matrix**
+**Limitation**: Insufficient numeric columns (≥2 required). No correlations computed.
+
+---
+
+### **3. Top Correlations (|r| > 0.3)**
+**Limitation**: No correlations available due to lack of numeric features.
+
+---
+
+### **4. Key Findings and Interpretation**
+1. **Uniform Distribution of `index`**:
+   - The `index` column is perfectly uniform, with no skew or outliers. This is trivial and not actionable.
+2. **Lack of Numeric Features**:
+   - The dataset contains **no meaningful numeric columns** for correlation analysis. Potential candidates for feature engineering:
+     - `subscription_date`: Extract day/month/year or days since subscription.
+     - `customer_id`: Check if numeric (likely non-informative).
+     - Categorical columns (e.g., `country`, `city`): Encode as numeric (e.g., one-hot encoding).
+3. **No Multicollinearity Detected**:
+   - Not applicable due to insufficient numeric data.
+4. **No Strong Correlations (|r| > 0.7)**:
+   - Not applicable.
+
+---
+
+### **5. Top 5 Actionable Insights (Ranked)**
+1. **Feature Engineering Required**:
+   - Extract numeric features from `subscription_date` (e.g., days since subscription, month, or year) to enable correlation analysis.
+   - Encode categorical variables (e.g., `country`, `city`) as numeric (e.g., one-hot encoding or frequency encoding).
+
+2. **Re-evaluate Dataset Structure**:
+   - Confirm whether `customer_id`, `phone_1`, or `phone_2` contain hidden numeric patterns (e.g., area codes, sequential IDs).
+
+3. **Explore Text-Based Features**:
+   - If `email` or `website` domains are relevant, extract numeric features (e.g., domain length, presence of specific keywords).
+
+4. **Check for Hidden Numeric Columns**:
+   - Verify if `customer_id` or other ID-like columns are numeric (e.g., `customer_id` might be a string but could be converted to numeric).
+
+5. **Re-run Analysis with Engineered Features**:
+   - After feature engineering, re-run the statistical analysis to uncover meaningful correlations or patterns.
+
+---
+**Note**: The current analysis is limited by the lack of numeric features. Feature engineering is critical to derive insights from this dataset.

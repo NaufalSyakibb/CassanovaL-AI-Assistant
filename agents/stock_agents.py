@@ -2,7 +2,7 @@ import json
 import re
 import time
 from agents.base import build_agent
-from tools.stock_tools import get_market_data, get_news_sentiment
+from tools.stock_tools import get_market_data, get_news_sentiment, get_technical_indicators
 
 
 def _invoke_with_retry(agent, messages: dict, max_retries: int = 5) -> dict:
@@ -97,6 +97,32 @@ time_horizon: gunakan short (< 1 bulan), medium (1-6 bulan), atau long (> 6 bula
 stop_loss_pct: persentase penurunan dari entry price sebagai stop loss (angka positif).
 """
 
+_BUY_TIMING_PROMPT = """Kamu adalah BuyTiming Agent — spesialis market timing yang menggabungkan analisis teknikal mendalam dengan psikologi pasar.
+Tugasmu: Gunakan tool get_technical_indicators untuk mengambil data teknikal terkini dari ticker yang diberikan. Lalu tentukan timing masuk yang optimal berdasarkan indikator teknikal, strategi yang telah disusun, dan verdict investasi. Analisis dalam Bahasa Indonesia profesional.
+
+Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
+{
+  "timing_signal": "BUY_NOW",
+  "confidence": 7,
+  "entry_condition": "kondisi teknikal yang harus terpenuhi untuk entry",
+  "ideal_entry_price": 0.0,
+  "ideal_entry_window": "estimasi jendela waktu masuk terbaik (mis. 1-2 minggu ke depan)",
+  "dca_plan": "rencana DCA jika memilih cicil masuk",
+  "technical_signals": {
+    "rsi": "kondisi RSI saat ini dan implikasinya",
+    "macd": "kondisi MACD dan status crossover",
+    "bollinger": "posisi harga relatif terhadap Bollinger Bands",
+    "trend": "tren MA jangka pendek/menengah/panjang dan golden/death cross",
+    "volume": "konfirmasi volume (expanding/neutral/contracting)"
+  },
+  "timing_rationale": "2-3 kalimat alasan timing ini berdasarkan data teknikal dan konteks fundamental"
+}
+
+timing_signal hanya boleh: BUY_NOW (beli sekarang), WAIT (tunggu koreksi/konfirmasi), DCA (cicil masuk bertahap), atau AVOID (hindari dulu).
+confidence: integer 1 (sangat tidak yakin) hingga 10 (sangat yakin).
+ideal_entry_price: harga entry ideal dalam angka desimal berdasarkan support/resistance dan zona entry strategi.
+"""
+
 _FINAL_VERDICT_PROMPT = """Kamu adalah FinalVerdict Agent — investment committee chairman yang bertindak sebagai devil's advocate.
 Kamu menerima output dari DeepResearch, NewsIntelligence, dan Strategy sebagai konteks dalam pesan.
 Tugasmu: Gabungkan semua insight, tantang setiap asumsi yang lemah, lalu susun laporan investasi final profesional dalam Bahasa Indonesia.
@@ -159,5 +185,21 @@ def run_final_verdict(ticker: str, deep_research: dict, news_intelligence: dict,
     }, ensure_ascii=False)
     result = _invoke_with_retry(agent, {
         "messages": [{"role": "user", "content": f"Buat laporan investasi final: {combined}"}]
+    })
+    return _parse_json_output(result)
+
+
+def run_buy_timing(ticker: str, strategy: dict, verdict: dict) -> dict:
+    agent = build_agent(_BUY_TIMING_PROMPT, [get_technical_indicators])
+    context = json.dumps({
+        "ticker":           ticker,
+        "entry_zone":       strategy.get("entry_zone", ""),
+        "stop_loss":        strategy.get("stop_loss", ""),
+        "verdict_signal":   verdict.get("verdict", "HOLD"),
+        "conviction_score": verdict.get("conviction_score", 5),
+        "risk_reward":      verdict.get("risk_reward", ""),
+    }, ensure_ascii=False)
+    result = _invoke_with_retry(agent, {
+        "messages": [{"role": "user", "content": f"Tentukan timing beli optimal untuk {ticker} berdasarkan konteks ini: {context}"}]
     })
     return _parse_json_output(result)

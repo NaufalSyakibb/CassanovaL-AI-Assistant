@@ -1,0 +1,229 @@
+<h2>UI Mockups — Najwa & Mansa</h2>
+<p class="subtitle">Both panels side by side. Do these designs look right?</p>
+
+<style>
+.panel-mock {
+  background: #0d0d0d;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  overflow: hidden;
+  font-family: 'Georgia', serif;
+  color: #ccc;
+}
+.pm-header {
+  background: #111;
+  border-bottom: 1px solid #222;
+  padding: 10px 14px;
+}
+.pm-eyebrow { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #888; margin-bottom: 3px; }
+.pm-title { font-size: 15px; color: #e8e0d0; }
+.pm-title em { font-style: italic; }
+.cat-tabs { display: flex; gap: 6px; padding: 8px 14px; background: #0d0d0d; border-bottom: 1px solid #1a1a1a; flex-wrap: wrap; }
+.cat-tab { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; padding: 3px 9px; border-radius: 2px; cursor: pointer; border: 1px solid #2a2a2a; color: #888; }
+.cat-tab.active { background: #1a3a5c; border-color: #4a90d9; color: #4a90d9; }
+.news-split { display: flex; height: 220px; }
+.news-feed { flex: 1.2; border-right: 1px solid #1a1a1a; overflow-y: auto; }
+.news-item { padding: 8px 12px; border-bottom: 1px solid #1a1a1a; cursor: pointer; }
+.news-item:hover { background: #161616; }
+.news-source { font-size: 8px; text-transform: uppercase; letter-spacing: 0.08em; color: #4a90d9; margin-bottom: 2px; }
+.news-headline { font-size: 11px; color: #ddd; line-height: 1.4; margin-bottom: 2px; }
+.news-meta { font-size: 8px; color: #555; }
+.news-chat { flex: 1; display: flex; flex-direction: column; background: #0a0a0a; }
+.chat-msgs { flex: 1; padding: 10px 12px; font-size: 10px; color: #aaa; font-style: italic; line-height: 1.5; }
+.chat-input-row { padding: 6px 10px; border-top: 1px solid #1a1a1a; display: flex; gap: 6px; align-items: center; }
+.chat-input-mock { flex: 1; background: #111; border: 1px solid #222; border-radius: 3px; padding: 4px 8px; font-size: 9px; color: #666; }
+.chat-send { background: #1a3a5c; border: none; border-radius: 2px; padding: 4px 8px; font-size: 9px; color: #4a90d9; cursor: pointer; }
+
+/* Budget panel */
+.budget-balance { text-align: center; padding: 12px 14px 6px; border-bottom: 1px solid #1a1a1a; }
+.bal-amount { font-size: 22px; color: #e8e0d0; letter-spacing: -0.02em; }
+.bal-unit { font-size: 13px; color: #888; }
+.bal-row { display: flex; justify-content: center; gap: 20px; margin-top: 6px; }
+.bal-mini { text-align: center; }
+.bal-mini-lbl { font-size: 8px; text-transform: uppercase; letter-spacing: 0.08em; color: #555; }
+.bal-mini-val { font-size: 11px; margin-top: 1px; }
+
+.charts-row { display: flex; gap: 0; border-bottom: 1px solid #1a1a1a; }
+.chart-box { flex: 1; padding: 10px 12px; }
+.chart-lbl { font-size: 8px; text-transform: uppercase; letter-spacing: 0.08em; color: #555; margin-bottom: 6px; }
+
+/* Donut SVG */
+.legend-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.legend-item { display: flex; align-items: center; gap: 3px; font-size: 8px; color: #888; }
+.legend-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+
+/* Bar chart */
+.bar-chart { display: flex; align-items: flex-end; gap: 3px; height: 50px; border-bottom: 1px solid #222; }
+.bar-group { display: flex; flex-direction: column; align-items: center; gap: 1px; flex: 1; }
+.bar { width: 100%; border-radius: 1px 1px 0 0; }
+.bar-labels { display: flex; justify-content: space-between; font-size: 7px; color: #444; margin-top: 2px; }
+
+.txn-section { padding: 8px 12px; }
+.txn-section-lbl { font-size: 8px; text-transform: uppercase; letter-spacing: 0.08em; color: #555; margin-bottom: 6px; }
+.txn-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid #151515; }
+.txn-date-s { font-size: 8px; color: #444; width: 28px; }
+.txn-desc-s { flex: 1; font-size: 10px; color: #bbb; }
+.txn-amt-s { font-size: 10px; }
+.pos-s { color: #5cb85c; }
+.neg-s { color: #e05c5c; }
+</style>
+
+<div class="split" style="align-items: flex-start; gap: 24px;">
+
+  <!-- Najwa News Panel -->
+  <div style="flex:1;">
+    <h3 style="margin-bottom:8px;">Najwa — News View (Overview tab)</h3>
+    <div class="panel-mock">
+      <div class="pm-header" style="border-top: 3px solid #4a90d9;">
+        <div class="pm-eyebrow">III · News Feed · Najwa</div>
+        <div class="pm-title">The <em>Wires</em></div>
+      </div>
+      <div class="cat-tabs">
+        <div class="cat-tab active">All</div>
+        <div class="cat-tab">Technology</div>
+        <div class="cat-tab">Finance</div>
+        <div class="cat-tab">Politics</div>
+        <div class="cat-tab">World</div>
+        <div class="cat-tab">Science</div>
+      </div>
+      <div class="news-split">
+        <div class="news-feed">
+          <div class="news-item">
+            <div class="news-source">Bloomberg · Finance</div>
+            <div class="news-headline">Fed signals potential rate cut as inflation cools to 2.4%</div>
+            <div class="news-meta">1h ago</div>
+          </div>
+          <div class="news-item">
+            <div class="news-source" style="color:#5cb85c;">BBC · Politics</div>
+            <div class="news-headline">G7 leaders agree on new AI governance framework</div>
+            <div class="news-meta">2h ago</div>
+          </div>
+          <div class="news-item">
+            <div class="news-source" style="color:#d4a054;">TechCrunch · Technology</div>
+            <div class="news-headline">OpenAI releases new reasoning model with 40% improvement</div>
+            <div class="news-meta">3h ago</div>
+          </div>
+          <div class="news-item">
+            <div class="news-source">Reuters · World</div>
+            <div class="news-headline">UN Security Council holds emergency session on climate crisis</div>
+            <div class="news-meta">4h ago</div>
+          </div>
+          <div class="news-item">
+            <div class="news-source" style="color:#d4a054;">The Verge · Technology</div>
+            <div class="news-headline">Apple's new chip achieves record benchmark scores</div>
+            <div class="news-meta">5h ago</div>
+          </div>
+        </div>
+        <div class="news-chat">
+          <div class="chat-msgs">
+            "The wires are open. Ask me about any headline, or request a full briefing on a topic."
+          </div>
+          <div class="chat-input-row">
+            <div class="chat-input-mock">Ask Najwa about today's news…</div>
+            <div class="chat-send">→</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mansa Budget Panel -->
+  <div style="flex:1;">
+    <h3 style="margin-bottom:8px;">Mansa — Budget Panel (right panel)</h3>
+    <div class="panel-mock">
+      <div class="pm-header" style="border-top: 3px solid #d4a054;">
+        <div class="pm-eyebrow">VI · Finance · Mansa</div>
+        <div class="pm-title">The <em>Ledger</em></div>
+      </div>
+      <!-- Balance -->
+      <div class="budget-balance">
+        <div class="bal-amount"><span class="bal-unit">Rp </span>18.4M</div>
+        <div class="bal-row">
+          <div class="bal-mini">
+            <div class="bal-mini-lbl">Income</div>
+            <div class="bal-mini-val" style="color:#5cb85c;">+22.0M</div>
+          </div>
+          <div class="bal-mini">
+            <div class="bal-mini-lbl">Expense</div>
+            <div class="bal-mini-val" style="color:#e05c5c;">−7.3M</div>
+          </div>
+        </div>
+      </div>
+      <!-- Charts row -->
+      <div class="charts-row">
+        <!-- Donut -->
+        <div class="chart-box" style="border-right:1px solid #1a1a1a;">
+          <div class="chart-lbl">By Category</div>
+          <svg width="60" height="60" viewBox="0 0 60 60">
+            <path d="M30,30 L30,4 A26,26 0 0,1 56,30 Z" fill="#d4a054" opacity="0.9"/>
+            <path d="M30,30 L56,30 A26,26 0 0,1 30,56 Z" fill="#4a90d9" opacity="0.85"/>
+            <path d="M30,30 L30,56 A26,26 0 0,1 4,30 Z" fill="#5cb85c" opacity="0.85"/>
+            <path d="M30,30 L4,30 A26,26 0 0,1 30,4 Z" fill="#e05c5c" opacity="0.85"/>
+            <circle cx="30" cy="30" r="13" fill="#0d0d0d"/>
+            <text x="30" y="33" text-anchor="middle" fill="#888" font-size="7" font-family="monospace">Apr</text>
+          </svg>
+          <div class="legend-row">
+            <div class="legend-item"><span class="legend-dot" style="background:#d4a054;"></span>Housing</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#4a90d9;"></span>Food</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#5cb85c;"></span>Transport</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#e05c5c;"></span>Other</div>
+          </div>
+        </div>
+        <!-- Bar chart -->
+        <div class="chart-box">
+          <div class="chart-lbl">Monthly Trend</div>
+          <div class="bar-chart">
+            <div class="bar-group">
+              <div class="bar" style="height:28px;background:#4a90d9;opacity:0.6;"></div>
+              <div class="bar" style="height:18px;background:#e05c5c;"></div>
+            </div>
+            <div class="bar-group">
+              <div class="bar" style="height:32px;background:#4a90d9;opacity:0.6;"></div>
+              <div class="bar" style="height:22px;background:#e05c5c;"></div>
+            </div>
+            <div class="bar-group">
+              <div class="bar" style="height:36px;background:#4a90d9;opacity:0.6;"></div>
+              <div class="bar" style="height:20px;background:#e05c5c;"></div>
+            </div>
+            <div class="bar-group">
+              <div class="bar" style="height:30px;background:#4a90d9;opacity:0.6;"></div>
+              <div class="bar" style="height:26px;background:#e05c5c;"></div>
+            </div>
+            <div class="bar-group">
+              <div class="bar" style="height:38px;background:#4a90d9;opacity:0.6;"></div>
+              <div class="bar" style="height:16px;background:#e05c5c;"></div>
+            </div>
+          </div>
+          <div class="bar-labels"><span>Dec</span><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span></div>
+          <div style="display:flex;gap:8px;margin-top:5px;">
+            <div class="legend-item"><span class="legend-dot" style="background:#4a90d9;border-radius:1px;opacity:0.6;"></span>Income</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#e05c5c;border-radius:1px;"></span>Expense</div>
+          </div>
+        </div>
+      </div>
+      <!-- Recent transactions -->
+      <div class="txn-section">
+        <div class="txn-section-lbl">Recent Transactions</div>
+        <div class="txn-row">
+          <div class="txn-date-s">APR 23</div>
+          <div class="txn-desc-s">Monthly salary</div>
+          <div class="txn-amt-s pos-s">+22.0M</div>
+        </div>
+        <div class="txn-row">
+          <div class="txn-date-s">APR 21</div>
+          <div class="txn-desc-s">Rent, April</div>
+          <div class="txn-amt-s neg-s">−4.5M</div>
+        </div>
+        <div class="txn-row">
+          <div class="txn-date-s">APR 20</div>
+          <div class="txn-desc-s">Groceries — Market 99</div>
+          <div class="txn-amt-s neg-s">−620K</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:24px;">
+  <p class="subtitle">Do these layouts look right? Confirm or mention what to change.</p>
+</div>

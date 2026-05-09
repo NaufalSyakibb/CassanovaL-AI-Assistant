@@ -1,0 +1,56 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# ── Style ───────────────────────────────────────────────────
+plt.style.use('dark_background')
+sns.set_context('notebook')
+PURPLE = '#746fff'
+PALETTE = sns.color_palette('husl', 10)
+
+# ── Load data ───────────────────────────────────────────────
+df = pd.read_csv(r'C:\Users\muham\OneDrive\Dokumen\Python\ai_python\AI Data\AI Data\DataAnalyst Agent\customers-100.csv')
+NUM = ['index']
+CAT = ['customer_id', 'first_name', 'last_name', 'company', 'city', 'country', 'phone_1', 'phone_2', 'email', 'subscription_date', 'website']
+
+# ════ Figure 2: Distributions ══════════════════════════
+fig, axes = plt.subplots(1, 3, figsize=(14, 4))
+axes = axes.flatten()
+for i, col in enumerate(NUM[:1]):
+    ax = axes[i]
+    data = df[col].dropna()
+    ax.hist(data, bins=30, color=PURPLE, edgecolor='none', alpha=0.85)
+    ax.axvline(data.mean(),   color='#ff6b6b', lw=1.5, ls='--', label=f'mean={data.mean():.2f}')
+    ax.axvline(data.median(), color='#00ff41', lw=1.5, ls='--', label=f'median={data.median():.2f}')
+    ax.set_title(col, fontsize=10)
+    ax.legend(fontsize=7)
+for j in range(1, len(axes)): axes[j].set_visible(False)
+fig.suptitle('Feature Distributions', fontsize=13, y=1.01)
+plt.tight_layout()
+plt.savefig('fig2_distributions.png', dpi=150, bbox_inches='tight')
+plt.show()
+print('Saved: fig2_distributions.png')
+
+# ════ Figure 4: Categorical Bar Chart ══════════════════
+cat_col, num_col = 'customer_id', 'index'
+top_cats = df[cat_col].value_counts().head(15).index
+grouped = (
+    df[df[cat_col].isin(top_cats)]
+    .groupby(cat_col)[num_col]
+    .mean()
+    .sort_values(ascending=False)
+)
+fig, ax = plt.subplots(figsize=(max(8, len(grouped)), 5))
+bars = ax.bar(range(len(grouped)), grouped.values, color=PURPLE, alpha=0.85, edgecolor='none')
+ax.set_xticks(range(len(grouped)))
+ax.set_xticklabels(grouped.index, rotation=45, ha='right', fontsize=9)
+ax.set_title(f'Mean {num_col} by {cat_col}', fontsize=12)
+ax.set_ylabel(num_col)
+for bar, val in zip(bars, grouped.values):
+    ax.text(bar.get_x() + bar.get_width()/2, bar.get_height()*1.01,
+            f'{val:.1f}', ha='center', va='bottom', fontsize=8)
+plt.tight_layout()
+plt.savefig('fig4_bar_chart.png', dpi=150, bbox_inches='tight')
+plt.show()
+print('Saved: fig4_bar_chart.png')

@@ -1,0 +1,113 @@
+---
+═══ PHASE 1 — SCOPE & PLAN ═══
+
+### 1. Restated Research Question
+Provide a **comprehensive, multi-dimensional dataset** on Tesla, Inc., covering its financial performance, operational metrics, technological advancements, market position, regulatory challenges, and strategic initiatives. The dataset must include **historical trends, current status (2023–2024), and forward-looking projections**, supported by primary and secondary sources.
+
+---
+
+### 2. Research Type
+**Exploratory + Factual + Technical**
+- **Exploratory**: Uncover non-obvious insights (e.g., supply chain vulnerabilities, R&D trade-offs).
+- **Factual**: Compile verifiable data (e.g., revenue, production volumes, regulatory filings).
+- **Technical**: Analyze engineering, software, and manufacturing innovations (e.g., 4680 battery, Full Self-Driving).
+
+---
+
+### 3. Sub-Questions (6)
+1. **Financial Performance & Valuation**
+   - What are Tesla’s **revenue, net income, gross margin, and free cash flow** for 2019–2024?
+   - How does Tesla’s **market capitalization and P/E ratio** compare to legacy automakers (e.g., Toyota, Volkswagen) and EV peers (e.g., BYD, Rivian)?
+   - What are the **primary revenue streams** (automotive sales, energy, services, regulatory credits), and how have they evolved?
+
+2. **Operational Metrics & Production**
+   - What are Tesla’s **annual vehicle production and delivery numbers** by model (Model 3/Y, S/X, Cybertruck) and region (US, China, Europe, Other) for 2019–2024?
+   - What are the **key production challenges** (e.g., Gigafactory ramp-ups, supply chain bottlenecks) and their impact on output?
+   - How do Tesla’s **manufacturing costs per vehicle** compare to industry averages, and what are the drivers of cost efficiency?
+
+3. **Technological Innovations & R&D**
+   - What are the **specifications, advantages, and limitations** of Tesla’s core technologies (e.g., 4680 battery cells, structural battery packs, Full Self-Driving (FSD) v12)?
+   - How does Tesla’s **R&D spending** compare to peers, and what are the focus areas (e.g., AI, robotics, energy storage)?
+   - What are the **timelines and milestones** for upcoming products (e.g., Robotaxi, Optimus humanoid robot, next-gen vehicle platforms)?
+
+4. **Market Position & Competitive Landscape**
+   - What is Tesla’s **global EV market share** by region and vehicle segment (2019–2024)?
+   - How do Tesla’s **brand perception, customer satisfaction, and loyalty metrics** (e.g., Net Promoter Score, J.D. Power rankings) compare to competitors?
+   - What are the **key competitive threats** (e.g., BYD’s price advantage, legacy automakers’ EV transitions, Chinese EV startups)?
+
+5. **Regulatory & Legal Challenges**
+   - What are the **major regulatory risks** facing Tesla (e.g., US EPA/NHSTA investigations, EU CO₂ targets, China data localization laws)?
+   - How have **autopilot/FSD-related accidents** impacted Tesla’s legal standing and insurance costs?
+   - What are the **trade and tariff risks** (e.g., US-China tariffs, EU anti-subsidy investigations)?
+
+6. **Strategic Initiatives & Future Outlook**
+   - What are Tesla’s **key strategic priorities** for 2024–2026 (e.g., AI integration, energy business expansion, Robotaxi network)?
+   - How does Tesla’s **energy storage business** (Megapack, Powerwall) contribute to revenue and growth?
+   - What are the **biggest existential risks** to Tesla’s long-term dominance (e.g., technological disruption, geopolitical fragmentation, talent retention)?
+
+---
+
+### 4. Search Plan
+#### **Layer 1: Broad Overview**
+- Search queries:
+  1. `"Tesla Inc. overview 2024"`
+  2. `"Tesla latest developments Q2 2024"`
+  3. `"Tesla business segments and revenue breakdown"`
+  4. `"Tesla vs competitors market share 2024"`
+
+#### **Layer 2: Angle-by-Angle Drilling**
+| Sub-Question               | Search Queries                                                                                     |
+|----------------------------|----------------------------------------------------------------------------------------------------|
+| **Financial Performance**  | 1. `"Tesla 10-K 2023 financial statements"`                                                        |
+|                            | 2. `"Tesla revenue breakdown by segment 2019–2024"`                                                |
+|                            | 3. `"Tesla vs BYD vs Toyota market cap 2024"`                                                      |
+|                            | 4. `"Tesla gross margin analysis 2024"`                                                            |
+| **Operational Metrics**    | 1. `"Tesla vehicle production and deliveries by model 2024"`                                       |
+|                            | 2. `"Tesla Gigafactory production capacity 2024"`                                                  |
+|                            | 3. `"Tesla manufacturing cost per vehicle 2024"`                                                   |
+|                            | 4. `"Tesla supply chain challenges 2024"`                                                          |
+| **Technological Innovations** | 1. `"Tesla 4680 battery specifications and limitations"`                                           |
+|                            | 2. `"Tesla Full Self-Driving v12 capabilities"`                                                    |
+|                            | 3. `"Tesla R&D spending 2019–2024"`                                                                |
+|                            | 4. `"Tesla Optimus robot timeline and milestones"`                                                 |
+| **Market Position**        | 1. `"Tesla global EV market share 2024"`                                                           |
+|                            | 2. `"Tesla vs BYD price comparison 2024"`                                                          |
+|                            | 3. `"Tesla customer satisfaction J.D. Power 2024"`                                                 |
+|                            | 4. `"Tesla brand perception survey 2024"`                                                          |
+| **Regulatory Challenges**  | 1. `"Tesla autopilot investigations NHTSA 2024"`                                                   |
+|                            | 2. `"Tesla EU CO₂ emissions compliance 2024"`                                                      |
+|                            | 3. `"Tesla China data localization laws impact"`                                                   |
+|                            | 4. `"Tesla US-China tariffs 2024"`                                                                 |
+| **Strategic Initiatives**  | 1. `"Tesla Robotaxi unveil date and features"`                                                     |
+|                            | 2. `"Tesla energy storage revenue 2024"`                                                           |
+|                            | 3. `"Tesla AI and robotics strategy 2024"`                                                         |
+|                            | 4. `"Tesla biggest risks 2024–2026"`                                                               |
+
+#### **Layer 3: Source Depth**
+- **Primary Sources**: Tesla 10-K/10-Q filings, earnings call transcripts, NHTSA/EPA reports, patent filings.
+- **Secondary Sources**: Bloomberg, Reuters, The Verge, CleanTechnica, Seeking Alpha, J.D. Power reports.
+- **Tertiary Sources**: Used only for anecdotal insights (e.g., Reddit discussions on FSD beta testing).
+
+#### **Layer 4: Cross-Source Synthesis**
+- **Agreements**: E.g., all sources confirm Tesla’s 2023 revenue growth slowed to ~19% YoY (vs. 51% in 2022).
+- **Conflicts**: E.g., Tesla claims FSD v12 is "Level 2+" autonomy; critics argue it lacks true Level 4 capabilities.
+- **Gaps**: E.g., Limited public data on Tesla’s in-house AI chip (Dojo) performance metrics.
+
+---
+
+═══ PHASE 2 — LAYERED SEARCH ═══
+
+---
+
+### **Layer 1: Broad Overview Searches**
+#### **Queries and Key Findings**
+1. **`"Tesla Inc. overview 2024"`**
+   - **Key Findings**:
+     - Tesla is the world’s most valuable automaker (market cap: ~$600B as of June 2024).
+     - Business segments: Automotive (~85% revenue), Energy Generation & Storage (~10%), Services & Other (~5%).
+     - Gigafactories: 6 operational (Nevada, Shanghai, Berlin, Texas, New York, Buffalo).
+     - [SECONDARY] Source: [Investopedia - Tesla Overview 2024](https://www.investopedia.com/tesla-motors-4684328)
+
+2. **`"Tesla latest developments Q2 2024"`**
+   - **Key Findings**:
+     - Q2 2024 deliveries: ~444,000 vehicles (down 5% YoY

@@ -1,0 +1,277 @@
+Bedah Kode Java: Sistem Kantin GerudaEats
+==========================================
+Dibuat oleh: Muhammad Naufal Syakib (102022500384)
+Mata Kuliah: SI4903
+
+==========================================================================
+MenuItem.java
+==========================================================================
+
+Field:
+    private String nama;
+    private double harga;
+    private String kategori;
+    private int stok;
+
+Empat field private — nama, harga, kategori, stok. Semua private, akses
+hanya lewat method. Wajar untuk encapsulation.
+
+Constructor:
+    public MenuItem(String nama, double harga, String kategori, int stok)
+
+Constructor tunggal, wajib isi semua 4 field sekaligus. Tidak ada default
+constructor, jadi tidak bisa buat MenuItem kosong.
+
+Getter & Setter:
+    public String getNama() { return nama; }
+    public double getHarga() { return harga; }
+    public int getStok() { return stok; }
+    public void setStok(int stok) { this.stok = stok; }
+
+Getter standar. Yang menarik: setStok bisa set nilai stok ke angka apa pun
+termasuk negatif karena tidak ada validasi. Ini potensi bug kalau dipanggil
+sembarangan.
+
+    public void setHarga(double hargaBaru) { this.harga = hargaBaru; }
+
+Setter harga juga tanpa validasi. Bisa diset ke 0 atau negatif.
+
+    public void tambahStok(int jumlah) { stok += jumlah; }
+
+Tambah stok tapi tidak cek apakah jumlah positif. Bisa dipanggil
+tambahStok(-5) dan stok malah berkurang.
+
+    public boolean kurangiStok() {
+        if (stok > 0) { stok--; return true; }
+        return false;
+    }
+
+Ini lebih aman — ada pengecekan sebelum kurangi. Return boolean biar
+pemanggil tahu berhasil atau tidak.
+
+    public boolean isAvailable() { return stok > 0; }
+
+Shortcut cek ketersediaan. Dipakai di Order.tambahItem().
+
+    public void displayInfo() {
+        System.out.println(nama + " | Rp" + String.format("%.0f", harga)
+            + " | " + kategori + " | Stok: " + stok);
+    }
+
+Format harga pakai %.0f supaya tidak muncul desimal. Tapi ini print langsung
+ke stdout, tidak return String, jadi tidak fleksibel kalau mau dipakai di
+context lain seperti GUI atau file.
+
+==========================================================================
+Customer.java
+==========================================================================
+
+Field:
+    private String nama;
+    private String nim;
+    private double saldo;
+    private int poin;
+
+Empat field. Saldo pakai double — secara teknis works, tapi untuk uang lebih
+proper pakai long (dalam satuan sen) atau BigDecimal untuk hindari floating
+point error.
+
+Constructor:
+    public Customer(String nama, String nim) { ... }
+    public Customer(String nama, String nim, double saldoAwal) { ... }
+
+Dua constructor — overloading. Yang pertama mulai dengan saldo 0, yang kedua
+bisa langsung set saldo awal. Constructor pertama tidak memanggil constructor
+kedua pakai this(nama, nim, 0) — duplikasi kecil tapi tidak masalah besar.
+
+    public void topUpSaldo(double jumlah) {
+        if (jumlah <= 0) { System.out.println("Nominal tidak valid"); }
+        else { saldo += jumlah; }
+    }
+
+Ada validasi input — bagus. Tapi kalau invalid cuma print pesan, tidak throw
+exception atau return status. Pemanggil tidak bisa tahu top up gagal kecuali
+baca stdout.
+
+    public boolean bayar(double jumlah) {
+        if (saldo < jumlah) { System.out.println("Saldo tidak cukup"); return false; }
+        saldo -= jumlah;
+        return true;
+    }
+
+Struktur benar — return boolean sehingga pemanggil bisa handle hasilnya.
+Tapi di Kantin.selesaikanOrder(), method ini TIDAK dipakai. Kantin mengecek
+saldo manual pakai getSaldo() >= total lalu langsung setSaldo(). Jadi bayar()
+jadi tidak terpakai di alur utama.
+
+    public void tambahPoin(int poin) {
+        if (poin > 0) { this.poin += poin; }
+    }
+
+Ada validasi positif. Tapi poin juga tidak pernah dipakai di
+Kantin.selesaikanOrder() — hanya dipakai di Order.prosesOrder() yang juga
+tidak dipanggil di Main. Jadi poin customer selalu 0 di akhir program.
+
+==========================================================================
+Order.java
+==========================================================================
+
+Field:
+    private MenuItem[] items;
+    private int jumlahItem;
+
+Pakai array fixed size MenuItem[10], bukan ArrayList. Batasan keras di 10
+item. Tidak ada penjelasan kenapa 10 — magic number.
+
+Constructor:
+    public Order(String orderId, Customer customer) {
+        this.items = new MenuItem[10];
+        this.jumlahItem = 0;
+        this.status = "MENUNGGU";
+    }
+
+Status awal "MENUNGGU". Status dipakai sebagai string literal — rawan typo.
+Lebih proper pakai enum.
+
+    public boolean tambahItem(MenuItem item) {
+        if (!status.equals("MENUNGGU")) { ... return false; }
+        if (jumlahItem >= items.length) { ... return false; }
+        if (!item.isAvailable()) { ... return false; }
+        items[jumlahItem++] = item;
+        return true;
+    }
+
+Tiga guard clause sebelum tambah item — cek status, cek kapasitas, cek stok.
+Strukturnya bersih. Tapi return value boolean-nya tidak dicek di Main —
+o1.tambahItem(m1) hasilnya dibuang begitu saja.
+
+    public double hitungTotal() {
+        double total = 0;
+        for (int i = 0; i < jumlahItem; i++) { total += items[i].getHarga(); }
+        return total;
+    }
+
+Loop manual pakai index karena pakai array biasa, bukan foreach. Logika benar.
+
+    public boolean prosesOrder() {
+        if (!status.equals("MENUNGGU")) return false;
+        double total = hitungTotal();
+        if (!customer.bayar(total)) return false;
+        for (int i = 0; i < jumlahItem; i++) { items[i].kurangiStok(); }
+        customer.tambahPoin(jumlahItem);
+        status = "SELESAI";
+        return true;
+    }
+
+Method ini lengkap dan benar — bayar via customer, kurangi stok, tambah poin,
+set status. Tapi TIDAK PERNAH DIPANGGIL di Main. Ini dead code. Kantin.
+selesaikanOrder() mengambil alih tugasnya tapi dengan cara yang lebih kasar
+(akses saldo langsung via setSaldo).
+
+    public void batalkanOrder() {
+        if (status.equals("SELESAI")) { System.out.println("Tidak bisa dibatalkan"); }
+        else { status = "DIBATALKAN"; }
+    }
+
+Logika pembatalan sederhana. Tidak ada pengembalian stok atau saldo kalau
+dibatalkan setelah barang sudah dikurangi. Untuk simulasi ini tidak masalah
+karena pembatalan terjadi sebelum diproses.
+
+==========================================================================
+Kantin.java
+==========================================================================
+
+Field:
+    private ArrayList<MenuItem> listMenu = new ArrayList<>();
+    private ArrayList<Order> riwayatOrder = new ArrayList<>();
+
+Dua ArrayList — menu dan riwayat order. Riwayat hanya menyimpan order yang
+status-nya SUCCESS.
+
+    public void selesaikanOrder(Order o) {
+        double total = o.hitungTotal();
+        Customer c = o.getCustomer();
+
+        if (c.getSaldo() >= total) {
+            c.setSaldo(c.getSaldo() - total);       // bypass method bayar()
+            for (MenuItem item : o.getItems()) {
+                item.setStok(item.getStok() - 1);   // bypass kurangiStok()
+            }
+            o.setStatus("SUCCESS");
+            riwayatOrder.add(o);
+        } else {
+            o.setStatus("FAILED (Insufficient Balance)");
+        }
+    }
+
+Ini masalah utama desain kode ini. Kantin mengakses dan memodifikasi internal
+Customer dan MenuItem secara langsung, melewati method yang sudah dibuat di
+kelas-kelas tersebut (bayar(), kurangiStok(), tambahPoin()). Ini melanggar
+prinsip encapsulation — seharusnya Kantin cukup panggil o.prosesOrder().
+
+    public void tampilkanRekap() {
+        double totalPendapatan = 0;
+        for (Order o : riwayatOrder) {
+            if (o.getStatus().equals("SUCCESS")) { totalPendapatan += o.hitungTotal(); }
+        }
+        System.out.println("Total Pendapatan: Rp" + totalPendapatan);
+    }
+
+Karena riwayatOrder hanya berisi order SUCCESS, filter equals("SUCCESS") di
+sini redundant — semua yang ada di list sudah pasti SUCCESS.
+
+==========================================================================
+Main.java
+==========================================================================
+
+    Customer c2 = new Customer("Teguh Van Hallen", "102022500384", 10000);
+
+NIM 102022500384 adalah NIM pemilik kode sendiri yang dipakai sebagai
+customer kedua.
+
+Skenario ORDER 1 — BERHASIL:
+    Order o1 = kantin.buatOrder("ORD1", c1);
+    o1.tambahItem(m1);  // Nasi Bakar 15000
+    o1.tambahItem(m2);  // Es Teh Manis 5000
+    kantin.selesaikanOrder(o1);  // total 20000, saldo c1 = 50000 -> SUCCESS
+
+Skenario ORDER 2 — GAGAL:
+    Order o2 = kantin.buatOrder("ORD2", c2);
+    o2.tambahItem(m1);  // Nasi Bakar 15000
+    o2.tambahItem(m2);  // Es Teh Manis 5000
+    kantin.selesaikanOrder(o2);  // total 20000, saldo Teguh cuma 10000 -> FAILED
+
+Skenario ORDER 3 — DIBATALKAN:
+    Order o3 = kantin.buatOrder("ORD3", c1);
+    o3.tambahItem(m3);
+    o3.batalkanOrder();  // dibatalkan sebelum diproses
+
+Tiga skenario ini sengaja dirancang untuk cover kasus sukses, saldo kurang,
+dan pembatalan manual.
+
+==========================================================================
+KESIMPULAN BEDAHAN
+==========================================================================
+
+Yang sudah bagus:
+- Struktur kelas mencerminkan dunia nyata dengan baik (Kantin, Customer, Order, MenuItem)
+- Guard clause di tambahItem cukup solid dan terstruktur
+- Constructor overloading di Customer ada kegunaan nyata
+- Skenario di Main mencakup happy path, failure, dan cancellation
+
+Yang perlu diperbaiki:
+1. Duplikasi logika antara Order.prosesOrder() dan Kantin.selesaikanOrder()
+   — pilih salah satu, idealnya pakai Order.prosesOrder() agar tanggung jawab
+   jelas.
+2. Status order seharusnya enum (MENUNGGU, SELESAI, DIBATALKAN, dll), bukan
+   String literal yang rawan typo.
+3. Setter di MenuItem (setStok, tambahStok, setHarga) tanpa validasi bisa
+   menghasilkan nilai negatif.
+4. Poin customer tidak pernah terupdate di alur utama karena tambahPoin()
+   hanya ada di prosesOrder() yang tidak dipanggil.
+5. Return value tambahItem() tidak pernah dicek di Main — kalau gagal, tidak
+   ada notifikasi ke pengguna.
+6. Array fixed size 10 item di Order tidak fleksibel, lebih baik pakai
+   ArrayList.
+7. Method bayar() di Customer tidak dipakai di alur utama — Kantin langsung
+   manipulasi saldo via getSaldo/setSaldo.

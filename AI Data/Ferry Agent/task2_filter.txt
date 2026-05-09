@@ -1,0 +1,11 @@
+```
+Thought: I have 9 sources so far and need to reach 10–15 curated sources. I will supplement with additional authoritative books and peer-reviewed articles using OpenLibrary Book Search and Semantic Scholar Article Search. I will focus on:
+1. Finding additional books on leadership styles (autocratic, transformational) via OpenLibrary.
+2. Finding additional peer-reviewed articles on autocratic leadership via Semantic Scholar.
+3. Ensuring the final list includes a mix of PRIMARY (peer-reviewed/official/books), SECONDARY (expert commentary), and TERTIARY (blogs/forums) sources, prioritizing recency and relevance.
+
+I will first search OpenLibrary for additional books on leadership styles.
+```
+
+Action: OpenLibrary Book Search
+Action Input: {"query": "leadership styles autocratic transformational textbook"}

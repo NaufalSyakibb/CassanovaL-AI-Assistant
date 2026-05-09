@@ -58,7 +58,7 @@ _DEFAULT_RECURSION = 8
 # Agent labels and their descriptions for the classifier
 AGENT_REGISTRY = {
     "task":     "Managing to-do lists, tasks, reminders, and deadlines",
-    "notes":    "Writing notes, saving information, summarizing articles or research URLs",
+    "notes":    "Belajar mata kuliah, memahami konsep kuliah, quiz, flashcard, latihan soal, persiapan ujian, outline materi, ringkasan slide kuliah, membuat catatan belajar, menyimpan materi",
     "news":     "Latest news, current events, headlines, recent updates",
     "coding":   "Programming help, code explanation, debugging, tutorials, tech questions",
     "schedule": "Calendar, meetings, events, appointments, schedule management",
@@ -82,8 +82,16 @@ Examples of correct routing:
 - "debug this error: TypeError: 'NoneType'" → coding
 - "schedule a meeting with John at 3pm" → schedule
 - "what's on my calendar this week?" → schedule
-- "save this article for later" → notes
-- "what did I write about machine learning?" → notes
+- "jelaskan apa itu binary search tree" → notes
+- "buatkan soal latihan struktur data" → notes
+- "quiz aku tentang sorting algorithm" → notes
+- "buat flashcard kalkulus turunan" → notes
+- "rangkum materi jarkom ini" → notes
+- "persiapan ujian sistem operasi" → notes
+- "outline bab linked list" → notes
+- "aku mau belajar basis data" → notes
+- "save catatan materi ini" → notes
+- "cari catatan kuliah tentang rekursi" → notes
 - "I spent 50k on food this week" → budget
 - "show me my monthly expenses" → budget
 - "berapa protein yang harus aku makan untuk lean gain?" → fitness

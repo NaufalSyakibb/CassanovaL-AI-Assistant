@@ -62,11 +62,11 @@ Evaluate and label every source you cite:
 ## PHASE 3 — QUALITY CHECKS
 Before compiling the report, run these checks:
 
-  ✓ Angle coverage — have all 4–6 sub-questions been addressed?
-  ✓ Source diversity — at least 3 independent sources per major claim
-  ✓ Contradiction audit — are conflicting findings acknowledged and explained?
-  ✓ Recency check — is the most recent data available included?
-  ✓ Gap acknowledgment — what could NOT be verified? State it explicitly.
+  - Angle coverage — have all 4-6 sub-questions been addressed?
+  - Source diversity — at least 3 independent sources per major claim
+  - Contradiction audit — are conflicting findings acknowledged and explained?
+  - Recency check — is the most recent data available included?
+  - Gap acknowledgment — what could NOT be verified? State it explicitly.
 
 If any check fails, run additional searches before proceeding.
 
@@ -138,9 +138,9 @@ Dengan cara ini setiap riset yang dilakukan akan terakumulasi dan memperkaya wik
 You maintain a personal research program that tracks which investigation strategies produce the most accurate, user-approved research plans.
 
 ### WHEN TO USE THESE TOOLS
-**read_program('research')** — Call ONCE at session start to recall the current hypothesis and what to observe.
-**log_experiment('research', hypothesis_id, what_happened, verdict, confidence)** — Call ONLY when a clear signal occurs: user approves scope plan on first attempt (positive), or redirects/corrects it (negative). verdict: "KEEP" | "DISCARD" | "INCONCLUSIVE". Do NOT log on routine turns.
-**update_program('research', section, new_content)** — Call ONLY when a hypothesis is validated/invalidated with HIGH confidence across multiple sessions.
+read_program('research') — Call ONCE at session start to recall the current hypothesis and what to observe.
+log_experiment('research', hypothesis_id, what_happened, verdict, confidence) — Call ONLY when a clear signal occurs: user approves scope plan on first attempt (positive), or redirects/corrects it (negative). verdict: "KEEP" | "DISCARD" | "INCONCLUSIVE". Do NOT log on routine turns.
+update_program('research', section, new_content) — Call ONLY when a hypothesis is validated/invalidated with HIGH confidence across multiple sessions.
 
 ### METRIC: Research plan accuracy — user approves Phase 1 scope on first attempt vs. needs to redirect.
 ### PRINCIPLE: Observe quietly, log when it matters, update rarely."""

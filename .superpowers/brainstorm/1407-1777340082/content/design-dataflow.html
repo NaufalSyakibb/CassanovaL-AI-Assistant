@@ -1,0 +1,123 @@
+<h2>Design — Data Flow & Tools (Sub-project 1)</h2>
+<p class="subtitle">Apa yang diambil, dari mana, dan siapa yang pakai</p>
+
+<!-- Tools Layer -->
+<div class="mockup" style="margin-bottom:16px">
+  <div class="mockup-header">Tools Layer — Yang Berubah di stock_tools.py</div>
+  <div class="mockup-body" style="font-size:11px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div>
+        <div style="color:#888;margin-bottom:6px">get_market_data() — UPGRADE</div>
+        <ul style="color:#ccc;padding-left:14px;line-height:1.8;margin:0">
+          <li>Income statement 5 tahun (<span style="color:#00ff88">ticker.financials</span>)</li>
+          <li>Balance sheet 5 tahun (<span style="color:#00ff88">ticker.balance_sheet</span>)</li>
+          <li>Cash flow 5 tahun (<span style="color:#00ff88">ticker.cashflow</span>)</li>
+          <li>Analyst targets (<span style="color:#00ff88">ticker.analyst_price_targets</span>)</li>
+          <li>Recommendations (<span style="color:#00ff88">ticker.recommendations</span>)</li>
+          <li>Hitung ROE trend, margin trend, CAGR revenue</li>
+        </ul>
+      </div>
+      <div>
+        <div style="color:#888;margin-bottom:6px">get_news_sentiment() — UPGRADE</div>
+        <ul style="color:#ccc;padding-left:14px;line-height:1.8;margin:0">
+          <li>Fetch 15 artikel (dari 10)</li>
+          <li>Klasifikasi event per artikel:<br><span style="color:#4488ff">earnings / M&A / mgmt / regulatory / macro</span></li>
+          <li>Sentiment score per artikel</li>
+          <li>Flag anomali: volume spike + news spike</li>
+        </ul>
+      </div>
+    </div>
+    <div style="margin-top:10px;padding:8px;background:#0d0d20;border:1px solid #1e1e3e;border-radius:4px">
+      <span style="color:#888">get_macro_indicators()</span> — <span style="color:#555">DIHAPUS</span> (digabung ke DeepResearch via get_market_data macro_context)
+    </div>
+  </div>
+</div>
+
+<!-- Pipeline Flow Detail -->
+<div class="mockup" style="margin-bottom:16px">
+  <div class="mockup-header">Pipeline — Data yang Mengalir Antar Agen</div>
+  <div class="mockup-body" style="font-size:11px">
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        <div style="min-width:130px;background:#0d1a0d;border:1px solid #00ff88;padding:8px;border-radius:4px;color:#00ff88;text-align:center">
+          DeepResearch<br><span style="color:#555;font-size:10px">~30s</span>
+        </div>
+        <div style="color:#555;align-self:center">→</div>
+        <div style="flex:1;background:#111;border:1px solid #222;padding:8px;border-radius:4px;color:#888">
+          OUTPUT: valuation, growth_trend, financial_health, analyst_consensus, macro_context, current_price, ohlcv
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        <div style="min-width:130px;background:#0d1020;border:1px solid #4488ff;padding:8px;border-radius:4px;color:#4488ff;text-align:center">
+          NewsIntelligence<br><span style="color:#555;font-size:10px">~20s</span>
+        </div>
+        <div style="color:#555;align-self:center">→</div>
+        <div style="flex:1;background:#111;border:1px solid #222;padding:8px;border-radius:4px;color:#888">
+          OUTPUT: sentiment_score, event_type, key_events, risk_signals, catalyst_signals, anomaly_detected
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        <div style="min-width:130px;background:#1a1a00;border:1px solid #ffcc00;padding:8px;border-radius:4px;color:#ffcc00;text-align:center">
+          Strategy<br><span style="color:#555;font-size:10px">~20s</span>
+        </div>
+        <div style="color:#555;align-self:center">→</div>
+        <div style="flex:1;background:#111;border:1px solid #222;padding:8px;border-radius:4px;color:#888">
+          INPUT: DeepResearch + NewsIntelligence<br>
+          OUTPUT: entry_zone, exit_target, stop_loss, time_horizon, position_size, rationale
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        <div style="min-width:130px;background:#1a0d00;border:1px solid #ff8844;padding:8px;border-radius:4px;color:#ff8844;text-align:center">
+          FinalVerdict<br><span style="color:#555;font-size:10px">~25s</span>
+        </div>
+        <div style="color:#555;align-self:center">→</div>
+        <div style="flex:1;background:#111;border:1px solid #222;padding:8px;border-radius:4px;color:#888">
+          INPUT: semua 3 agen di atas<br>
+          OUTPUT: verdict (BUY/HOLD/SELL), conviction_score (1-10), risk_reward, bull_case, bear_case, investment_memo
+        </div>
+      </div>
+
+    </div>
+
+    <div style="margin-top:10px;padding:8px;background:#0d1520;border:1px solid #1e2a3e;border-radius:4px;color:#8090a0">
+      Total estimasi: ~95–120 detik • Sequential dengan jeda 5s antar agen (rate limit guard) • SSE streaming ke frontend real-time
+    </div>
+  </div>
+</div>
+
+<!-- SSE Events -->
+<div class="mockup" style="margin-bottom:16px">
+  <div class="mockup-header">SSE Events — Tidak Berubah + 2 Event Baru</div>
+  <div class="mockup-body" style="font-size:11px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div>
+        <div style="color:#888;margin-bottom:4px">Tetap sama:</div>
+        <div style="color:#ccc;line-height:1.8">
+          step → update status agen<br>
+          log → pesan progres<br>
+          chart → Plotly JSON<br>
+          code → Python snippet<br>
+          done → pipeline selesai<br>
+          error → error handler
+        </div>
+      </div>
+      <div>
+        <div style="color:#00ff88;margin-bottom:4px">Baru:</div>
+        <div style="color:#ccc;line-height:1.8">
+          <span style="color:#ffcc00">strategy</span> → entry/exit/stop loss data<br>
+          <span style="color:#ff8844">verdict</span> → conviction + bull/bear case
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="padding:12px;background:#0d1520;border:1px solid #1e2a3e;border-radius:4px;font-size:12px;color:#8090a0">
+  <strong>Files yang diubah:</strong> agents/stock_agents.py (4 fungsi baru), tools/stock_tools.py (upgrade 2 tools), server.py (2 SSE events baru), static/stock/index.html (tab STRATEGY + verdict upgrade).<br>
+  <strong>File baru:</strong> tidak ada — semua modifikasi file existing.
+</div>

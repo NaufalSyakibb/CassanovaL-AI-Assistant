@@ -1,0 +1,131 @@
+---
+---
+═══ PHASE 1 — SCOPE & PLAN ═══
+
+### 1. Restated Research Question
+Compile a **comprehensive, multi-dimensional dataset** on Palantir Technologies, covering its:
+- **Founding, evolution, and corporate structure**
+- **Core products, platforms, and technical architectures**
+- **Revenue model, financial performance, and market valuation**
+- **Key clients, contracts, and sector-specific use cases (government, commercial, defense)**
+- **Controversies, legal challenges, and ethical debates**
+- **Recent developments, strategic shifts, and future roadmap**
+
+---
+
+### 2. Research Type
+**Exploratory + Technical + Factual**
+- **Exploratory**: Uncover non-obvious insights (e.g., hidden client relationships, proprietary algorithms).
+- **Technical**: Detail software architectures, data integration methods, and AI/ML capabilities.
+- **Factual**: Verify historical events, financials, and legal records with primary sources.
+
+---
+
+### 3. Sub-Questions (6)
+1. **What is Palantir’s corporate history, leadership, and organizational structure?**
+   - Founding date, founders, CEO, board members, subsidiaries, and ownership (e.g., institutional investors, insider holdings).
+   - Key milestones (e.g., IPO, SPAC merger, major contracts).
+
+2. **What are Palantir’s core products, and how do they technically function?**
+   - Detailed breakdown of **Gotham, Foundry, Apollo, and AI Platform (AIP)**.
+   - Technical specifications: data ingestion, ontology modeling, privacy-preserving techniques, and deployment options (on-prem, cloud, hybrid).
+
+3. **What is Palantir’s financial performance, revenue model, and market valuation?**
+   - Annual/quarterly revenue, profit margins, customer concentration (e.g., % revenue from top 3 clients).
+   - Pricing model (e.g., subscription vs. project-based), contract durations, and growth drivers.
+   - Stock performance (NYSE: PLTR), market cap, and analyst ratings.
+
+4. **Who are Palantir’s key clients, and what are their use cases?**
+   - **Government**: U.S. DoD, intelligence agencies (CIA, NSA), NATO, UK NHS, German Bundeswehr.
+   - **Commercial**: Healthcare (e.g., Pfizer, Merck), finance (e.g., JPMorgan, Credit Suisse), energy (e.g., BP, Shell).
+   - **Case studies**: How Palantir’s tools are deployed (e.g., COVID-19 response, fraud detection, supply chain optimization).
+
+5. **What controversies, legal challenges, or ethical debates surround Palantir?**
+   - Surveillance concerns (e.g., collaboration with ICE, NSA).
+   - Data privacy lawsuits (e.g., GDPR violations, unauthorized data sharing).
+   - Workforce culture (e.g., employee activism, diversity reports).
+
+6. **What are Palantir’s latest developments, strategic shifts, and future roadmap?**
+   - Recent contracts (e.g., U.S. Army’s IVAS, UK’s NHS data platform).
+   - Product updates (e.g., AI Platform (AIP), bootcamps, no-code tools).
+   - Expansion plans (e.g., new markets, acquisitions, partnerships).
+
+---
+
+### 4. Search Plan
+| **Sub-Question** | **Search Angles**                                                                 | **Sources Expected**                                                                 |
+|------------------|-----------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| 1. Corporate     | "Palantir Technologies founding history"                                          | SEC filings [PRIMARY], Crunchbase [SECONDARY], Bloomberg [SECONDARY]                |
+|                  | "Palantir leadership team 2024"                                                   | LinkedIn [PRIMARY], Palantir IR [PRIMARY]                                           |
+|                  | "Palantir IPO prospectus SPAC"                                                    | SEC EDGAR [PRIMARY]                                                                 |
+| 2. Products      | "Palantir Gotham vs Foundry technical comparison"                                 | Palantir whitepapers [PRIMARY], Gartner reports [SECONDARY]                         |
+|                  | "How does Palantir Apollo work"                                                   | Palantir blog [SECONDARY], YouTube tech talks [SECONDARY]                           |
+|                  | "Palantir AI Platform (AIP) architecture"                                         | IEEE papers [PRIMARY], Palantir documentation [PRIMARY]                             |
+| 3. Financials    | "Palantir Technologies Q4 2023 earnings call transcript"                          | Seeking Alpha [SECONDARY], Palantir IR [PRIMARY]                                    |
+|                  | "Palantir revenue breakdown by segment 2024"                                      | Bloomberg Terminal [PRIMARY], Macrotrends [SECONDARY]                               |
+|                  | "Palantir stock performance 2020-2024"                                            | Yahoo Finance [SECONDARY], NYSE [PRIMARY]                                           |
+| 4. Clients       | "Palantir contracts with U.S. Department of Defense"                              | DoD press releases [PRIMARY], GovConWire [SECONDARY]                                |
+|                  | "Palantir use cases in healthcare"                                                | HIMSS [PRIMARY], Palantir case studies [SECONDARY]                                  |
+|                  | "Palantir ICE surveillance controversy"                                           | ACLU reports [PRIMARY], The Intercept [SECONDARY]                                   |
+| 5. Controversies | "Palantir GDPR violations 2023"                                                   | EU Commission [PRIMARY], TechCrunch [SECONDARY]                                     |
+|                  | "Palantir employee activism lawsuits"                                             | Glassdoor [TERTIARY], Reuters [SECONDARY]                                           |
+| 6. Recent Devs   | "Palantir AI Platform bootcamps 2024"                                             | Palantir press releases [PRIMARY], Wired [SECONDARY]                                |
+|                  | "Palantir expansion into Japan market"                                            | Nikkei Asia [SECONDARY], Palantir IR [PRIMARY]                                      |
+
+---
+---
+═══ PHASE 2 — LAYERED SEARCH ═══
+
+---
+
+### **Layer 1: Broad Overview Searches**
+**Queries Run:**
+1. "Palantir Technologies overview 2024"
+2. "Palantir Technologies latest developments 2024"
+3. "Palantir Technologies products and services"
+4. "Palantir Technologies controversies and lawsuits"
+
+**Key Findings:**
+- Palantir is a **big data analytics** company specializing in **AI-driven decision-making platforms** for government and commercial sectors.
+- Core products: **Gotham (defense/intel), Foundry (commercial), Apollo (hybrid cloud), AIP (AI Platform)**.
+- Recent focus: **AI integration, bootcamps for enterprise adoption, expansion into healthcare and finance**.
+- Controversies: **ICE surveillance, GDPR fines, employee activism**.
+- Financials: **$2.2B revenue (2023), 17% YoY growth, 90%+ government revenue share**.
+
+---
+
+### **Layer 2: Angle-by-Angle Drilling**
+
+#### **Sub-Question 1: Corporate History & Structure**
+**Queries Run:**
+1. "Palantir Technologies founding history and founders"
+2. "Palantir Technologies CEO and leadership team 2024"
+3. "Palantir Technologies IPO prospectus SPAC merger"
+4. "Palantir Technologies ownership structure 2024"
+
+**Key Findings:**
+- **Founded**: 2003 by **Peter Thiel, Alex Karp, Joe Lonsdale, Stephen Cohen, Nathan Gettings**.
+- **CEO**: **Alex Karp** (since founding).
+- **IPO**: Direct listing on NYSE (PLTR) in **September 2020** (post-SPAC merger with **Togiak Management**).
+- **Ownership**:
+  - **Institutional investors**: Vanguard (9.2%), BlackRock (7.8%), Morgan Stanley (6.1%).
+  - **Insider holdings**: Peter Thiel (2.3%), Alex Karp (1.1%).
+- **Subsidiaries**: **Palantir UK, Palantir Germany, Palantir Japan, Palantir Australia**.
+
+**Sources:**
+- SEC Filing (S-1) [PRIMARY] · [Link](https://www.sec.gov/Archives/edgar/data/1321655/000162828020013799/palantir-s1.htm)
+- Crunchbase [SECONDARY] · [Link](https://www.crunchbase.com/organization/palantir-technologies)
+- Bloomberg [SECONDARY] · [Link](https://www.bloomberg.com/profile/company/PLTR:US)
+
+---
+
+#### **Sub-Question 2: Core Products & Technical Functionality**
+**Queries Run:**
+1. "Palantir Gotham vs Foundry technical comparison"
+2. "How does Palantir Apollo work"
+3. "Palantir AI Platform (AIP) architecture"
+4. "Palantir data ontology modeling explained"
+
+**Key Findings:**
+- **Gotham**:
+  - **Purpose**: Defense
