@@ -46,9 +46,52 @@ def _make_mistral_llm(model: str = "mistral-large-latest", temperature: float = 
     )
 
 
+def _make_gemma_llm(model: str, api_key_env: str, temperature: float = 0.2) -> LLM:
+    """Create a Gemma LLM via Google AI Studio (LiteLLM gemini/ provider).
+
+    Model names follow Google AI Studio naming, e.g.:
+      'gemma-4'       — Gemma 4 (main / large variant)
+      'gemma-4-2b-it' — Gemma 4 2B instruction-tuned
+    Override model names via env vars GEMMA4_MODEL / GEMMA4_2_MODEL.
+    """
+    api_key = os.getenv(api_key_env)
+    if not api_key:
+        raise ValueError(f"{api_key_env} not found in .env file")
+    return LLM(
+        model=f"gemini/{model}",
+        api_key=api_key,
+        temperature=temperature,
+        max_tokens=2048,
+    )
+
+
 # ── Mistral LLMs (cloud) ───────────────────────────────────────────────────────
 llm_large = _make_mistral_llm("mistral-large-latest", temperature=0.3)
 llm_small = _make_mistral_llm("mistral-small-latest", temperature=0.1)
+
+# ── Gemma4 LLMs (Google AI Studio) ────────────────────────────────────────────
+# Model names can be overridden via .env: GEMMA4_MODEL / GEMMA4_2_MODEL
+_gemma4_model   = os.getenv("GEMMA4_MODEL",   "gemma-4")
+_gemma4_2_model = os.getenv("GEMMA4_2_MODEL", "gemma-4-2b-it")
+
+def _get_gemma4_llm() -> LLM:
+    """Gemma4 large, falls back to mistral-large-latest if GEMMA4_API_KEY is absent."""
+    try:
+        return _make_gemma_llm(_gemma4_model, "GEMMA4_API_KEY", temperature=0.3)
+    except ValueError:
+        print("[WARN] GEMMA4_API_KEY not found — DataAnalyst Stats agent will use Mistral large.")
+        return _make_mistral_llm("mistral-large-latest", temperature=0.3)
+
+def _get_gemma4_2_llm() -> LLM:
+    """Gemma4 2B, falls back to mistral-small-latest if GEMMA4_2_API_KEY is absent."""
+    try:
+        return _make_gemma_llm(_gemma4_2_model, "GEMMA4_2_API_KEY", temperature=0.1)
+    except ValueError:
+        print("[WARN] GEMMA4_2_API_KEY not found — DataAnalyst Viz agent will use Mistral small.")
+        return _make_mistral_llm("mistral-small-latest", temperature=0.1)
+
+llm_gemma4   = _get_gemma4_llm()
+llm_gemma4_2 = _get_gemma4_2_llm()
 
 
 # ── Tools ─────────────────────────────────────────────────────────────────────
@@ -690,7 +733,7 @@ def make_leibniz_task(topic: str, agent: Agent, scout_output: str, out_path: str
     return Task(
         description=(
             f"Trace citation chains from the top papers on **{topic}**.\n\n"
-            f"--- HYPATIA'S TOP SOURCES ---\n{ctx[:2000]}\n--- END ---\n\n"
+            f"--- HYPATIA'S TOP SOURCES ---\n{ctx}\n--- END ---\n\n"
             "STEP 1 — Run Semantic Scholar searches to find highly-cited papers:\n"
             f"  1. '{topic} highly cited'\n"
             f"  2. '{topic} foundational paper'\n"
@@ -1151,7 +1194,7 @@ def make_filter_agent(topic: str) -> Agent:
 def make_idea_gen(topic: str) -> Agent:
     """Phase 2-A (parallel): generate novel angles and hypotheses."""
     return Agent(
-        llm=llm_large,
+        llm=llm_gemma4,
         role="Ibn Al-Haytham — Idea Generator",
         goal=(
             f"Based on curated sources about '{topic}', generate 4–6 novel research "
@@ -1182,7 +1225,7 @@ def make_idea_gen(topic: str) -> Agent:
 def make_validator_agent(topic: str) -> Agent:
     """Phase 2-B (parallel): cross-check claims, flag weak evidence."""
     return Agent(
-        llm=llm_large,
+        llm=llm_gemma4,
         role="Ibn Al-Haytham — Evidence Validator",
         goal=(
             f"Cross-check claims in the curated sources about '{topic}', "
@@ -2041,9 +2084,9 @@ def make_data_cleaner() -> Agent:
 
 
 def make_stats_analyst_agent() -> Agent:
-    """Agent 2 — Mistral large: statistical reasoning and interpretation."""
+    """Agent 2 — Gemma4: strong analytical reasoning for statistical interpretation."""
     return Agent(
-        llm=llm_large,
+        llm=llm_gemma4,
         role="Statistical Analysis Specialist",
         goal="Discover meaningful statistical patterns, correlations, and insights in the cleaned dataset",
         backstory=(
@@ -2059,10 +2102,10 @@ def make_stats_analyst_agent() -> Agent:
 
 
 def make_viz_agent() -> Agent:
-    """Agent 3 — Mistral small for generation; Mistral large for tool-calling decisions."""
+    """Agent 3 — Gemma4:2b for generation; Gemma4 for reliable tool-calling decisions."""
     return Agent(
-        llm=llm_small,
-        function_calling_llm=llm_large,
+        llm=llm_gemma4_2,
+        function_calling_llm=llm_gemma4,
         role="Data Visualization Engineer",
         goal="Generate production-quality Python visualization code that reveals the dataset's story",
         backstory=(
