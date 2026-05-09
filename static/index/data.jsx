@@ -134,8 +134,23 @@ const budgetAPI  = () => apiFetch('/api/budget/summary');
 const daFilesAPI = () => apiFetch('/api/dataanalyst/files');
 const uploadDAAPI= f => { const fd = new FormData(); fd.append('file', f); return apiFetch('/api/dataanalyst/upload', { method:'POST', body: fd }); };
 const receiptAPI = f => { const fd = new FormData(); fd.append('file', f); return apiFetch('/api/budget/scan-receipt', { method:'POST', body: fd }); };
-const crewKick   = (topic, crew_type, filename, cv_text) => apiFetch('/api/crew/kickoff', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ topic, crew_type, filename, cv_text }) });
+const crewKick   = (topic, crew_type, filename, cv_text, platforms, translate, target_lang) => apiFetch('/api/crew/kickoff', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ topic, crew_type, filename, cv_text, platforms, translate, target_lang }) });
 const crewPoll   = id => apiFetch(`/api/crew/status/${id}`);
+
+const SCRAPER_PLATFORMS = [
+  { key: 'youtube',    label: 'YouTube' },
+  { key: 'tiktok',     label: 'TikTok' },
+  { key: 'instagram',  label: 'Instagram' },
+  { key: 'twitter',    label: 'Twitter / X' },
+  { key: 'reddit',     label: 'Reddit' },
+  { key: 'facebook',   label: 'Facebook' },
+  { key: 'linkedin',   label: 'LinkedIn' },
+  { key: 'medium',     label: 'Medium' },
+  { key: 'twitch',     label: 'Twitch' },
+  { key: 'pinterest',  label: 'Pinterest' },
+  { key: 'quora',      label: 'Quora' },
+  { key: 'soundcloud', label: 'SoundCloud' },
+];
 
 /* Mock data — used when API offline so the design looks alive */
 const MOCK = {
@@ -171,6 +186,7 @@ const MOCK = {
 
 window.CLData = {
   AGENTS, AGENT_ORDER, AGENT_CLUSTERS, CLUSTER_ORDER, CHIPS, MOCK,
+  SCRAPER_PLATFORMS,
   fmtTime, fmtDate, fmtLongDate, fmtMoney, fmtIssue,
   renderMd,
   chatAPI, tasksAPI, notesAPI, budgetAPI, daFilesAPI,

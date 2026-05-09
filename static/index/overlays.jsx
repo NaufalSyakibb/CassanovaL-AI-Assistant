@@ -121,7 +121,7 @@ function CommandPalette({ onClose, setAgent, setTab, toggleTheme, theme }) {
 
 /* ── Crew Drawer ──────────────────────────────────────────── */
 function CrewDrawer({ onClose }) {
-  const { daFilesAPI, uploadDAAPI, crewKick, crewPoll } = window.CLData;
+  const { daFilesAPI, uploadDAAPI, crewKick, crewPoll, SCRAPER_PLATFORMS } = window.CLData;
   const { IcoX, IcoRocket, IcoCheck } = window.Icons;
   const [crewType, setCrewType] = _useState('research');
   const [topic, setTopic] = _useState('');
@@ -134,8 +134,16 @@ function CrewDrawer({ onClose }) {
   const [logs, setLogs] = _useState([]);
   const [outputs, setOutputs] = _useState({});
   const [showResult, setShowResult] = _useState(false);
+  // scraper state
+  const [scraperPlatforms, setScraperPlatforms] = _useState([]);
+  const [scraperTranslate, setScraperTranslate] = _useState(false);
+  const [scraperLang, setScraperLang] = _useState('en');
   const logsEndRef = _useRef(null);
   const pollRef = _useRef(null);
+
+  const togglePlatform = (key) => setScraperPlatforms(prev =>
+    prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+  );
 
   _useEffect(() => {
     daFilesAPI().then(d => setDAFiles(d.files || [])).catch(() => {});
@@ -145,16 +153,20 @@ function CrewDrawer({ onClose }) {
   _useEffect(() => { logsEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [logs]);
 
   const launch = async () => {
-    if (!topic.trim()) return;
+    if (crewType !== 'scraper' && !topic.trim()) return;
     if (crewType === 'dataanalyst' && !filename) return;
     setStatus('running');
-    setLogs(['[SYSTEM] Initializing the crew pipeline…']);
+    setLogs(['[SYSTEM] Initializing the pipeline…']);
     setOutputs({}); setShowResult(false);
     try {
       const res = await crewKick(
-        topic.trim(), crewType,
+        crewType === 'scraper' ? (scraperPlatforms.length ? scraperPlatforms.join(', ') : 'all platforms') : topic.trim(),
+        crewType,
         crewType === 'dataanalyst' ? filename : undefined,
         crewType === 'career' ? cvText.trim() || undefined : undefined,
+        crewType === 'scraper' ? (scraperPlatforms.length ? scraperPlatforms : undefined) : undefined,
+        crewType === 'scraper' ? scraperTranslate : undefined,
+        crewType === 'scraper' ? scraperLang : undefined,
       );
       const id = res.job_id;
       pollRef.current = setInterval(async () => {
@@ -224,6 +236,12 @@ function CrewDrawer({ onClose }) {
         { num:'6', name:'Sokrates',  role:'Critic loop (up to 3×)',               llm:'mistral-large', phase:'Phase 5', hue:'var(--hue-alfred)' },
         { num:'7', name:'Darwin',    role:'Final academic report',                llm:'mistral-large', phase:'Phase 6', hue:'var(--hue-najwa)' },
       ]
+    : crewType === 'scraper'
+    ? [
+        { num:'1', name:'Scout',     role:'Trend monitoring — 24 platforms', phase:'Phase 1', hue:'var(--hue-alfred)' },
+        { num:'2', name:'Harvester', role:'Raw content collection + anti-bot', phase:'Phase 2', hue:'var(--hue-linus)' },
+        { num:'3', name:'Cleaner',   role:'Normalize · dedupe · spam filter · translate', phase:'Phase 3', hue:'var(--hue-cicero)' },
+      ]
     : /* dataanalyst */ [
         { num:'I',   name:'The Cleaner',      role:'Preprocessing',     hue:'var(--hue-miyamoto)' },
         { num:'II',  name:'The Statistician', role:'Analysis',          hue:'var(--hue-cicero)' },
@@ -272,11 +290,47 @@ function CrewDrawer({ onClose }) {
                   <div className="crew-type-title">Academic Swarm</div>
                   <div className="crew-type-sub">Al-Biruni → [Hypatia…Darwin]</div>
                 </button>
+                <button className={`crew-type ${crewType==='scraper'?'active':''}`} onClick={() => setCrewType('scraper')}>
+                  <div className="crew-type-title">Social Scraper</div>
+                  <div className="crew-type-sub">Scout → Harvest → Clean</div>
+                </button>
               </div>
             </div>
 
             <div className="crew-section">
-              {crewType === 'career' ? (
+              {crewType === 'scraper' ? (
+                <>
+                  <div className="crew-label small-caps">§ Platforms <span style={{color:'var(--ink-4)',fontWeight:400}}>(leave all unchecked to scrape every enabled platform)</span></div>
+                  <div className="scraper-platform-grid">
+                    {SCRAPER_PLATFORMS.map(p => (
+                      <label key={p.key} className={`scraper-platform-chip ${scraperPlatforms.includes(p.key)?'active':''}`}>
+                        <input type="checkbox" hidden
+                          checked={scraperPlatforms.includes(p.key)}
+                          onChange={() => togglePlatform(p.key)}/>
+                        {p.label}
+                      </label>
+                    ))}
+                  </div>
+                  <div className="scraper-options-row" style={{marginTop:14}}>
+                    <label className="scraper-toggle-label">
+                      <input type="checkbox" checked={scraperTranslate} onChange={e => setScraperTranslate(e.target.checked)}/>
+                      <span>Translate non-English content</span>
+                    </label>
+                    {scraperTranslate && (
+                      <select className="crew-field" style={{width:'auto',marginTop:0}}
+                        value={scraperLang} onChange={e => setScraperLang(e.target.value)}>
+                        <option value="en">English</option>
+                        <option value="id">Indonesian</option>
+                        <option value="es">Spanish</option>
+                        <option value="fr">French</option>
+                        <option value="de">German</option>
+                        <option value="ja">Japanese</option>
+                        <option value="zh">Chinese</option>
+                      </select>
+                    )}
+                  </div>
+                </>
+              ) : crewType === 'career' ? (
                 <>
                   <div className="crew-label small-caps">§ Job Description</div>
                   <textarea className="crew-field" style={{minHeight:120}}
@@ -375,7 +429,7 @@ function CrewDrawer({ onClose }) {
 
           <div className="crew-foot">
             <button className="crew-launch" onClick={launch}
-              disabled={status === 'running' || !topic.trim() || (crewType === 'dataanalyst' && !filename) || (crewType === 'career' && !topic.trim())}>
+              disabled={status === 'running' || (crewType !== 'scraper' && !topic.trim()) || (crewType === 'dataanalyst' && !filename) || (crewType === 'career' && !topic.trim())}>
               {status === 'running'
                 ? <><span className="spinner"/>Running pipeline…</>
                 : <><IcoRocket size={15}/><span className="crew-launch-serif">Launch the crew</span></>}
@@ -386,6 +440,7 @@ function CrewDrawer({ onClose }) {
                 : crewType === 'research'       ? 'Estimated 3–6 min · Mistral LLM'
                 : crewType === 'career'         ? 'Estimated 2–4 min · Mistral LLM'
                 : crewType === 'academic_swarm' ? 'Estimated 2–10 min · Quick/Deep/Academic'
+                : crewType === 'scraper'        ? 'Time varies · depends on platforms + rate limits'
                 : 'Estimated 1–3 min · Mistral LLM'}
             </div>
           </div>

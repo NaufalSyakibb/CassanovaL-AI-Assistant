@@ -419,16 +419,23 @@ _crew_jobs: dict = {}  # job_id → job state dict
 
 class CrewKickoffRequest(BaseModel):
     topic: str
-    crew_type: str = "research"            # "research" | "dataanalyst" | "career"
+    crew_type: str = "research"            # "research" | "dataanalyst" | "career" | "scraper"
     filename: Optional[str] = None         # required when crew_type == "dataanalyst"
     cv_text: Optional[str] = None          # optional CV text for career ops
     agents: Optional[List[dict]] = None    # future: custom agent configs
+    # scraper-specific
+    platforms: Optional[List[str]] = None  # None = all enabled platforms
+    translate: Optional[bool] = False
+    target_lang: Optional[str] = "en"
 
 
 def _run_crew_background(job_id: str, topic: str,
                           crew_type: str = "research",
                           filename: Optional[str] = None,
-                          cv_text: Optional[str] = None) -> None:
+                          cv_text: Optional[str] = None,
+                          platforms: Optional[List[str]] = None,
+                          translate: bool = False,
+                          target_lang: str = "en") -> None:
     """Run a CrewAI pipeline in a background thread and update _crew_jobs."""
     job = _crew_jobs[job_id]
     import traceback as _tb
@@ -443,7 +450,71 @@ def _run_crew_background(job_id: str, topic: str,
             job["logs"] = logs[:]   # snapshot so polling sees incremental updates
 
     try:
-        if crew_type == "dataanalyst":
+        if crew_type == "scraper":
+            import sys as _sys
+            scraper_root = str(Path(__file__).parent / "social_scraper")
+            if scraper_root not in _sys.path:
+                _sys.path.insert(0, scraper_root)
+
+            _log("[Scout] Initializing platform monitoring…")
+            from agents.scout_agent import ScoutAgent
+            scout = ScoutAgent()
+            scout_results = scout.run(platforms=platforms or None)
+            platform_count = len({r["platform"] for r in scout_results})
+            _log(f"[Scout] Complete — {len(scout_results)} targets across {platform_count} platform(s)")
+
+            _log("[Harvester] Starting content collection…")
+            from agents.harvester_agent import HarvesterAgent
+            harvester = HarvesterAgent()
+            if platforms:
+                harvester._platform_filter = platforms
+            scout_file = getattr(scout, "_last_combined_path", None)
+            harvester.run(scout_file=scout_file)
+            _log("[Harvester] Complete")
+
+            _log("[Cleaner] Normalizing, deduplicating, filtering spam…")
+            from agents.cleaner_agent import CleanerAgent
+            cleaner = CleanerAgent()
+            stats = cleaner.run(
+                platforms=platforms or None,
+                translate=translate,
+                target_lang=target_lang,
+            )
+            for plat, s in (stats or {}).items():
+                _log(f"[Cleaner] {plat}: {s.get('cleaned', 0)} items, "
+                     f"{s.get('spam', 0)} spam removed, {s.get('duplicates', 0)} dupes")
+
+            lines = [
+                "# Social Scraper Report\n\n",
+                f"**Platforms:** {', '.join((stats or {}).keys()) or 'none'}\n",
+                f"**Translate:** {'Yes → ' + target_lang if translate else 'No'}\n\n",
+                "## Per-Platform Stats\n\n",
+                "| Platform | Cleaned | Spam | Dupes |\n",
+                "|----------|---------|------|-------|\n",
+            ]
+            for plat, s in (stats or {}).items():
+                lines.append(f"| {plat} | {s.get('cleaned',0)} | {s.get('spam',0)} | {s.get('duplicates',0)} |\n")
+            outputs["scraper_report.md"] = "".join(lines)
+
+            cleaned_root = Path(__file__).parent / "social_scraper" / "data" / "cleaned"
+            if cleaned_root.exists():
+                for plat_dir in sorted(cleaned_root.iterdir()):
+                    if not plat_dir.is_dir():
+                        continue
+                    if platforms and plat_dir.name not in platforms:
+                        continue
+                    latest = sorted(plat_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+                    if latest:
+                        try:
+                            items = json.loads(latest[0].read_text(encoding="utf-8"))
+                            preview = items[:5] if isinstance(items, list) else items
+                            outputs[f"{plat_dir.name}_preview.json"] = json.dumps(preview, ensure_ascii=False, indent=2)
+                        except Exception:
+                            pass
+
+            result = {"platforms": list((stats or {}).keys()), "total": sum(s.get("cleaned", 0) for s in (stats or {}).values())}
+
+        elif crew_type == "dataanalyst":
             from crewai_agents import build_data_crew
             crew = build_data_crew(filename or topic, step_cb=_log, task_cb=_log)
             result = crew.kickoff()
@@ -558,7 +629,8 @@ async def crew_kickoff(req: CrewKickoffRequest):
 
     t = threading.Thread(
         target=_run_crew_background,
-        args=(job_id, topic, req.crew_type, req.filename, req.cv_text),
+        args=(job_id, topic, req.crew_type, req.filename, req.cv_text,
+              req.platforms, req.translate or False, req.target_lang or "en"),
         daemon=True,
     )
     t.start()
