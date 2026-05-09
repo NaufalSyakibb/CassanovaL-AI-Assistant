@@ -660,7 +660,7 @@ class ScoutAgent:
         combined = SCOUT_DIR / f"combined_{ts}.json"
         with open(combined, "w", encoding="utf-8") as f:
             json.dump(flat, f, indent=2, ensure_ascii=False)
-        self._last_combined_path = str(combined)
+        self._last_combined_path = combined  # Path object
         activity.log("save", "all", "ok", {"file": combined.name, "total": len(flat)})
         return flat
 

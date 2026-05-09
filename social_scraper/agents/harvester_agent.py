@@ -628,7 +628,7 @@ def _dispatch(entry: dict) -> list[dict]:
 class HarvesterAgent:
     """Reads scout targets and harvests raw data. Supports resume on interrupt."""
 
-    def run(self, scout_file: Optional[Path] = None) -> dict[str, list[dict]]:
+    def run(self, scout_file=None) -> dict[str, list[dict]]:
         targets = self._load_targets(scout_file)
         if not targets:
             logger.warning("No targets found. Run ScoutAgent first.")
@@ -669,9 +669,11 @@ class HarvesterAgent:
         logger.info(f"Harvester complete — {total} items across {len(results)} platforms")
         return results
 
-    def _load_targets(self, scout_file: Optional[Path] = None) -> list[dict]:
-        if scout_file and scout_file.exists():
-            return json.loads(scout_file.read_text(encoding="utf-8"))
+    def _load_targets(self, scout_file=None) -> list[dict]:
+        if scout_file:
+            p = Path(scout_file)
+            if p.exists():
+                return json.loads(p.read_text(encoding="utf-8"))
         # Find most recent combined scout file
         files = sorted(SCOUT_DIR.glob("combined_*.json"), reverse=True)
         if not files:
