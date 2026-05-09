@@ -4,69 +4,78 @@
 const AGENTS = {
   task: {
     name: 'Alfred', sub: 'Task Manager', hue: 'var(--hue-alfred)',
-    issue: 'I.',
+    issue: 'I.', cluster: 'personal',
     tagline: "An unflappable steward of the day's obligations, counted and kept.",
     greeting: 'Good morning. I have your tasks in hand. Shall we bring order to the day, or is there something specific I may see to first?',
     Ico: () => { const {IcoCheck} = window.Icons; return <IcoCheck/>; },
   },
   notes: {
     name: 'Cicero', sub: 'Study Assistant', hue: 'var(--hue-cicero)',
-    issue: 'II.',
+    issue: 'II.', cluster: 'academic',
     tagline: 'Your personal tutor — explains concepts, builds quizzes, creates flashcards, and prepares you for exams.',
     greeting: 'Apa yang ingin kita pelajari hari ini? Aku bisa jelaskan konsep, buatkan soal latihan, atau bantu persiapan ujian.',
     Ico: () => { const {IcoFeather} = window.Icons; return <IcoFeather/>; },
   },
   news: {
     name: 'Najwa', sub: 'News Feed', hue: 'var(--hue-najwa)',
-    issue: 'III.',
+    issue: 'III.', cluster: 'research',
     tagline: 'The morning read, digested. Reportage without the noise.',
     greeting: 'The wires are open. Tell me the subject, the region, or the question — I will bring back a briefing.',
     Ico: () => { const {IcoNewspaper} = window.Icons; return <IcoNewspaper/>; },
   },
   coding: {
     name: 'Linus', sub: 'Code Assistant', hue: 'var(--hue-linus)',
-    issue: 'IV.',
+    issue: 'IV.', cluster: 'academic',
     tagline: 'Pragmatic, occasionally blunt. Debugs the problem, then the assumptions.',
     greeting: 'Show me the code — or describe the failure. I will tell you what it wants.',
     Ico: () => { const {IcoCode} = window.Icons; return <IcoCode/>; },
   },
   schedule: {
     name: 'Miyamoto', sub: 'Schedule', hue: 'var(--hue-miyamoto)',
-    issue: 'V.',
+    issue: 'V.', cluster: 'personal',
     tagline: 'A discipline of time — each commitment placed with deliberation.',
     greeting: 'Time is the only estate you cannot reclaim. Tell me how to spend it.',
     Ico: () => { const {IcoCalendar} = window.Icons; return <IcoCalendar/>; },
   },
   budget: {
     name: 'Mansa', sub: 'Finance', hue: 'var(--hue-mansa)',
-    issue: 'VI.',
+    issue: 'VI.', cluster: 'personal',
     tagline: 'A ledger keeper of means and extravagance alike.',
     greeting: 'Every coin has a place in the ledger. Shall we mark one, or take the measure of the month?',
     Ico: () => { const {IcoCoin} = window.Icons; return <IcoCoin/>; },
   },
   fitness: {
     name: 'Lavoisier', sub: 'Fitness & Health', hue: 'var(--hue-lavoiser)',
-    issue: 'VII.',
+    issue: 'VII.', cluster: 'personal',
     tagline: 'Chemistry of the body — calories, loads, recovery, in balance.',
     greeting: 'The body is a system of inputs and work. What shall we measure today?',
     Ico: () => { const {IcoHeart} = window.Icons; return <IcoHeart/>; },
   },
   journal: {
     name: 'Dostoyevsky', sub: 'Journal', hue: 'var(--hue-dostoy)',
-    issue: 'VIII.',
+    issue: 'VIII.', cluster: 'personal',
     tagline: 'A confessional page, held without judgment.',
     greeting: 'This page is yours. Begin anywhere. Begin badly, if you must.',
     Ico: () => { const {IcoBook} = window.Icons; return <IcoBook/>; },
   },
   davinci: {
     name: 'Da Vinci', sub: 'Ideas Lab', hue: 'var(--hue-davinci)',
-    issue: 'IX.',
+    issue: 'IX.', cluster: 'personal',
     tagline: 'A workshop of half-finished inventions and stubborn sketches.',
     greeting: 'Curiosity first. Let us sketch something improbable and see where it leads.',
     Ico: () => { const {IcoLamp} = window.Icons; return <IcoLamp/>; },
   },
 };
 const AGENT_ORDER = ['task','notes','news','coding','schedule','budget','fitness','journal','davinci'];
+
+const AGENT_CLUSTERS = {
+  all:      { label: 'All',       accent: 'var(--c-fg)' },
+  personal:  { label: 'Personal',  accent: 'var(--hue-alfred)' },
+  research:  { label: 'Research',  accent: 'var(--hue-najwa)' },
+  academic:  { label: 'Academic',  accent: 'var(--hue-cicero)' },
+  trading:   { label: 'Trading',   accent: '#e6a817' },
+};
+const CLUSTER_ORDER = ['all', 'personal', 'research', 'academic', 'trading'];
 
 const CHIPS = {
   task:     ['Add a task', 'List pending', 'Mark complete', 'Clear done'],
@@ -161,7 +170,7 @@ const MOCK = {
 };
 
 window.CLData = {
-  AGENTS, AGENT_ORDER, CHIPS, MOCK,
+  AGENTS, AGENT_ORDER, AGENT_CLUSTERS, CLUSTER_ORDER, CHIPS, MOCK,
   fmtTime, fmtDate, fmtLongDate, fmtMoney, fmtIssue,
   renderMd,
   chatAPI, tasksAPI, notesAPI, budgetAPI, daFilesAPI,

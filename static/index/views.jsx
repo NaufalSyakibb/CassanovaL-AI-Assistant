@@ -5,19 +5,40 @@ const { useState: _useState, useEffect: _useEffect, useRef: _useRef, useCallback
 
 /* ── Sidebar ──────────────────────────────────────────────── */
 function Sidebar({ active, setActive, onCmd, onCrew, theme, toggleTheme }) {
-  const { AGENTS, AGENT_ORDER } = window.CLData;
-  const { IcoCmd, IcoUsers, IcoSun, IcoMoon, IcoCandlestick, IcoNewspaper, IcoFeather } = window.Icons;
+  const { AGENTS, AGENT_ORDER, AGENT_CLUSTERS, CLUSTER_ORDER } = window.CLData;
+  const { IcoCmd, IcoUsers, IcoSun, IcoMoon, IcoCandlestick } = window.Icons;
+  const [cluster, setCluster] = _useState('all');
+
+  const filteredKeys = cluster === 'all'
+    ? AGENT_ORDER
+    : AGENT_ORDER.filter(k => AGENTS[k].cluster === cluster);
+
   return (
     <aside className="sidebar">
       <div className="brand">
         <div className="brand-mark">Cassanova<em>L</em></div>
       </div>
+      <div className="cluster-tabs">
+        {CLUSTER_ORDER.map(c => (
+          <button
+            key={c}
+            className={`cluster-tab ${cluster === c ? 'active' : ''}`}
+            style={{ '--cluster-accent': AGENT_CLUSTERS[c].accent }}
+            onClick={() => setCluster(c)}
+            title={AGENT_CLUSTERS[c].label}
+          >
+            {AGENT_CLUSTERS[c].label}
+          </button>
+        ))}
+      </div>
       <div className="roster-heading">
-        <div className="small-caps">The Roster</div>
-        <div className="roster-count">{AGENT_ORDER.length}</div>
+        <div className="small-caps">
+          {cluster === 'all' ? 'The Roster' : AGENT_CLUSTERS[cluster].label}
+        </div>
+        <div className="roster-count">{filteredKeys.length}</div>
       </div>
       <div className="roster scroll">
-        {AGENT_ORDER.map((k, i) => {
+        {filteredKeys.length > 0 ? filteredKeys.map((k, i) => {
           const ag = AGENTS[k];
           const isAct = active === k;
           return (
@@ -35,7 +56,16 @@ function Sidebar({ active, setActive, onCmd, onCrew, theme, toggleTheme }) {
               <span className="roster-dot"/>
             </button>
           );
-        })}
+        }) : (
+          <div className="roster-empty">
+            <div className="roster-empty-label">No agents yet</div>
+            {cluster === 'trading' && (
+              <a className="roster-empty-link" href="/stock" target="_blank" rel="noopener noreferrer">
+                Open Stock Terminal →
+              </a>
+            )}
+          </div>
+        )}
       </div>
       <div className="sidebar-footer">
         <button className="side-btn" onClick={onCmd} title="Command Palette (⌘K)"><IcoCmd/></button>

@@ -154,6 +154,36 @@ body {
   color: var(--ink-3);
 }
 
+.cluster-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.cluster-tab {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: var(--hover);
+  color: var(--ink-3);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cluster-tab:hover { color: var(--ink); }
+.cluster-tab.active {
+  background: transparent;
+  border-color: var(--cluster-accent);
+  color: var(--cluster-accent);
+  font-weight: 600;
+}
+
 .roster-heading {
   display: flex;
   align-items: center;
@@ -162,6 +192,19 @@ body {
   color: var(--ink-3);
 }
 .roster-count { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-4); }
+
+.roster-empty {
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--ink-4);
+}
+.roster-empty-label { font-size: 13px; margin-bottom: 8px; }
+.roster-empty-link {
+  font-size: 12px;
+  color: var(--clay);
+  text-decoration: none;
+}
+.roster-empty-link:hover { text-decoration: underline; }
 
 .roster { flex: 1; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
 .roster-row {
