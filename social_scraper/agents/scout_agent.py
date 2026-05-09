@@ -584,11 +584,36 @@ class ScoutAgent:
         "deviantart": (scout_deviantart, "low"),
     }
 
-    def run(self, platforms: list[str] | None = None) -> dict:
+    # keyword-aware scouts: map platform → param name
+    _KW_PARAM: dict[str, str] = {
+        "youtube":    "keywords",
+        "tiktok":     "hashtags",
+        "instagram":  "hashtags",
+        "facebook":   "keywords",
+        "linkedin":   "keywords",
+        "pinterest":  "keywords",
+        "quora":      "topics",
+        "medium":     "topics",
+        "tumblr":     "tags",
+        "vk":         "keywords",
+        "glassdoor":  "companies",
+        "tripadvisor":"cities",
+        "soundcloud": "genres",
+        "deviantart": "tags",
+    }
+
+    def run(self, platforms: list[str] | None = None, keywords: list[str] | None = None) -> list[dict]:
+        """Run all scouts and return a flat list of target entries.
+
+        Args:
+            platforms: restrict to these platforms (None = all enabled)
+            keywords:  search terms forwarded to each platform scout
+        """
         all_results: dict[str, list[dict]] = {}
         targets = platforms or list(self.PLATFORM_SCOUTS.keys())
 
-        logger.info(f"Scout run started — {len(targets)} platforms")
+        logger.info(f"Scout run started — {len(targets)} platforms"
+                    + (f", keywords={keywords}" if keywords else ""))
 
         for platform in targets:
             if not is_platform_enabled(platform):
@@ -599,27 +624,29 @@ class ScoutAgent:
                 continue
             try:
                 logger.info(f"Scouting {platform}...")
-                entries = scout_fn()
+                param = self._KW_PARAM.get(platform)
+                entries = scout_fn(**{param: keywords}) if (param and keywords) else scout_fn()
                 all_results[platform] = entries
                 random_delay(1, 4)
             except Exception as e:
+                logger.warning(f"Scout failed for {platform}: {e}")
                 activity.log("run", platform, "error", {"error": str(e)})
                 all_results[platform] = []
 
-        # Google Dorking — always runs
+        # Google Dorking — pass keywords as custom queries
         try:
-            all_results["google_dork"] = scout_google_dork()
+            dork_queries = keywords or None
+            all_results["google_dork"] = scout_google_dork(queries=dork_queries)
         except Exception as e:
             activity.log("run", "google_dork", "error", {"error": str(e)})
 
-        self._save(all_results)
-        total = sum(len(v) for v in all_results.values())
+        flat = self._save(all_results)
+        total = len(flat)
         logger.info(f"Scout complete — {total} entries across {len(all_results)} platforms")
-        return all_results
+        return flat
 
-    def _save(self, results: dict) -> None:
+    def _save(self, results: dict) -> list[dict]:
         ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        # One file per platform
         for platform, entries in results.items():
             if not entries:
                 continue
@@ -628,12 +655,14 @@ class ScoutAgent:
                 json.dump(entries, f, indent=2, ensure_ascii=False)
             logger.debug(f"Saved {len(entries)} entries → {out_file.name}")
 
-        # Combined file for harvester
+        # Combined flat list for harvester
         flat = [e for v in results.values() for e in v]
         combined = SCOUT_DIR / f"combined_{ts}.json"
         with open(combined, "w", encoding="utf-8") as f:
             json.dump(flat, f, indent=2, ensure_ascii=False)
+        self._last_combined_path = str(combined)
         activity.log("save", "all", "ok", {"file": combined.name, "total": len(flat)})
+        return flat
 
     def watch(self, interval_hours: float = 6.0) -> None:
         """Block and re-run scout every `interval_hours` hours."""

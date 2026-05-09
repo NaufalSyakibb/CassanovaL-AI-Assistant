@@ -459,8 +459,12 @@ def _run_crew_background(job_id: str, topic: str,
             _log("[Scout] Initializing platform monitoring…")
             from agents.scout_agent import ScoutAgent
             scout = ScoutAgent()
-            scout_results = scout.run(platforms=platforms or None)
-            platform_count = len({r["platform"] for r in scout_results})
+            # topic → keyword list (split on comma or space)
+            kw_raw = topic.strip() if topic and topic not in ("all platforms",) else ""
+            keywords = [k.strip() for k in kw_raw.replace(",", " ").split() if k.strip()] or None
+            # scout.run() returns a flat list[dict]
+            scout_results = scout.run(platforms=platforms or None, keywords=keywords)
+            platform_count = len({r["platform"] for r in scout_results if isinstance(r, dict)})
             _log(f"[Scout] Complete — {len(scout_results)} targets across {platform_count} platform(s)")
 
             _log("[Harvester] Starting content collection…")
