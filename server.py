@@ -516,6 +516,15 @@ def _run_crew_background(job_id: str, topic: str,
                 except Exception:
                     pass
 
+            # AI summaries per platform
+            if saved_files:
+                _log("[Summarizer] Generating AI insights per platform...")
+                from agents.summarizer_agent import SummarizerAgent
+                summaries = SummarizerAgent().run(saved_files)
+                for plat, summary in summaries.items():
+                    _log(f"[Summarizer] {plat} summary ready ({len(summary)} chars)")
+                    outputs[f"{plat}_summary.md"] = summary
+
             result = {
                 "platforms": list(saved_files.keys()),
                 "total_pages": sum(len(json.loads(p.read_text(encoding="utf-8"))) for p in saved_files.values()),
