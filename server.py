@@ -450,6 +450,8 @@ def _run_crew_background(job_id: str, topic: str,
             job["logs"] = logs[:]   # snapshot so polling sees incremental updates
 
     try:
+        outputs = {}  # initialize here so all branches can write to it
+
         if crew_type == "scraper":
             import sys as _sys
             scraper_root = str(Path(__file__).parent / "social_scraper")
@@ -536,9 +538,10 @@ def _run_crew_background(job_id: str, topic: str,
             result = crew.kickoff()
         job["logs"] = logs
 
-        # ── Collect output files ──────────────────────────────────────────────
-        outputs = {}
-        if crew_type == "dataanalyst":
+        # ── Collect output files (scraper already populated outputs above) ────
+        if crew_type == "scraper":
+            pass  # outputs already built inside the scraper block
+        elif crew_type == "dataanalyst":
             # task text summaries
             for fname in ("task1_data_clean.txt", "task2_stats_analysis.txt", "task3_visualization.txt"):
                 p = Path(fname)
