@@ -135,7 +135,7 @@ function CrewDrawer({ onClose }) {
   const [outputs, setOutputs] = _useState({});
   const [showResult, setShowResult] = _useState(false);
   // scraper state
-  const [scraperPlatforms, setScraperPlatforms] = _useState([]);
+  const [scraperPlatforms, setScraperPlatforms] = _useState(['youtube', 'tiktok', 'facebook', 'instagram']);
   const [scraperTranslate, setScraperTranslate] = _useState(false);
   const [scraperLang, setScraperLang] = _useState('en');
   const logsEndRef = _useRef(null);

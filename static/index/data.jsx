@@ -140,10 +140,10 @@ const crewPoll   = id => apiFetch(`/api/crew/status/${id}`);
 const SCRAPER_PLATFORMS = [
   { key: 'youtube',    label: 'YouTube' },
   { key: 'tiktok',     label: 'TikTok' },
+  { key: 'facebook',   label: 'Facebook' },
   { key: 'instagram',  label: 'Instagram' },
   { key: 'twitter',    label: 'Twitter / X' },
   { key: 'reddit',     label: 'Reddit' },
-  { key: 'facebook',   label: 'Facebook' },
   { key: 'linkedin',   label: 'LinkedIn' },
   { key: 'medium',     label: 'Medium' },
   { key: 'twitch',     label: 'Twitch' },
