@@ -458,67 +458,68 @@ def _run_crew_background(job_id: str, topic: str,
             if scraper_root not in _sys.path:
                 _sys.path.insert(0, scraper_root)
 
-            _log("[Scout] Initializing platform monitoring…")
-            from agents.scout_agent import ScoutAgent
-            scout = ScoutAgent()
-            # topic → keyword list (split on comma or space)
+            # topic → keyword list
             kw_raw = topic.strip() if topic and topic not in ("all platforms",) else ""
             keywords = [k.strip() for k in kw_raw.replace(",", " ").split() if k.strip()] or None
-            # scout.run() returns a flat list[dict]
-            scout_results = scout.run(platforms=platforms or None, keywords=keywords)
-            platform_count = len({r["platform"] for r in scout_results if isinstance(r, dict)})
-            _log(f"[Scout] Complete — {len(scout_results)} targets across {platform_count} platform(s)")
 
-            _log("[Harvester] Starting content collection…")
-            from agents.harvester_agent import HarvesterAgent
-            harvester = HarvesterAgent()
-            if platforms:
-                harvester._platform_filter = platforms
-            scout_file = getattr(scout, "_last_combined_path", None)
-            harvester.run(scout_file=scout_file)
-            _log("[Harvester] Complete")
+            active_platforms = platforms or ["youtube", "tiktok", "facebook", "instagram"]
 
-            _log("[Cleaner] Normalizing, deduplicating, filtering spam…")
-            from agents.cleaner_agent import CleanerAgent
-            cleaner = CleanerAgent()
-            stats = cleaner.run(
-                platforms=platforms or None,
-                translate=translate,
-                target_lang=target_lang,
-            )
-            for plat, s in (stats or {}).items():
-                _log(f"[Cleaner] {plat}: {s.get('cleaned', 0)} items, "
-                     f"{s.get('spam', 0)} spam removed, {s.get('duplicates', 0)} dupes")
+            _log(f"[Scraper] Starting xcrawl harvest for: {', '.join(active_platforms)}")
+            if keywords:
+                _log(f"[Scraper] Keywords: {', '.join(keywords)}")
 
+            from agents.xcrawl_harvester import XcrawlHarvester
+            harvester = XcrawlHarvester()
+
+            saved_files = {}
+            for plat in active_platforms:
+                _log(f"[{plat.upper()}] Scraping...")
+                plat_saved = harvester.run(platforms=[plat], keywords=keywords)
+                if plat_saved:
+                    path = plat_saved[plat]
+                    items = json.loads(path.read_text(encoding="utf-8"))
+                    total_chars = sum(i.get("raw_length", 0) for i in items)
+                    _log(f"[{plat.upper()}] Done — {len(items)} pages, {total_chars:,} chars")
+                    saved_files[plat] = path
+                else:
+                    _log(f"[{plat.upper()}] No data collected")
+
+            # Build summary report
             lines = [
                 "# Social Scraper Report\n\n",
-                f"**Platforms:** {', '.join((stats or {}).keys()) or 'none'}\n",
-                f"**Translate:** {'Yes → ' + target_lang if translate else 'No'}\n\n",
-                "## Per-Platform Stats\n\n",
-                "| Platform | Cleaned | Spam | Dupes |\n",
-                "|----------|---------|------|-------|\n",
+                f"**Platforms:** {', '.join(saved_files.keys()) or 'none'}\n",
+                f"**Keywords:** {', '.join(keywords) if keywords else 'trending (default)'}\n\n",
+                "## Per-Platform Results\n\n",
+                "| Platform | Pages | Total Chars | File |\n",
+                "|----------|-------|-------------|------|\n",
             ]
-            for plat, s in (stats or {}).items():
-                lines.append(f"| {plat} | {s.get('cleaned',0)} | {s.get('spam',0)} | {s.get('duplicates',0)} |\n")
+            for plat, path in saved_files.items():
+                items = json.loads(path.read_text(encoding="utf-8"))
+                total_chars = sum(i.get("raw_length", 0) for i in items)
+                lines.append(f"| {plat} | {len(items)} | {total_chars:,} | {path.name} |\n")
             outputs["scraper_report.md"] = "".join(lines)
 
-            cleaned_root = Path(__file__).parent / "social_scraper" / "data" / "cleaned"
-            if cleaned_root.exists():
-                for plat_dir in sorted(cleaned_root.iterdir()):
-                    if not plat_dir.is_dir():
-                        continue
-                    if platforms and plat_dir.name not in platforms:
-                        continue
-                    latest = sorted(plat_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
-                    if latest:
-                        try:
-                            items = json.loads(latest[0].read_text(encoding="utf-8"))
-                            preview = items[:5] if isinstance(items, list) else items
-                            outputs[f"{plat_dir.name}_preview.json"] = json.dumps(preview, ensure_ascii=False, indent=2)
-                        except Exception:
-                            pass
+            # Attach per-platform content previews (first item, first 3000 chars)
+            for plat, path in saved_files.items():
+                try:
+                    items = json.loads(path.read_text(encoding="utf-8"))
+                    if items:
+                        item = items[0]
+                        preview = {
+                            "platform": item["platform"],
+                            "label": item["metadata"]["label"],
+                            "url": item["url"],
+                            "content_preview": item["content"][:3000],
+                            "total_pages": len(items),
+                        }
+                        outputs[f"{plat}_data.json"] = json.dumps(preview, ensure_ascii=False, indent=2)
+                except Exception:
+                    pass
 
-            result = {"platforms": list((stats or {}).keys()), "total": sum(s.get("cleaned", 0) for s in (stats or {}).values())}
+            result = {
+                "platforms": list(saved_files.keys()),
+                "total_pages": sum(len(json.loads(p.read_text(encoding="utf-8"))) for p in saved_files.values()),
+            }
 
         elif crew_type == "dataanalyst":
             from crewai_agents import build_data_crew
