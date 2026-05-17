@@ -52,6 +52,8 @@ _RECURSION_LIMITS = {
     "fitness":  10,
     "journal":  6,
     "davinci":  8,
+    "euler":    10,
+    "orwell":   8,
 }
 _DEFAULT_RECURSION = 8
 
@@ -66,6 +68,8 @@ AGENT_REGISTRY = {
     "fitness":  "Fitness, workout, gym, exercise, nutrition, protein, muscle, lean gain, diet, supplement, training program, body composition",
     "journal":  "Personal diary, daily journaling, reflection, mood tracking, gratitude writing, personal feelings, thoughts and emotions, jurnal harian, refleksi diri, perasaan, curhat, cerita pribadi",
     "davinci":  "Creative brainstorming, out-of-the-box ideas, innovation, ideation, wild ideas, creative thinking, new concepts, invention, inspiration, ide kreatif, brainstorm, ide gila, inovasi, konsep baru, ekspansi ide",
+    "euler":    "Matematika step-by-step: kalkulus, integral, turunan, limit, aljabar linear, statistik, peluang, trigonometri, persamaan diferensial, matriks, eigenvalue, deret, soal matematika, bantu hitung, buktikan teorema",
+    "orwell":   "Menulis esai, artikel, laporan, email profesional, cover letter, proposal, editing teks, perbaiki tulisan, grammar, argumentasi, struktur tulisan, gaya bahasa, draft, revisi, tulis dari awal",
 }
 
 CLASSIFY_PROMPT = """You are a routing assistant. Based on the user's message, decide which specialist agent should handle it.
@@ -110,6 +114,16 @@ Examples of correct routing:
 - "ide out of the box untuk konten" → davinci
 - "lihat semua ide yang sudah aku simpan" → davinci
 - "ekspansi ide tentang machine learning" → davinci
+- "bantu aku integral substitusi trigonometri" → euler
+- "jelaskan eigenvalue dan eigenvector" → euler
+- "buktikan limit sin(x)/x = 1" → euler
+- "hitung determinan matriks 3x3" → euler
+- "soal statistik distribusi normal" → euler
+- "bantu tulis esai tentang demokrasi" → orwell
+- "perbaiki paragraf ini" → orwell
+- "tulis cover letter untuk lamaran kerja" → orwell
+- "email profesional ke klien" → orwell
+- "struktur argumen yang baik untuk proposal" → orwell
 
 Reply with ONLY the agent name (one word, lowercase). Choose the most relevant one.
 If the message is ambiguous or a general greeting, choose 'task' as default.
@@ -133,6 +147,7 @@ class SupervisorRouter:
         )
         self._agents: dict = {}
         self._chat_histories: dict = {name: [] for name in AGENT_REGISTRY}
+
 
 
     def _load_agent(self, name: str):
@@ -165,6 +180,12 @@ class SupervisorRouter:
             elif name == "davinci":
                 from agents.davinci_agent import create_davinci_agent
                 self._agents[name] = create_davinci_agent()
+            elif name == "euler":
+                from agents.euler_agent import create_euler_agent
+                self._agents[name] = create_euler_agent()
+            elif name == "orwell":
+                from agents.orwell_agent import create_orwell_agent
+                self._agents[name] = create_orwell_agent()
         return self._agents[name]
 
     @staticmethod

@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 ## Project Overview
-**Personal AI Multi-Agent Assistant** — A web + CLI personal assistant with 9 specialist AI agents powered by Mistral AI + LangChain. A supervisor router automatically directs chat messages to the right agent. A separate CrewAI-based pipeline system runs autonomous multi-agent research and data analysis jobs in the background, accessible via the web frontend's "Crew Mode".
+**CassanovaL — Personal AI Multi-Agent Assistant** — A web + CLI personal assistant with 10 specialist AI agents powered by Mistral AI + LangChain. A supervisor router automatically directs chat messages to the right agent. A separate CrewAI-based pipeline system runs autonomous multi-agent research, data analysis, and social media scraping jobs in the background, accessible via the web frontend's "Crew Mode". Mansa (finance agent) has a dedicated Finance Dashboard at `/finance`.
 
 ---
 
@@ -14,7 +14,8 @@
 | `news` | Najwa | Latest 24h news briefings | DuckDuckGo search (last 24h) |
 | `coding` | Linus | Programming mentor & tutor | search docs, LLM reasoning |
 | `schedule` | CalCore | Google Calendar management | list/create/update/delete events |
-| `budget` | Mansa | Personal finance tracking | add income/expense, balance, monthly summary |
+| `budget` | Mansa | Multi-account wealth management | **18 tools**: accounts, net worth, investments, budget goals, recurring, transactions — opens `/finance` dashboard |
+| `fitness` | Lavoisier | Fitness & nutrition tracking | log workouts, track nutrition, progress reports |
 | `research` | Ferry | Deep autonomous research | deep web search, iterative search, URL fetch, wiki integration |
 | `davinci` | Da Vinci | Creative thinking & brainstorming | LLM reasoning |
 | `journal` | Dostoyevsky | Personal journaling | create/read/search journal entries |
@@ -58,6 +59,28 @@ Cleans, analyzes, and visualizes CSV datasets:
 [2] DataBot-Stats → mistral-large-latest  statistical analysis
 [3] DataBot-Viz   → mistral-small-latest  chart descriptions / visualization plan
 ```
+
+### Pipeline 3 — Social Scraper (`crew_type: "scraper"`)
+Two-stage AI pipeline for harvesting trending content from up to 12 social platforms:
+
+```
+Stage 1 — ScrapeGraphHarvester (social_scraper/agents/scrapegraph_harvester.py)
+  SearchGraph (ScrapeGraphAI v2 + Mistral)
+    └── SearchInternetNode  → DuckDuckGo search per platform
+    └── GraphIteratorNode   → SmartScraperGraph on top 5 result pages
+    └── MergeAnswersNode    → Mistral merges into structured topics list
+  Output: social_scraper/data/raw/<platform>/scrapegraph_<platform>_<ts>.json
+
+Stage 2 — SummarizerAgent (social_scraper/agents/summarizer_agent.py)
+  mistral-large-latest generates per-platform Indonesian markdown summary:
+    ## Trending Topics | ## Konten Populer | ## Tema Utama | ## Insight
+  Output: AI Data/Social Scraper/<Platform>_YYYY-MM-DD.md
+          + ResultModal tabs: youtube_summary.md, tiktok_summary.md, etc.
+```
+
+Supported platforms: `youtube`, `tiktok`, `facebook`, `instagram`, `twitter`, `reddit`, `linkedin`, `medium`, `twitch`, `pinterest`, `quora`, `soundcloud`
+
+> **First-time setup:** `playwright install chromium` (Playwright ships with scrapegraphai)
 
 ---
 
@@ -129,23 +152,34 @@ ai_python/
 │   ├── wiki_tools.py    # Obsidian-style wiki (query/write/lint/ingest)
 │   └── autoresearch_tools.py  # Persistent research program tracker
 │
+├── social_scraper/      # Multi-platform social media scraper pipeline
+│   ├── __init__.py
+│   ├── agents/
+│   │   ├── scrapegraph_harvester.py  # ScrapeGraphAI v2 + Mistral (active)
+│   │   ├── crawl4ai_harvester.py     # Legacy crawl4ai harvester (reference)
+│   │   └── summarizer_agent.py       # Mistral per-platform summary generator
+│   └── data/raw/                     # Raw scraped JSON per platform
+│
 ├── static/
-│   ├── index.html       # Old single-file frontend (unused — redirect only)
+│   ├── index.html       # Redirect stub (points to /index/)
 │   ├── index/           # Current multi-file React frontend
 │   │   ├── index.html   # HTML shell (loads all JSX + CSS)
 │   │   ├── app.jsx      # Root App component, state, keyboard shortcuts
 │   │   ├── views.jsx    # ChatView, DashboardView, Sidebar, RightPanel, Masthead
 │   │   ├── overlays.jsx # CommandPalette, CrewDrawer, ResultModal
-│   │   ├── data.jsx     # AGENTS config, MOCK data, API helper functions
+│   │   ├── data.jsx     # AGENTS config, AGENT_CLUSTERS, MOCK data, API helpers
 │   │   ├── icons.jsx    # SVG icon components
 │   │   └── styles.css   # All styles (CSS variables, components)
+│   ├── finance/         # Mansa Finance Dashboard (standalone page at /finance)
+│   │   └── index.html   # Paper & Ink design; 6 sections; light/dark; Chart.js
 │   ├── avatars/         # Agent avatar images (JPG/PNG per agent)
 │   └── uploads/         # File uploads for DataAnalyst crew
 │
 ├── data/                # JSON flat-file storage
 │   ├── tasks.json
 │   ├── notes.json
-│   └── budget.json
+│   └── budget.json      # Dict schema: {accounts, transactions, budget_goals,
+│                        #               investments, net_worth_history, recurring}
 │
 ├── credentials/         # Google Calendar OAuth (never commit)
 │   ├── credentials.json # Download from Google Cloud Console
@@ -156,11 +190,13 @@ ai_python/
 │   └── plans/
 │
 ├── AI Data/             # Agent output files (wiki, research reports, logs)
-│   └── Ferry Agent/     # Ibn Al-Haytham pipeline output files
+│   ├── Ferry Agent/     # Ibn Al-Haytham pipeline output files
+│   └── Social Scraper/  # Per-platform AI summaries (Platform_YYYY-MM-DD.md)
 │
 ├── .env                 # API keys (never commit)
 ├── requirements.txt
 ├── CLAUDE.md            # This file
+├── cassanovaL_instruction.md  # Manual guide: adding new agents
 └── DOCUMENTATION.md     # Full codebase reference
 ```
 
@@ -218,11 +254,14 @@ $env:PYTHONUTF8=1; python crewai_agents.py -t "Strategi pemasaran TikTok 2025"
 | `POST` | `/api/chat` | Send message to AI agent |
 | `GET`  | `/api/tasks` | Tasks list + stats |
 | `GET`  | `/api/notes` | Recent notes |
-| `GET`  | `/api/budget/summary` | Financial summary |
-| `POST` | `/api/crew/kickoff` | Start a CrewAI pipeline (research or dataanalyst) |
-| `GET`  | `/api/crew/status/{job_id}` | Poll pipeline job status + outputs |
+| `GET`  | `/api/budget/summary` | Financial summary (backward-compatible: old + new schema) |
+| `GET`  | `/api/finance/dashboard` | Full Finance Dashboard data (accounts, net worth, investments, goals, recurring) |
+| `GET`  | `/finance` | Serve `static/finance/index.html` — Mansa Finance Dashboard |
+| `POST` | `/api/crew/kickoff` | Start pipeline: `crew_type` = `research` / `dataanalyst` / `scraper` |
+| `GET`  | `/api/crew/status/{job_id}` | Poll pipeline job status + outputs + logs |
 | `GET`  | `/api/crew/files` | List uploadable CSV files for DataAnalyst |
 | `POST` | `/api/upload` | Upload CSV for DataAnalyst pipeline |
+| `POST` | `/api/budget/scan-receipt` | Upload receipt image for automatic expense parsing |
 
 ---
 
@@ -251,12 +290,16 @@ $env:PYTHONUTF8=1; python crewai_agents.py -t "Strategi pemasaran TikTok 2025"
 ## Dependencies
 ```bash
 pip install -r requirements.txt
+# playwright install chromium   ← required for ScrapeGraphAI (run once after pip install)
+
 # Key packages:
 # langchain langchain-mistralai langchain-community langchain-core langgraph
 # crewai crewai-tools
+# scrapegraphai                 ← ScrapeGraphAI v2 (Social Scraper pipeline)
 # fastapi uvicorn[standard] python-multipart
 # python-dotenv requests duckduckgo-search linkup-sdk
 # google-api-python-client google-auth-httplib2 google-auth-oauthlib
+# yfinance pandas plotly chromadb scikit-learn scipy openpyxl
 ```
 
 <!-- gitnexus:start -->

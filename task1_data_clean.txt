@@ -1,30 +1,41 @@
-**Data Cleaning Report**
+**Structured Data Cleaning Report**
 
-**Dataset:** `customers-100.csv`
+**Dataset:** customers-100.csv
 
-### **Before Cleaning**
-- **Shape:** 100 rows × 12 columns
-- **Columns:**
-  `Index, Customer Id, First Name, Last Name, Company, City, Country, Phone 1, Phone 2, Email, Subscription Date, Website`
-- **Missing Values:** 0 (0.0%)
-- **Duplicate Rows:** 0
+**Shape Before Cleaning:**
+- Rows: 100
+- Columns: 12
 
-### **After Cleaning**
-- **Shape:** 100 rows × 12 columns
-- **Columns (Standardized):**
-  `index, customer_id, first_name, last_name, company, city, country, phone_1, phone_2, email, subscription_date, website`
-- **Missing Values:** 0 (0.0%)
-- **Duplicate Rows:** 0
+**Shape After Cleaning:**
+- Rows: 100
+- Columns: 12
 
-### **Operations Performed**
+**Columns (Standardized Names):**
+1. index
+2. customer_id
+3. first_name
+4. last_name
+5. company
+6. city
+7. country
+8. phone_1
+9. phone_2
+10. email
+11. subscription_date
+12. website
+
+**Null Values:**
+- Before Cleaning: 0 (0.0%)
+- After Cleaning: 0 (0.0%)
+
+**Operations Performed:**
 1. **Column Name Standardization:**
-   - Renamed all 12 columns to lowercase with underscores (e.g., `Customer Id` → `customer_id`).
+   - Renamed all 12 columns to lowercase with underscores (e.g., 'Customer Id' → 'customer_id').
 2. **Null Handling:**
-   - No rows/columns dropped (no values exceeded 50% null threshold).
-   - No missing values filled (dataset was already complete).
+   - No rows or columns dropped (no values exceeded 50% null threshold).
+   - No missing values filled (dataset had 0 nulls).
 3. **Duplicate Removal:**
-   - No duplicate rows found or removed.
+   - 0 duplicate rows removed.
 
-### **Saved File**
-- **Path:** `customers-100_cleaned.csv`
-- **Reload Command:** `load_dataset('customers-100_cleaned.csv')`
+**Saved Cleaned File:**
+- Path: `customers-100_cleaned.csv`

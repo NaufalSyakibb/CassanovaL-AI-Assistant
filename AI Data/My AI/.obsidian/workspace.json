@@ -4,21 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "5ea8a9eafa7eb28f",
+        "id": "a190d4d529693eaf",
         "type": "tabs",
         "children": [
           {
-            "id": "d9c3afa83f00a762",
+            "id": "d30732298fd1f146",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "davinci.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "davinci"
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Tampilan grafik"
             }
           }
         ]
@@ -79,8 +75,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "right": {
     "id": "d43bb8e2b6293ac7",
@@ -185,17 +180,38 @@
       "bases:Buat basis baru": false
     }
   },
-  "active": "d9c3afa83f00a762",
+  "active": "d30732298fd1f146",
   "lastOpenFiles": [
+    "Makanan_2026-04-20.md",
+    "Financial_2026-04-14.md",
+    "Home.md",
+    "Linus Agent/Code_2026-05-11.md",
+    "Code_2026-04-13.md",
+    "Linus Agent",
+    "Tanpa judul 2.canvas",
+    "Social Scraper/Instagram_2026-05-10.md",
+    "Tanpa judul 3.canvas",
+    "Tanpa judul 8.base",
+    "Tanpa judul 7.base",
+    "Tanpa judul 6.base",
+    "Tanpa judul 5.base",
+    "Tanpa judul 4.base",
+    "Tanpa judul 3.base",
+    "Tanpa judul 2.base",
+    "Tanpa judul 1.base",
+    "Tanpa judul.base",
+    "Tanpa judul 1.canvas",
+    "Dostoyevsky Agent.md",
+    "Journal_2026-04-12.md",
+    "Financial_2026-04-23.md",
+    "davinci.md",
     "najwa.md",
     "dostoyevsky.md",
-    "davinci.md",
     "Makanan_2026-04-17.md",
     "cicero.md",
     "Journal_2026-04-30.md",
     "Lavoiser Agent.md",
     "Tanpa judul.canvas",
-    "Home.md",
     "Selamat datang.md",
     "buat tautan.md"
   ]

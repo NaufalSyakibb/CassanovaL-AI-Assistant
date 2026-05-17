@@ -194,3 +194,61 @@ Topik *"Strategi Makan Siang untuk Lean Gain"* belum ada di wiki kamu. Mau aku s
 
 ---
 
+## 2026-05-10 18:22:10
+
+**You:** nasi chicken nugget dan telur goreng 1 di pagi hari. Di sore hari dengan menu sama tetapi dengan 2 telur
+
+**fitness:** ---
+### **Ringkasan Hari Ini (Sejauh Ini)**
+**Total Kalori**: **1.406 kkal**
+**Protein**: **53.7g** *(⚠️ **Jauh di bawah target lean gain** — butuh ~160g untuk 80kg)*
+**Karbohidrat**: **150.4g**
+**Serat**: **4.2g**
+**Lemak**: **57.2g**
+
+---
+
+### **Analisis untuk Lean Gain**
+1. **Protein Sangat Rendah**
+   - **Target**: 2.0–2.2g/kg untuk lean gain → **160–176g/hari** (untuk 80kg).
+   - **Masalah**: Chicken nugget dan telur goreng mengandung protein, tapi **porsinya terlalu kecil** dan **lemak tinggi** (nugget goreng).
+   - **Solusi Cepat**:
+     - Ganti nugget dengan **dada ayam panggang** (30g protein/100g) atau **ikan salmon** (20g protein/100g).
+     - Tambahkan **putih telur rebus** (3.6g protein/butir) atau **susu whey** (24g protein/scoop) sebagai snack.
+
+2. **Karbohidrat Cukup, tapi Serat Kurang**
+   - **Target Serat**: 30–40g/hari (untuk pencernaan dan kontrol insulin).
+   - **Solusi**: Tambahkan **sayur hijau** (bayam, brokoli) atau **oatmeal** ke sarapan/siang.
+
+3. **Lemak Tinggi dari Gorengan**
+   - Nugget dan telur goreng mengandung **minyak goreng jenuh** → bisa memicu inflamasi dan fat gain.
+   - **Solusi**: Kurangi gorengan, pilih **metode masak rendah minyak** (panggang, kukus, rebus).
+
+---
+
+### **Action Item Hari Ini**
+1. **Tambahkan protein segera**:
+   - **Snack sore**: 1 scoop whey protein + pisang → **+24g protein**.
+   - **Makan malam**: 150g dada ayam + 100g nasi merah + sayur → **+45g protein**.
+   - **Sebelum tidur**: Greek yogurt plain → **+10g protein**.
+
+2. **Ganti sumber karbo**:
+   - Nasi putih → **nasi merah/quinoa** (lebih banyak serat dan mikronutrien).
+
+3. **Log makanan selanjutnya**:
+   - Contoh: *"Makan malam dada ayam 150g + nasi merah 100g + brokoli 100g"*.
+
+---
+### **Gap Wiki Terdeteksi**
+- **[GAP WIKI]**: Belum ada halaman tentang:
+  1. **Target makro harian untuk lean gain** (protein 2.2g/kg, surplus 200–300 kkal).
+  2. **Sumber protein praktis** (dada ayam, putih telur, whey, ikan).
+  3. **Strategi mengurangi gorengan** (alternatif masak sehat).
+
+**→ Mau aku simpan ke wiki sekarang?** *(Bisa diedit nanti di Obsidian)*. Contoh judul:
+- *"Lean Gain: Target Makro Harian"*
+- *"Sumber Protein Murah & Praktis"*
+- *"Masak Sehat: Alternatif Gorengan"*
+
+---
+

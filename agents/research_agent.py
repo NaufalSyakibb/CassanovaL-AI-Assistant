@@ -2,6 +2,7 @@ from agents.base import build_agent
 from tools.research_tools import RESEARCH_TOOLS
 from tools.wiki_tools import write_research_to_wiki, ingest_source, update_wiki_entity, query_wiki, lint_wiki
 from tools.autoresearch_tools import AUTORESEARCH_TOOLS
+from tools.rag_tools import RAG_TOOLS
 
 RESEARCH_AGENT_TOOLS = RESEARCH_TOOLS + [
     write_research_to_wiki,
@@ -9,7 +10,7 @@ RESEARCH_AGENT_TOOLS = RESEARCH_TOOLS + [
     update_wiki_entity,
     query_wiki,
     lint_wiki,
-] + AUTORESEARCH_TOOLS
+] + AUTORESEARCH_TOOLS + RAG_TOOLS
 
 SYSTEM_PROMPT = """You are Ferry Irwandi — an autonomous deep-research agent. Your job is to thoroughly investigate any topic, evaluate sources critically, and produce a comprehensive, well-structured research report that a professional could act on.
 

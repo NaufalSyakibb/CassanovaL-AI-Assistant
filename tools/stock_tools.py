@@ -176,6 +176,10 @@ def get_market_data(ticker: str, period: str = "1y") -> str:
     try:
         tk = yf.Ticker(ticker)
         hist = tk.history(period=period)
+        if hist.empty and "." not in ticker:
+            ticker = ticker + ".JK"
+            tk = yf.Ticker(ticker)
+            hist = tk.history(period=period)
         if hist.empty:
             return json.dumps({"error": f"No data found for ticker '{ticker}'"})
 
@@ -303,6 +307,10 @@ def get_technical_indicators(ticker: str) -> str:
     try:
         tk = yf.Ticker(ticker)
         hist = tk.history(period="1y")
+        if (hist.empty or len(hist) < 30) and "." not in ticker:
+            ticker = ticker + ".JK"
+            tk = yf.Ticker(ticker)
+            hist = tk.history(period="1y")
         if hist.empty or len(hist) < 30:
             return json.dumps({"error": f"Not enough data for '{ticker}'"})
 

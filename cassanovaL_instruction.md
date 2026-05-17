@@ -221,12 +221,25 @@ const AGENTS = {
     sub: 'Label Singkat',           // subtitle, contoh: 'Fitness & Health'
     hue: 'var(--hue-<key>)',        // CSS variable warna (lihat langkah 4d)
     issue: 'X.',                    // nomor Roman sesuai urutan
+    cluster: 'personal',            // cluster: 'personal' | 'research' | 'academic' | 'trading'
     tagline: 'Satu kalimat deskripsi gaya sastrawi tentang agent ini.',
     greeting: 'Pesan sambutan yang muncul saat user pertama kali membuka agent ini.',
     Ico: () => { const {IcoXxx} = window.Icons; return <IcoXxx/>; },  // ikon SVG
+    // url: '/halaman-baru',        // OPSIONAL: jika agent punya halaman tersendiri (external link)
   },
 };
 ```
+
+**Field `cluster`** — menentukan tab filter di sidebar:
+
+| Nilai | Deskripsi |
+|-------|-----------|
+| `personal` | Kehidupan sehari-hari (Alfred, Mansa, Lavoisier, dll) |
+| `research` | Riset dan informasi (Najwa) |
+| `academic` | Belajar dan coding (Cicero, Linus) |
+| `trading` | Pasar keuangan — khusus pipeline Crew Mode |
+
+**Field `url` (opsional)** — jika diisi, klik pada agent di sidebar akan membuka URL tersebut di tab baru, bukan membuka chat tab. Gunakan untuk agent yang punya halaman tersendiri (contoh: Mansa → `/finance`). Roster row akan menampilkan `↗` sebagai pengganti status dot.
 
 **Icon yang tersedia** (lihat [static/index/icons.jsx](static/index/icons.jsx)):
 `IcoCheck`, `IcoFeather`, `IcoNewspaper`, `IcoCode`, `IcoCalendar`, `IcoCoin`, `IcoHeart`, `IcoBook`, `IcoLamp`, `IcoChart`, `IcoSearch`, `IcoUser`
@@ -353,17 +366,36 @@ class MyNewPipeline:
 
 ### Daftarkan Pipeline di `server.py`
 
-Buka [server.py](server.py) dan tambahkan endpoint atau kondisi di blok `/api/crew/kickoff`:
+Buka [server.py](server.py) dan tambahkan kondisi baru di blok `crew_type` dalam fungsi background job:
 
 ```python
-@app.post("/api/crew/kickoff")
-async def crew_kickoff(request: CrewRequest):
-    # ... kode existing ...
-    elif request.pipeline == "mynewpipeline":
-        from crewai_agents import MyNewPipeline
-        pipeline = MyNewPipeline()
-        # jalankan di background thread seperti pipeline lain
+# Di dalam fungsi _run_job() atau background thread
+elif crew_type == "mynewpipeline":
+    from crewai_agents import MyNewPipeline
+    pipeline = MyNewPipeline()
+    result = pipeline.kickoff(topic)
+    outputs["result.md"] = str(result)
 ```
+
+Nilai `crew_type` yang sudah ada:
+- `"research"` — Ibn Al-Haytham 7-agent pipeline
+- `"dataanalyst"` — DataAnalyst 3-agent pipeline
+- `"scraper"` — Social Scraper (ScrapeGraphAI + SummarizerAgent)
+
+**Social Scraper Pipeline** (`crew_type: "scraper"`) berbeda dari pipeline CrewAI biasa — ia tidak menggunakan `crewai_agents.py`, melainkan:
+1. `social_scraper/agents/scrapegraph_harvester.py` — ScrapeGraphAI v2 + Mistral untuk harvest konten trending
+2. `social_scraper/agents/summarizer_agent.py` — Mistral untuk generate ringkasan per platform
+
+Parameter scraper via `POST /api/crew/kickoff`:
+```json
+{
+  "crew_type": "scraper",
+  "topic": "kata kunci opsional",
+  "platforms": ["youtube", "tiktok", "reddit"],
+  "translate": false
+}
+```
+Jika `platforms` null, default ke `["youtube", "tiktok", "facebook", "instagram"]`.
 
 ---
 
@@ -388,8 +420,11 @@ async def crew_kickoff(request: CrewRequest):
 | [router.py](router.py) | Supervisor router — klasifikasi + dispatch ke agent |
 | [server.py](server.py) | FastAPI server — HTTP endpoints + background jobs |
 | [crewai_agents.py](crewai_agents.py) | Pipeline CrewAI Ibn Al-Haytham + DataAnalyst |
-| [static/index/data.jsx](static/index/data.jsx) | Konfigurasi UI agent (nama, warna, ikon, chips) |
+| [social_scraper/agents/scrapegraph_harvester.py](social_scraper/agents/scrapegraph_harvester.py) | Social Scraper — ScrapeGraphAI v2 harvester |
+| [social_scraper/agents/summarizer_agent.py](social_scraper/agents/summarizer_agent.py) | Social Scraper — Mistral per-platform summarizer |
+| [static/index/data.jsx](static/index/data.jsx) | Konfigurasi UI agent: AGENTS, AGENT_CLUSTERS, CHIPS |
 | [static/index/icons.jsx](static/index/icons.jsx) | Semua komponen ikon SVG yang tersedia |
-| [static/index/styles.css](static/index/styles.css) | CSS variables termasuk warna per agent |
+| [static/index/styles.css](static/index/styles.css) | CSS variables termasuk warna per agent + cluster |
+| [static/finance/index.html](static/finance/index.html) | Mansa Finance Dashboard — halaman tersendiri di /finance |
 | [CLAUDE.md](CLAUDE.md) | Dokumentasi arsitektur lengkap |
 | [DOCUMENTATION.md](DOCUMENTATION.md) | Referensi kode detail |

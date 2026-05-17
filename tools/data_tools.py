@@ -26,7 +26,13 @@ _session: dict = {
     "df": None,
     "file_path": None,
     "clean_log": [],
-    "autosave_path": None,   # path of the last auto-saved cleaned CSV
+    "autosave_path": None,
+    # ML engine state
+    "mode":       None,   # 'eda' | 'classification' | 'clustering' | 'regression'
+    "target":     None,   # target column name
+    "encoders":   {},
+    "scaler":     None,
+    "ml_results": {},
 }
 
 _SUPPORTED_EXTS = {".csv", ".xlsx", ".xls", ".json"}
@@ -45,6 +51,11 @@ def _reset_session() -> None:
     _session["file_path"] = None
     _session["clean_log"] = []
     _session["autosave_path"] = None
+    _session["mode"] = None
+    _session["target"] = None
+    _session["encoders"] = {}
+    _session["scaler"] = None
+    _session["ml_results"] = {}
 
 
 def _need_df() -> str | None:
@@ -580,3 +591,479 @@ VIZ_TOOLS = [
     save_report,
     save_dataset,
 ]
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  ML ENGINE — Streamline-Analyst inspired
+#  Adds: mode detection, encoding, scaling, classification, clustering, regression,
+#        and interactive Plotly visualization
+# ═══════════════════════════════════════════════════════════════════════════════
+
+try:
+    from sklearn.model_selection import train_test_split
+    from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler, RobustScaler
+    from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, GradientBoostingClassifier
+    from sklearn.linear_model import LogisticRegression, LinearRegression, Ridge
+    from sklearn.cluster import KMeans, DBSCAN
+    from sklearn.metrics import (
+        accuracy_score, f1_score, classification_report,
+        silhouette_score, r2_score, mean_squared_error, mean_absolute_error,
+    )
+    SKLEARN_OK = True
+except ImportError:
+    SKLEARN_OK = False
+
+
+@tool
+def detect_analysis_mode() -> str:
+    """
+    Profile the loaded dataset and recommend the best analysis mode:
+    'classification', 'clustering', 'regression', or 'eda'.
+    Identifies potential target column candidates based on cardinality and type.
+    """
+    err = _need_df()
+    if err: return err
+    df = _session["df"]
+
+    num_cols = df.select_dtypes(include="number").columns.tolist()
+    cat_cols = df.select_dtypes(include="object").columns.tolist()
+    n_rows, n_cols = df.shape
+
+    classification_targets, regression_targets = [], []
+    for col in cat_cols:
+        n_u = df[col].nunique()
+        if 2 <= n_u <= 20:
+            classification_targets.append((col, n_u))
+    for col in num_cols:
+        n_u = df[col].nunique()
+        if 2 <= n_u <= 15:
+            classification_targets.append((col, n_u))
+        elif n_u > 15:
+            regression_targets.append((col, n_u))
+
+    if classification_targets:
+        mode, target_hint = "classification", classification_targets[0][0]
+    elif regression_targets and len(num_cols) >= 3:
+        mode, target_hint = "regression", regression_targets[-1][0]
+    elif len(num_cols) >= 3:
+        mode, target_hint = "clustering", None
+    else:
+        mode, target_hint = "eda", None
+
+    _session["mode"] = mode
+    if target_hint:
+        _session["target"] = target_hint
+
+    lines = [
+        f"── Dataset Profile ──",
+        f"Shape: {n_rows:,} rows × {n_cols} columns",
+        f"Numeric  ({len(num_cols)}): {', '.join(num_cols[:8])}{'…' if len(num_cols)>8 else ''}",
+        f"Categorical ({len(cat_cols)}): {', '.join(cat_cols[:8])}{'…' if len(cat_cols)>8 else ''}",
+        f"",
+        f"── Recommended Mode: {mode.upper()} ──",
+    ]
+    if classification_targets:
+        lines.append(f"Classification target candidates: {[c for c,_ in classification_targets[:5]]}")
+    if regression_targets:
+        lines.append(f"Regression target candidates: {[c for c,_ in regression_targets[:3]]}")
+    if target_hint:
+        lines.append(f"Suggested target column: '{target_hint}'")
+
+    lines += ["", f"{'Column':<30} {'Type':<12} {'Unique':>8} {'Null%':>7}", "─" * 60]
+    for col in df.columns[:25]:
+        n_u = df[col].nunique()
+        null_pct = df[col].isnull().mean() * 100
+        dtype = str(df[col].dtype)
+        lines.append(f"{col:<30} {dtype:<12} {n_u:>8} {null_pct:>6.1f}%")
+    return "\n".join(lines)
+
+
+@tool
+def encode_features(strategy: str = "auto", columns: str = "") -> str:
+    """
+    Encode categorical columns for ML.
+    strategy: 'label' (LabelEncoder) | 'onehot' (pd.get_dummies) | 'auto' (binary→label, multi→onehot)
+    columns: comma-separated column names (empty = all categorical)
+    """
+    if not SKLEARN_OK:
+        return "Error: scikit-learn not installed. Run: pip install scikit-learn"
+    err = _need_df()
+    if err: return err
+    df = _session["df"]
+    cat_cols = (
+        [c.strip() for c in columns.split(",") if c.strip()] if columns
+        else df.select_dtypes(include="object").columns.tolist()
+    )
+    encoders = _session.get("encoders", {})
+    log = []
+    for col in cat_cols:
+        if col not in df.columns:
+            continue
+        n_unique = df[col].nunique()
+        s = strategy
+        if s == "auto":
+            s = "label" if n_unique <= 2 else "onehot"
+        if s == "label":
+            le = LabelEncoder()
+            df[col] = le.fit_transform(df[col].astype(str))
+            encoders[col] = le
+            log.append(f"  {col}: label-encoded ({n_unique} classes)")
+        else:
+            dummies = pd.get_dummies(df[col], prefix=col, drop_first=True)
+            df = df.drop(columns=[col]).join(dummies)
+            log.append(f"  {col}: one-hot ({n_unique} classes → {len(dummies.columns)} dummies)")
+    _session["df"] = df
+    _session["encoders"] = encoders
+    _autosave()
+    return f"Encoded {len(log)} categorical columns:\n" + ("\n".join(log) if log else "  (none needed)")
+
+
+@tool
+def scale_features(method: str = "standard", columns: str = "") -> str:
+    """
+    Scale numeric features.
+    method: 'standard' (Z-score) | 'minmax' (0–1) | 'robust' (IQR-based)
+    columns: comma-separated (empty = all numeric except target)
+    """
+    if not SKLEARN_OK:
+        return "Error: scikit-learn not installed. Run: pip install scikit-learn"
+    err = _need_df()
+    if err: return err
+    df = _session["df"]
+    num_cols = (
+        [c.strip() for c in columns.split(",") if c.strip()] if columns
+        else df.select_dtypes(include="number").columns.tolist()
+    )
+    target = _session.get("target")
+    if target and target in num_cols:
+        num_cols.remove(target)
+    if not num_cols:
+        return "No numeric columns to scale."
+    scaler = {"standard": StandardScaler(), "minmax": MinMaxScaler()}.get(method, RobustScaler())
+    df[num_cols] = scaler.fit_transform(df[num_cols])
+    _session["df"] = df
+    _session["scaler"] = scaler
+    _autosave()
+    return f"Scaled {len(num_cols)} numeric columns using {method} scaler:\n  {', '.join(num_cols[:12])}"
+
+
+@tool
+def run_classification(target_column: str, test_size: float = 0.2) -> str:
+    """
+    Train and evaluate 3 classifiers (Random Forest, Logistic Regression, Gradient Boosting).
+    Reports accuracy, F1 (weighted), feature importances.
+    target_column: name of the label/class column.
+    """
+    if not SKLEARN_OK:
+        return "Error: scikit-learn not installed. Run: pip install scikit-learn"
+    err = _need_df()
+    if err: return err
+    df = _session["df"]
+    if target_column not in df.columns:
+        return f"Column '{target_column}' not found. Available: {', '.join(df.columns[:20])}"
+    X = df.drop(columns=[target_column]).select_dtypes(include="number").fillna(0)
+    y = df[target_column]
+    if X.empty or y.nunique() < 2:
+        return "Need numeric features and ≥2 classes to run classification."
+
+    stratify = y if y.nunique() < 50 else None
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=test_size, random_state=42, stratify=stratify
+    )
+    _session.update({"X_train": X_train, "X_test": X_test,
+                     "y_train": y_train, "y_test": y_test, "target": target_column})
+
+    models = {
+        "Random Forest":       RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1),
+        "Logistic Regression": LogisticRegression(max_iter=1000, random_state=42),
+        "Gradient Boosting":   GradientBoostingClassifier(n_estimators=100, random_state=42),
+    }
+    lines = [f"── Classification: target='{target_column}' | train={len(X_train):,} | test={len(X_test):,} ──\n"]
+    lines.append(f"{'Model':<28} {'Accuracy':>10}  {'F1 (weighted)':>14}")
+    lines.append("─" * 58)
+
+    best_name, best_model, best_acc = None, None, 0
+    results = {}
+    for name, model in models.items():
+        try:
+            model.fit(X_train, y_train)
+            preds = model.predict(X_test)
+            acc = accuracy_score(y_test, preds)
+            f1  = f1_score(y_test, preds, average="weighted", zero_division=0)
+            results[name] = {"accuracy": acc, "f1": f1}
+            marker = "  ← BEST" if acc > best_acc else ""
+            if acc > best_acc:
+                best_acc, best_name, best_model = acc, name, model
+            lines.append(f"{name:<28} {acc:>10.4f}  {f1:>14.4f}{marker}")
+        except Exception as e:
+            lines.append(f"{name:<28} ERROR: {e}")
+
+    if best_model and hasattr(best_model, "feature_importances_"):
+        imps = sorted(zip(X.columns, best_model.feature_importances_), key=lambda x: -x[1])
+        lines.append(f"\n── Top Feature Importances ({best_name}) ──")
+        for feat, imp in imps[:10]:
+            lines.append(f"  {feat:<32} {imp:.4f}  {'█' * int(imp * 40)}")
+    if best_model:
+        preds = best_model.predict(X_test)
+        lines.append(f"\n── Detailed Report: {best_name} ──\n{classification_report(y_test, preds, zero_division=0)}")
+
+    _session["ml_results"] = {"mode": "classification", "results": results,
+                               "best_model": best_name, "target": target_column}
+    result_text = "\n".join(lines)
+    save_report.invoke({"content": result_text, "filename": "classification_report.md"})
+    return result_text
+
+
+@tool
+def run_clustering(n_clusters: int = 0, algorithm: str = "kmeans") -> str:
+    """
+    Run unsupervised clustering on numeric features.
+    n_clusters: 0 = auto-select via silhouette score (KMeans only).
+    algorithm: 'kmeans' | 'dbscan'
+    """
+    if not SKLEARN_OK:
+        return "Error: scikit-learn not installed. Run: pip install scikit-learn"
+    err = _need_df()
+    if err: return err
+    df = _session["df"]
+    X = df.select_dtypes(include="number").fillna(0)
+    if X.shape[1] < 2:
+        return "Need ≥2 numeric columns for clustering."
+
+    lines = [f"── Clustering: {X.shape[0]:,} rows × {X.shape[1]} features ──\n"]
+    if algorithm == "dbscan":
+        model = DBSCAN(eps=0.5, min_samples=5)
+        labels = model.fit_predict(X)
+        n_actual = len(set(labels)) - (1 if -1 in labels else 0)
+        lines.append(f"DBSCAN: {n_actual} clusters | {(labels==-1).sum()} noise points")
+    else:
+        if n_clusters == 0:
+            best_k, best_sil = 3, -1
+            k_range = range(2, min(9, len(X) // 10 + 2))
+            for k in k_range:
+                km = KMeans(n_clusters=k, random_state=42, n_init=10)
+                lbls = km.fit_predict(X)
+                sil = silhouette_score(X, lbls) if len(set(lbls)) > 1 else -1
+                lines.append(f"  k={k}: silhouette={sil:.4f}")
+                if sil > best_sil:
+                    best_sil, best_k = sil, k
+            n_clusters = best_k
+            lines.append(f"\nBest k={n_clusters} (silhouette={best_sil:.4f})")
+        model = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+        labels = model.fit_predict(X)
+        sil = silhouette_score(X, labels) if len(set(labels)) > 1 else -1
+        lines.append(f"\nKMeans (k={n_clusters}) — Silhouette: {sil:.4f}\n")
+        lines.append("── Cluster Sizes ──")
+        for k in range(n_clusters):
+            cnt = int((labels == k).sum())
+            pct = cnt / len(labels) * 100
+            lines.append(f"  Cluster {k}: {cnt:>5,} rows ({pct:.1f}%)  {'█' * int(pct / 2)}")
+        centroids = pd.DataFrame(model.cluster_centers_, columns=X.columns)
+        lines.append(f"\n── Cluster Centroids (first {min(5, X.shape[1])} features) ──")
+        lines.append(centroids[X.columns[:5]].round(3).to_string())
+
+    df_copy = df.copy()
+    df_copy["cluster"] = labels
+    _session["df"] = df_copy
+    _session["ml_results"] = {"mode": "clustering", "n_clusters": n_clusters, "algorithm": algorithm}
+
+    result_text = "\n".join(lines)
+    save_report.invoke({"content": result_text, "filename": "clustering_report.md"})
+    return result_text
+
+
+@tool
+def run_regression(target_column: str, test_size: float = 0.2) -> str:
+    """
+    Train and evaluate 3 regression models (Linear Regression, Ridge, Random Forest Regressor).
+    Reports R², RMSE, MAE, and feature importances.
+    target_column: name of the continuous numeric target column.
+    """
+    if not SKLEARN_OK:
+        return "Error: scikit-learn not installed. Run: pip install scikit-learn"
+    err = _need_df()
+    if err: return err
+    df = _session["df"]
+    if target_column not in df.columns:
+        return f"Column '{target_column}' not found. Available: {', '.join(df.columns[:20])}"
+    X = df.drop(columns=[target_column]).select_dtypes(include="number").fillna(0)
+    y = df[target_column].fillna(df[target_column].median())
+    if X.empty:
+        return "No numeric feature columns for regression."
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=42)
+    _session.update({"X_train": X_train, "X_test": X_test,
+                     "y_train": y_train, "y_test": y_test, "target": target_column})
+
+    models = {
+        "Linear Regression": LinearRegression(),
+        "Ridge Regression":  Ridge(alpha=1.0),
+        "Random Forest":     RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1),
+    }
+    lines = [f"── Regression: target='{target_column}' | train={len(X_train):,} | test={len(X_test):,} ──\n"]
+    lines.append(f"{'Model':<25} {'R²':>8}  {'RMSE':>12}  {'MAE':>12}")
+    lines.append("─" * 65)
+
+    best_name, best_model, best_r2 = None, None, -999
+    results = {}
+    for name, model in models.items():
+        try:
+            model.fit(X_train, y_train)
+            preds = model.predict(X_test)
+            r2   = r2_score(y_test, preds)
+            rmse = mean_squared_error(y_test, preds) ** 0.5
+            mae  = mean_absolute_error(y_test, preds)
+            results[name] = {"r2": r2, "rmse": rmse, "mae": mae}
+            marker = "  ← BEST" if r2 > best_r2 else ""
+            if r2 > best_r2:
+                best_r2, best_name, best_model = r2, name, model
+            lines.append(f"{name:<25} {r2:>8.4f}  {rmse:>12.4f}  {mae:>12.4f}{marker}")
+        except Exception as e:
+            lines.append(f"{name:<25} ERROR: {e}")
+
+    if best_model and hasattr(best_model, "feature_importances_"):
+        imps = sorted(zip(X.columns, best_model.feature_importances_), key=lambda x: -x[1])
+        lines.append(f"\n── Feature Importances ({best_name}) ──")
+        for feat, imp in imps[:10]:
+            lines.append(f"  {feat:<32} {imp:.4f}  {'█' * int(imp * 40)}")
+
+    _session["ml_results"] = {"mode": "regression", "results": results,
+                               "best_model": best_name, "target": target_column}
+    result_text = "\n".join(lines)
+    save_report.invoke({"content": result_text, "filename": "regression_report.md"})
+    return result_text
+
+
+@tool
+def generate_plotly_viz(mode: str = "auto") -> str:
+    """
+    Generate interactive Plotly visualization code tailored to the analysis mode.
+    mode: 'auto' | 'eda' | 'classification' | 'clustering' | 'regression'
+    Saves visualization.py to the DataAnalyst Agent folder.
+    """
+    err = _need_df()
+    if err: return err
+    df = _session["df"]
+    num_cols = df.select_dtypes(include="number").columns.tolist()
+    cat_cols = df.select_dtypes(include="object").columns.tolist()
+    ml = _session.get("ml_results", {})
+    target = _session.get("target", "")
+    fp = _session.get("file_path", "data.csv")
+    actual_mode = (ml.get("mode") or _session.get("mode") or mode) if mode == "auto" else mode
+
+    lines = [
+        "import pandas as pd",
+        "import numpy as np",
+        "import plotly.graph_objects as go",
+        "import plotly.express as px",
+        "from plotly.subplots import make_subplots",
+        "",
+        f"df = pd.read_csv(r'{fp}')",
+        f"NUM = {num_cols}",
+        f"CAT = {cat_cols}",
+        "",
+    ]
+
+    if actual_mode == "classification" and target:
+        lines += [
+            f"# Fig 1 — Feature distributions by class",
+            f"fig = px.box(df, x='{target}', y=NUM[0] if NUM else df.columns[0],",
+            f"             color='{target}', title='Feature Distribution by Class', template='plotly_dark')",
+            "fig.write_html('fig1_class_distribution.html'); fig.show()",
+            "",
+            "# Fig 2 — Correlation heatmap",
+            "corr = df[NUM].corr().round(2)",
+            "fig2 = px.imshow(corr, text_auto=True, color_continuous_scale='RdBu_r',",
+            "                 title='Correlation Matrix', template='plotly_dark')",
+            "fig2.write_html('fig2_correlation.html'); fig2.show()",
+            "",
+            "# Fig 3 — Scatter matrix (first 4 numeric features)",
+            f"fig3 = px.scatter_matrix(df, dimensions=NUM[:4], color='{target}',",
+            "                          title='Scatter Matrix', template='plotly_dark', opacity=0.5)",
+            "fig3.write_html('fig3_scatter_matrix.html'); fig3.show()",
+        ]
+    elif actual_mode == "clustering":
+        lines += [
+            "# Fig 1 — Cluster scatter via PCA",
+            "from sklearn.decomposition import PCA",
+            "pca = PCA(n_components=2)",
+            "coords = pca.fit_transform(df[NUM].fillna(0))",
+            "df_plot = pd.DataFrame(coords, columns=['PC1','PC2'])",
+            "cluster_col = 'cluster' if 'cluster' in df.columns else df.columns[-1]",
+            "df_plot['cluster'] = df[cluster_col].astype(str)",
+            "fig = px.scatter(df_plot, x='PC1', y='PC2', color='cluster',",
+            "                 title='Cluster Visualization (PCA)', template='plotly_dark', opacity=0.7)",
+            "fig.write_html('fig1_clusters.html'); fig.show()",
+            "",
+            "# Fig 2 — Cluster sizes",
+            "sizes = df[cluster_col].value_counts().reset_index()",
+            "sizes.columns = ['Cluster','Count']",
+            "fig2 = px.pie(sizes, names='Cluster', values='Count',",
+            "              title='Cluster Size Distribution', template='plotly_dark')",
+            "fig2.write_html('fig2_cluster_sizes.html'); fig2.show()",
+        ]
+    elif actual_mode == "regression" and target:
+        lines += [
+            f"# Fig 1 — Target distribution",
+            f"fig = px.histogram(df, x='{target}', nbins=40,",
+            f"                   title='Distribution of {target}', template='plotly_dark')",
+            "fig.write_html('fig1_target_dist.html'); fig.show()",
+            "",
+            "# Fig 2 — Feature correlation with target",
+            f"corr_t = df[NUM].corr()['{target}'].drop('{target}').sort_values()",
+            "fig2 = px.bar(x=corr_t.values, y=corr_t.index, orientation='h',",
+            f"             title='Feature Correlation with {target}', template='plotly_dark')",
+            "fig2.write_html('fig2_corr_target.html'); fig2.show()",
+            "",
+            "# Fig 3 — Top features scatter matrix",
+            f"top_feats = corr_t.abs().sort_values(ascending=False).index[:4].tolist()",
+            f"fig3 = px.scatter_matrix(df, dimensions=top_feats + ['{target}'],",
+            "                          title='Feature vs Target', template='plotly_dark', opacity=0.5)",
+            "fig3.write_html('fig3_feature_scatter.html'); fig3.show()",
+        ]
+    else:
+        lines += [
+            "# Fig 1 — Correlation heatmap",
+            "corr = df[NUM].corr().round(2)",
+            "fig = px.imshow(corr, text_auto=True, color_continuous_scale='RdBu_r',",
+            "                title='Correlation Heatmap', template='plotly_dark')",
+            "fig.write_html('fig1_heatmap.html'); fig.show()",
+            "",
+            "# Fig 2 — Feature distributions",
+            "fig2 = make_subplots(rows=2, cols=3, subplot_titles=NUM[:6])",
+            "for i, col in enumerate(NUM[:6]):",
+            "    r, c = i // 3 + 1, i % 3 + 1",
+            "    fig2.add_trace(go.Histogram(x=df[col].dropna(), name=col, showlegend=False), row=r, col=c)",
+            "fig2.update_layout(title='Feature Distributions', template='plotly_dark')",
+            "fig2.write_html('fig2_distributions.html'); fig2.show()",
+            "",
+            "# Fig 3 — Box plots",
+            "fig3 = go.Figure([go.Box(y=df[col].dropna(), name=col) for col in NUM[:8]])",
+            "fig3.update_layout(title='Box Plots — Outlier Overview', template='plotly_dark')",
+            "fig3.write_html('fig3_boxplots.html'); fig3.show()",
+        ]
+
+    code = "\n".join(lines)
+    out = _data_dir() / "visualization.py"
+    out.write_text(code, encoding="utf-8")
+    return (
+        f"Plotly visualization code written ({actual_mode} mode):\n  {out}\n\n"
+        f"Run: python visualization.py\n"
+        f"Requires: pip install plotly scikit-learn pandas\n\n"
+        f"```python\n{code}\n```"
+    )
+
+
+# ── New tool groups ────────────────────────────────────────────────────────────
+
+PROFILER_TOOLS = [list_data_files, load_dataset, inspect_data, detect_analysis_mode]
+
+FEATURE_TOOLS  = [
+    fix_column_names, drop_missing, fill_missing, remove_duplicates,
+    remove_outliers, encode_features, scale_features, save_dataset, cleaning_log,
+]
+
+ML_TOOLS = [run_classification, run_clustering, run_regression,
+            descriptive_stats, correlation_matrix, top_correlations, save_report]
+
+PLOTLY_VIZ_TOOLS = [generate_plotly_viz, save_report]

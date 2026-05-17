@@ -39,11 +39,24 @@ const IcoHeart      = ({size=14})=> <S size={size}><path d="M12 20s-7-4.5-7-10a4
 const IcoBook       = ({size=14})=> <S size={size}><path d="M4 4h6a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4z"/><path d="M20 4h-6a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h7z"/></S>;
 const IcoLamp       = ({size=14})=> <S size={size}><path d="M9 18h6M10 22h4M8 14a6 6 0 1 1 8 0l-1 3H9z"/></S>;
 const IcoCandlestick= ({size=16})=> <S size={size}><path d="M9 4v3M9 13v3M15 8v3M15 17v3"/><rect x="7" y="7" width="4" height="6" rx="0.5"/><rect x="13" y="11" width="4" height="6" rx="0.5"/></S>;
+const IcoChart      = ({size=14})=> <S size={size}><path d="M3 20h18M3 20V8l5 4 4-6 4 4 5-6"/></S>;
+const IcoTrend      = ({size=14})=> <S size={size}><path d="M22 7l-8 8-4-4-7 7"/><path d="M16 7h6v6"/></S>;
+const IcoPixel = ({size=15}) => (
+  <svg viewBox="0 0 15 15" width={size} height={size} fill="currentColor">
+    <rect x="0" y="0" width="4" height="4"/>
+    <rect x="6" y="0" width="4" height="4"/>
+    <rect x="0" y="6" width="4" height="4"/>
+    <rect x="6" y="6" width="4" height="4"/>
+    <rect x="0" y="11" width="4" height="4"/>
+    <rect x="6" y="11" width="4" height="4"/>
+  </svg>
+);
 
 window.Icons = {
   IcoSend, IcoSearch, IcoClock, IcoFile, IcoCmd, IcoUsers, IcoX, IcoClip,
-  IcoRocket, IcoPanelClose, IcoPanelOpen, IcoSun, IcoMoon, IcoDownload,
+  IcoRocket, IcoPanelClose, IcoPanelOpen, IcoSun, IcoMoon, IcoPixel, IcoDownload,
   IcoArrowRight, IcoPlus, IcoUpload, IcoCheck, IcoReceipt, IcoSparkle,
   IcoDashboard, IcoChat, IcoLeaf, IcoFeather, IcoNewspaper, IcoCode,
   IcoCalendar, IcoCoin, IcoHeart, IcoBook, IcoLamp, IcoCandlestick,
+  IcoChart, IcoTrend,
 };

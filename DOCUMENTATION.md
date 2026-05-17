@@ -120,7 +120,7 @@ Output files written → GET /api/crew/status/{job_id} polls until done
 ai_python/
 │
 ├── main.py              ← CLI entry point (chat agents only)
-├── server.py            ← FastAPI web server (chat + crew endpoints)
+├── server.py            ← FastAPI web server (chat + crew + scraper endpoints)
 ├── router.py            ← Supervisor: classifies and routes chat messages
 ├── crewai_agents.py     ← CrewAI pipelines: Ibn Al-Haytham (7-agent) + DataAnalyst (3-agent)
 │
@@ -131,7 +131,7 @@ ai_python/
 │   ├── news_agent.py    ← Najwa: 24h news briefings
 │   ├── coding_agent.py  ← Linus: programming tutor
 │   ├── schedule_agent.py← CalCore: Google Calendar
-│   ├── budget_agent.py  ← Mansa: personal finance
+│   ├── budget_agent.py  ← Mansa: personal finance (18 tools, multi-account + net worth)
 │   ├── research_agent.py← Ferry: deep autonomous research
 │   ├── davinci_agent.py ← Da Vinci: creative thinking
 │   └── journal_agent.py ← Dostoyevsky: personal journaling
@@ -141,15 +141,24 @@ ai_python/
 │   ├── notes_tools.py   ← create/read/search/update/delete notes + URL fetch
 │   ├── news_tools.py    ← DuckDuckGo search (last 24h)
 │   ├── schedule_tools.py← Google Calendar API
-│   ├── budget_tools.py  ← add income/expense, balance, monthly summary
+│   ├── budget_tools.py  ← 18 tools: accounts, net worth, investments, budget goals, recurring
 │   ├── research_tools.py← deep web search, iterative search, URL fetch, compile report
 │   ├── wiki_tools.py    ← Obsidian-style wiki (write/query/ingest/update/lint)
 │   └── autoresearch_tools.py ← persistent experiment log for research programs
 │
+├── social_scraper/      ← Multi-platform social media scraper (crew_type: "scraper")
+│   ├── __init__.py
+│   ├── agents/
+│   │   ├── scrapegraph_harvester.py  ← ScrapeGraphAI v2 + Mistral harvester (active)
+│   │   ├── crawl4ai_harvester.py     ← Legacy crawl4ai harvester (kept as reference)
+│   │   └── summarizer_agent.py       ← Mistral AI per-platform summary generator
+│   └── data/raw/                     ← Raw scraped JSON per platform/timestamp
+│
 ├── data/                ← JSON flat-file storage
 │   ├── tasks.json       ← list of task objects
 │   ├── notes.json       ← list of note objects
-│   └── budget.json      ← list of transaction objects
+│   └── budget.json      ← dict: {accounts, transactions, budget_goals, investments,
+│                                  net_worth_history, recurring}
 │
 ├── credentials/         ← Google OAuth (never commit)
 │   ├── credentials.json ← Downloaded from Google Cloud Console
@@ -157,19 +166,22 @@ ai_python/
 │
 ├── static/
 │   ├── index.html       ← Redirect stub (points to /index/)
-│   ├── index/           ← Multi-file React frontend
+│   ├── index/           ← Multi-file React frontend (main app)
 │   │   ├── index.html   ← HTML shell (loads JSX + CSS via Babel CDN)
 │   │   ├── app.jsx      ← Root App component, theme, keyboard shortcuts
 │   │   ├── views.jsx    ← ChatView, DashboardView, Sidebar, RightPanel, Masthead
 │   │   ├── overlays.jsx ← CommandPalette, CrewDrawer, ResultModal
-│   │   ├── data.jsx     ← AGENTS config, MOCK data, API helpers
+│   │   ├── data.jsx     ← AGENTS config, AGENT_CLUSTERS, MOCK data, API helpers
 │   │   ├── icons.jsx    ← SVG icon components
 │   │   └── styles.css   ← All styles (CSS variables, dark/light theme)
+│   ├── finance/         ← Mansa Finance Dashboard (standalone page at /finance)
+│   │   └── index.html   ← Paper & Ink design; light/dark mode; 6 sections + chat panel
 │   ├── avatars/         ← Agent avatar images (one JPG per agent)
 │   └── uploads/         ← CSV uploads for DataAnalyst pipeline
 │
 ├── AI Data/             ← Agent output files, wiki, research reports
-│   └── Ferry Agent/     ← Ibn Al-Haytham pipeline output (task1_scout.txt … task6_final_report.md)
+│   ├── Ferry Agent/     ← Ibn Al-Haytham pipeline output (task1_scout.txt … task6_final_report.md)
+│   └── Social Scraper/  ← Per-platform AI summaries (platform_YYYY-MM-DD.md)
 │
 ├── docs/superpowers/    ← Design specs and implementation plans
 │   ├── specs/
@@ -178,6 +190,7 @@ ai_python/
 ├── .env                 ← API keys (never commit)
 ├── requirements.txt     ← Python dependencies
 ├── CLAUDE.md            ← Project instructions for Claude Code
+├── cassanovaL_instruction.md  ← Manual guide: adding new agents
 └── DOCUMENTATION.md     ← This file
 ```
 
@@ -481,9 +494,17 @@ def create_task_agent():
 
 ### budget_agent.py
 **Agent name:** Mansa
-- **Tools available:** `add_income`, `add_expense`, `get_balance`, `list_transactions`, `get_monthly_summary`, `delete_transaction`
-- **Data store:** `data/budget.json`
+- **Tools available (18 total):**
+  - *Transactions (6):* `add_income`, `add_expense`, `get_balance`, `list_transactions`, `get_monthly_summary`, `delete_transaction`
+  - *Accounts (3):* `add_account`, `list_accounts`, `update_account_balance`
+  - *Net Worth (2):* `get_net_worth`, `snapshot_net_worth`
+  - *Budget Goals (2):* `set_budget_goal`, `check_budget_goals`
+  - *Investments (3):* `add_investment`, `update_investment_price`, `get_portfolio_summary`
+  - *Recurring (2):* `add_recurring`, `get_recurring`
+- **Data store:** `data/budget.json` — dict schema with 6 keys (see Section 10)
+- **Finance Dashboard:** Mansa's sidebar entry opens `/finance` (standalone page) instead of a chat tab; the chat panel on `/finance` still routes to the `budget` agent
 - **Localized:** uses Rupiah (Rp) by default, responds in Indonesian if addressed in Indonesian
+- **max_tokens:** 2048 (bumped from 1024 to handle rich multi-account responses)
 
 ### research_agent.py
 **Agent name:** Ferry
@@ -642,32 +663,77 @@ for e in events:
 
 ### budget_tools.py
 
-**Transaction data structure:**
+`budget_tools.py` was fully rewritten from 6 to **18 tools** to support multi-account wealth management (inspired by Maybe Finance / Sure).
+
+**Schema migration:** `_load()` detects the old flat list format (`[{type, amount, ...}]`) and auto-migrates to the new dict structure on first load — zero data loss, zero manual intervention.
+
+**Type constants:**
+```python
+LIABILITY_TYPES = {"credit_card", "loan"}
+ASSET_TYPES     = {"checking", "savings", "e_wallet", "investment_account", "property", "other"}
+```
+
+**Transaction data structure (in `transactions` list):**
 ```json
 {
   "id": "3c7d8e9a",
-  "type": "expense",
+  "type": "income | expense",
   "amount": 50000.0,
   "category": "food",
   "description": "lunch at warung",
   "date": "2025-04-04",
+  "account": "BCA Tabungan",
   "created_at": "2025-04-04 12:30"
 }
 ```
 
-| Tool | What it does |
-|------|-------------|
-| `add_income(amount, category, description, date)` | Records income transaction |
-| `add_expense(amount, category, description, date)` | Records expense transaction |
-| `get_balance()` | `sum(income) - sum(expense)` across all time |
-| `list_transactions(month, tx_type)` | Filter by month (YYYY-MM) and/or type |
-| `get_monthly_summary(month)` | Grouped totals by category for a month |
-| `delete_transaction(transaction_id)` | Remove a transaction |
+**Account data structure (in `accounts` list):**
+```json
+{
+  "name": "BCA Tabungan",
+  "account_type": "checking | savings | e_wallet | credit_card | investment_account | loan | property | other",
+  "balance": 5000000.0,
+  "currency": "IDR",
+  "created_at": "2026-04-01 09:00"
+}
+```
+
+**Net worth formula:** `assets_total + investment_market_value − liabilities_total`
+where `investment_market_value = sum(qty × current_price)` per holding.
+
+**Account balance auto-update:** When `account` param is provided to `add_income`/`add_expense`,
+the matching account balance is updated in-place. Expense on a liability account *increases* balance
+(debt grows); expense on an asset account *decreases* balance.
+
+**All 18 tools:**
+
+| Group | Tool | What it does |
+|-------|------|-------------|
+| Transactions | `add_income(amount, category, description, date, account)` | Records income; updates account balance |
+| | `add_expense(amount, category, description, date, account)` | Records expense; updates account balance |
+| | `get_balance()` | `sum(income) − sum(expense)` across all time |
+| | `list_transactions(month, tx_type, account)` | Filter by month, type, and/or account |
+| | `get_monthly_summary(month)` | Grouped totals by category for a month |
+| | `delete_transaction(transaction_id)` | Remove a transaction by ID |
+| Accounts | `add_account(name, account_type, balance, currency)` | Add a bank/wallet/credit account |
+| | `list_accounts()` | All accounts grouped by type; assets vs liabilities totals |
+| | `update_account_balance(account_name, new_balance)` | Sync balance manually from bank app |
+| Net Worth | `get_net_worth()` | Assets − Liabilities + investment market value |
+| | `snapshot_net_worth()` | Save net worth snapshot to `net_worth_history` |
+| Budget Goals | `set_budget_goal(category, monthly_limit, month)` | Set spending cap per category |
+| | `check_budget_goals(month)` | Actual vs goal per category with progress % |
+| Investments | `add_investment(ticker, name, inv_type, quantity, buy_price, currency)` | Add stock/crypto/bond/reksadana |
+| | `update_investment_price(ticker, current_price)` | Update market price for a holding |
+| | `get_portfolio_summary()` | Holdings table: qty × price, P&L, total value |
+| Recurring | `add_recurring(description, amount, category, frequency, next_date, account)` | Add recurring bill/subscription |
+| | `get_recurring()` | Upcoming recurring sorted by next_date |
 
 **Number formatting:**
 ```python
 f"+{amount:,.0f}"   # → "+50,000" (comma thousands separator, no decimals)
 ```
+
+**Obsidian mirror (`_mirror`):** After every write operation, re-generates the monthly markdown file in `AI Data/Mansa Agent/` including account balances and current net worth alongside the transaction log.
 
 ---
 
@@ -711,19 +777,33 @@ All data is stored as **JSON flat files** in `data/`. There is no database.
 ]
 ```
 
-**data/budget.json** — list of transaction objects
+**data/budget.json** — dict with 6 keys (auto-migrated from old flat-list format on first load)
 ```json
-[
-  {
-    "id": "string (8 chars)",
-    "type": "income | expense",
-    "amount": 50000.0,
-    "category": "string",
-    "description": "string",
-    "date": "YYYY-MM-DD",
-    "created_at": "YYYY-MM-DD HH:MM"
-  }
-]
+{
+  "accounts": [
+    { "name": "string", "account_type": "checking|savings|e_wallet|credit_card|investment_account|loan|property|other",
+      "balance": 0.0, "currency": "IDR", "created_at": "YYYY-MM-DD HH:MM" }
+  ],
+  "transactions": [
+    { "id": "string (8 chars)", "type": "income|expense", "amount": 50000.0,
+      "category": "string", "description": "string", "date": "YYYY-MM-DD",
+      "account": "string", "created_at": "YYYY-MM-DD HH:MM" }
+  ],
+  "budget_goals": [
+    { "category": "string", "monthly_limit": 1500000.0, "month": "YYYY-MM", "created_at": "..." }
+  ],
+  "investments": [
+    { "ticker": "BBCA", "name": "string", "inv_type": "stock|crypto|bond|reksadana|other",
+      "quantity": 100.0, "buy_price": 8500.0, "current_price": 9200.0, "currency": "IDR" }
+  ],
+  "net_worth_history": [
+    { "date": "YYYY-MM-DD", "net_worth": 0.0, "assets": 0.0, "liabilities": 0.0, "investments": 0.0 }
+  ],
+  "recurring": [
+    { "id": "string", "description": "Spotify", "amount": 55000.0, "category": "Subscription",
+      "frequency": "monthly|weekly|yearly", "next_date": "YYYY-MM-DD", "account": "string" }
+  ]
+}
 ```
 
 ---
@@ -777,6 +857,51 @@ Upload CSVs via `POST /api/upload` → select in Crew Mode → launch.
 
 ---
 
+### Social Scraper Pipeline (`crew_type: "scraper"`)
+
+A two-stage AI pipeline that harvests trending content from up to 12 social platforms and generates structured, per-platform summaries in Indonesian.
+
+**Stage 1 — ScrapeGraphHarvester** (`social_scraper/agents/scrapegraph_harvester.py`)
+
+Uses **ScrapeGraphAI v2** with Mistral as the LLM backend. For each platform:
+
+```
+SearchGraph(prompt)
+    └── SearchInternetNode  — DuckDuckGo search for "{platform} trending today"
+    └── GraphIteratorNode   — SmartScraperGraph on top 5 result pages (Mistral extraction)
+    └── MergeAnswersNode    — Mistral merges all extracted data into one structured list
+```
+
+- Prompt is both the DuckDuckGo search query AND the LLM extraction instruction
+- Output saved to `social_scraper/data/raw/<platform>/scrapegraph_<platform>_<ts>.json`
+- 12 supported platforms: `youtube`, `tiktok`, `facebook`, `instagram`, `twitter`, `reddit`, `linkedin`, `medium`, `twitch`, `pinterest`, `quora`, `soundcloud`
+- Optional `keywords` filter to focus on specific topics
+
+**Stage 2 — SummarizerAgent** (`social_scraper/agents/summarizer_agent.py`)
+
+Reads raw JSON output from Stage 1 and calls `mistral-large-latest` to generate a structured markdown summary per platform:
+
+```
+## Trending Topics | ## Konten Populer | ## Tema Utama | ## Insight
+```
+
+Text is cleaned (noise removal: UI labels, nav links, short lines) and truncated to 6000 chars before sending to Mistral.
+
+**Output:** Per-platform summary tabs appear in ResultModal. Summaries are also persisted to `AI Data/Social Scraper/<Platform>_YYYY-MM-DD.md`.
+
+**Config reference (in `ScrapeGraphHarvester`):**
+```python
+{
+    "llm": { "model": "mistralai/mistral-small", "temperature": 0.1 },
+    "max_results": 5,   # top search result pages to fetch per platform
+    "headless": True,   # Playwright browser for JS-heavy pages
+}
+```
+
+> **First-time setup:** Run `playwright install chromium` after `pip install -r requirements.txt`.
+
+---
+
 ## 12. Frontend — static/index/
 
 The frontend is a **multi-file React app** loaded via Babel CDN (no build step). All files live in `static/index/`.
@@ -789,9 +914,39 @@ The frontend is a **multi-file React app** loaded via Babel CDN (no build step).
 | `app.jsx` | Root `App` component: state, theme, keyboard shortcuts (`Ctrl+K` = palette, `Esc` = close) |
 | `views.jsx` | `Sidebar`, `Masthead`, `ChatView`, `DashboardView`, `RightPanel` |
 | `overlays.jsx` | `CommandPalette`, `CrewDrawer` (Crew Mode), `ResultModal` |
-| `data.jsx` | `AGENTS` config map, `AGENT_ORDER`, mock data, `chatAPI`/`tasksAPI`/`notesAPI`/`budgetAPI` helpers |
+| `data.jsx` | `AGENTS` config, `AGENT_CLUSTERS`, `CLUSTER_ORDER`, mock data, API helpers |
 | `icons.jsx` | SVG icon components (`IcoX`, `IcoCheck`, `IcoRocket`, etc.) |
 | `styles.css` | CSS variables (`--ink`, `--paper`, `--clay`, `--hue-*`), dark/light theme, all component styles |
+
+**Agent Cluster System (`AGENT_CLUSTERS` in data.jsx):**
+
+Agents are grouped into 4 clusters displayed as filter tabs in the sidebar:
+
+| Cluster | Agents | Accent |
+|---------|--------|--------|
+| `all` | All agents | `--c-fg` |
+| `personal` | Alfred, Miyamoto, Mansa, Lavoisier, Dostoyevsky, Da Vinci | `--hue-alfred` |
+| `research` | Najwa | `--hue-najwa` |
+| `academic` | Cicero, Linus | `--hue-cicero` |
+| `trading` | (Stock pipeline via Crew Mode) | `#e6a817` |
+
+Each agent in `AGENTS` has a `cluster` field that maps it to one of the cluster keys.
+
+**External Agent Routing:**
+
+Agents with a `url` field in their `AGENTS` config open that URL in a new tab instead of a chat tab. Currently Mansa (`budget`) has `url: '/finance'`, making its sidebar entry a link to the Finance Dashboard. The roster row shows `↗` (external arrow) instead of the status dot.
+
+```javascript
+// data.jsx
+budget: {
+  name: 'Mansa', sub: 'Finance Dashboard', url: '/finance',
+  ...
+}
+
+// views.jsx — renders differently for external agents
+const isExternal = !!ag.url;
+onClick={() => isExternal ? window.open(ag.url, '_blank') : setActive(k)}
+```
 
 **State (all in `App`):**
 ```javascript
@@ -806,14 +961,42 @@ dash         // { tStats, tasks, budget, notes, notesTotal, recentTx }
 ```
 
 **CrewDrawer flow:**
-1. User picks pipeline type (Research or Data Analyst) + enters topic
+1. User picks pipeline type (Research / Data Analyst / Social Scraper) + enters topic
 2. `POST /api/crew/kickoff` → receives `job_id`
 3. `setInterval` polls `GET /api/crew/status/{job_id}` every 2.5s
-4. On `status: "done"` → outputs displayed in `ResultModal`
+4. On `status: "done"` → outputs displayed in `ResultModal` as file tabs
 
 **Crew Mode node display (research pipeline):**
 - 7 nodes with phase separators (Phase 1 / Phase 2 with parallel badge / Phase 3)
 - Each node shows: number, agent name, role, LLM badge (`mistral-small` / `gemma-4` / `mistral-large`)
+
+---
+
+## 12.1 Finance Dashboard — static/finance/index.html
+
+A **standalone HTML page** served at `/finance`. Matches the main app's Paper & Ink editorial design system exactly (same CSS tokens, fonts, light/dark mode).
+
+**Design system:**
+- Fonts: `Instrument Serif` (headings/display values), `JetBrains Mono` (labels), `Inter` (body)
+- CSS custom properties: `--paper`, `--ink`, `--rule`, `--clay`, `--mansa` (#A68A3E light / #D4B86A dark)
+- Theme persistence: `localStorage('cassanoval-theme')`; `data-theme` attribute on `<html>`
+
+**Layout:** 3-column grid — `sidebar (220px)` | `main content` | `chat panel (340px)`
+
+**6 navigation sections rendered by JS:**
+
+| Section | Content |
+|---------|---------|
+| Overview | Net worth card, income/expense stats, cash flow bar chart (Chart.js 4.4), accounts preview |
+| Rekening | Full accounts list grouped by type with asset/liability totals |
+| Portfolio | Investment holdings table: qty × price, P&L, total market value |
+| Budget Goals | Category goals with actual vs limit progress bars |
+| Transaksi | Paginated recent transactions with account and category filters |
+| Tagihan Rutin | Upcoming recurring bills sorted by next due date |
+
+**Chat panel:** Sends to `/api/chat` with `agent: 'budget'`. After each Mansa reply, `loadDashboard()` is called to refresh all displayed data.
+
+**Chart.js theming:** `getCSSVar()` reads current theme tokens at render time; `updateChartTheme()` called on theme toggle to update chart colors without recreating the canvas.
 
 ---
 
@@ -836,16 +1019,47 @@ Response: { "agent": "task", "response": "Done! Added 'buy milk'..." }
 ```
 
 ### GET /api/budget/summary
+Returns current balance, monthly totals, and recent transactions. Handles both old flat-list format and new dict format (backward-compatible).
 ```json
 { "balance": 4500000, "total_income": 5000000, "total_expense": 500000,
   "monthly_income": 5000000, "monthly_expense": 500000, "recent_transactions": [...] }
 ```
 
-### POST /api/crew/kickoff
-Start a CrewAI pipeline job.
+### GET /api/finance/dashboard
+Rich data payload for the Finance Dashboard page at `/finance`.
 ```json
-Request:  { "topic": "CRISPR gene editing", "crew_type": "research" }
-          { "topic": "Analyze sales trends", "crew_type": "dataanalyst", "filename": "sales.csv" }
+{
+  "net_worth": 18500000, "total_assets": 22000000, "total_liabilities": 3500000,
+  "investment_value": 4200000,
+  "accounts": [...],
+  "monthly_income": 8000000, "monthly_expense": 3200000, "current_month": "2026-05",
+  "cash_flow": [ { "month": "2026-01", "income": 7000000, "expense": 2800000 }, ... ],
+  "budget_goals": [ { "category": "Food", "monthly_limit": 1500000, "spent": 820000, "pct": 54 }, ... ],
+  "investments": [ { "ticker": "BBCA", "quantity": 100, "buy_price": 8500, "current_price": 9200,
+                     "market_value": 920000, "pnl": 70000, "pnl_pct": 8.2 }, ... ],
+  "recurring": [ { "description": "Spotify", "amount": 55000, "next_date": "2026-06-01", "days_until": 17 }, ... ],
+  "recent_transactions": [...],
+  "net_worth_history": [...]
+}
+```
+
+### GET /finance
+Serves `static/finance/index.html` — the standalone Mansa Finance Dashboard page.
+
+### POST /api/crew/kickoff
+Start a CrewAI pipeline or scraper job.
+```json
+// Research pipeline
+{ "topic": "CRISPR gene editing", "crew_type": "research" }
+
+// DataAnalyst pipeline
+{ "topic": "Analyze sales trends", "crew_type": "dataanalyst", "filename": "sales.csv" }
+
+// Social Scraper
+{ "topic": "AI trending", "crew_type": "scraper",
+  "platforms": ["youtube", "tiktok", "reddit"],   // null = default 4 platforms
+  "translate": false }
+
 Response: { "job_id": "a1b2c3d4" }
 ```
 
@@ -854,7 +1068,13 @@ Poll job status. Returns:
 ```json
 { "status": "running" | "done" | "error",
   "result": "final output string (when done)",
-  "outputs": { "task1_scout.txt": "...", "task6_final_report.md": "..." },
+  "outputs": {
+    "task1_scout.txt": "...",
+    "task6_final_report.md": "...",
+    "youtube_summary.md": "...",
+    "scraper_report.md": "..."
+  },
+  "logs": ["[Scraper] Starting...", "[YOUTUBE] Done — ..."],
   "error": "traceback (when error)" }
 ```
 
@@ -866,6 +1086,9 @@ List CSV files available for DataAnalyst pipeline.
 
 ### POST /api/upload
 Upload a CSV file for DataAnalyst pipeline. Form-data with `file` field.
+
+### POST /api/budget/scan-receipt
+Upload a receipt image for automatic expense parsing. Form-data with `file` field.
 
 ---
 
@@ -1054,23 +1277,46 @@ The `HumanMessage` / `AIMessage` classes are LangChain wrappers around the stand
 ## 15. Dependencies
 
 ```
-langchain          — Core framework, @tool decorator, create_agent
-langchain-mistralai — ChatMistralAI class (connects to Mistral API)
+# Core AI / LangChain
+langchain           — Core framework, @tool decorator, create_agent
+langchain-mistralai — ChatMistralAI (connects to Mistral API)
 langchain-community — DuckDuckGoSearchRun, DuckDuckGoSearchAPIWrapper
-langchain-core     — HumanMessage, AIMessage, PromptTemplate
-langgraph          — CompiledStateGraph (installed with langchain 1.x)
-crewai             — Agent, Task, Crew, LLM classes (pipeline orchestration)
-crewai-tools       — SerperDevTool, FileWriterTool
-linkup-sdk         — LinkUp deep search API client
-python-dotenv      — Reads .env file into os.environ
-requests           — HTTP client (URL fetching)
-duckduckgo-search  — DuckDuckGo search (free fallback)
-google-api-python-client  — Google Calendar API client
-google-auth-httplib2      — HTTP adapter for Google auth
-google-auth-oauthlib      — OAuth 2.0 flow for Google APIs
-fastapi            — Web framework (routes, middleware, request models)
-uvicorn[standard]  — ASGI server that runs FastAPI
-python-multipart   — Required by FastAPI for file uploads
+langchain-core      — HumanMessage, AIMessage, PromptTemplate
+langgraph           — CompiledStateGraph agent execution loop
+mistralai           — Direct Mistral AI client (used by SummarizerAgent)
+
+# Multi-agent pipelines
+crewai              — Agent, Task, Crew, LLM classes (pipeline orchestration)
+crewai-tools        — SerperDevTool, FileWriterTool
+
+# Web scraping
+scrapegraphai       — ScrapeGraphAI v2: SearchGraph + SmartScraperGraph + Mistral extraction
+                      (requires: playwright install chromium after pip install)
+
+# Search providers (priority: LinkUp > Serper > DuckDuckGo)
+linkup-sdk          — LinkUp deep search API client
+duckduckgo-search   — DuckDuckGo search (free fallback)
+
+# Google Calendar integration
+google-api-python-client — Google Calendar API client
+google-auth-httplib2     — HTTP adapter for Google auth
+google-auth-oauthlib     — OAuth 2.0 flow for Google APIs
+
+# Web server
+fastapi             — Web framework (routes, middleware, request models)
+uvicorn[standard]   — ASGI server that runs FastAPI
+python-multipart    — Required by FastAPI for file uploads
+
+# Utilities
+python-dotenv       — Reads .env file into os.environ
+requests            — HTTP client (URL fetching)
+yfinance            — Yahoo Finance data (stock pipeline)
+pandas              — DataFrame operations (DataAnalyst pipeline)
+plotly              — Chart generation (DataAnalyst pipeline)
+chromadb            — Vector store (research tools, wiki)
+scikit-learn        — ML utilities (DataAnalyst pipeline)
+scipy               — Statistical analysis (DataAnalyst pipeline)
+openpyxl            — Excel file reading (DataAnalyst pipeline)
 ```
 
 ---
@@ -1109,6 +1355,7 @@ pip install -r requirements.txt
 
 # Web mode (recommended)
 $env:PYTHONUTF8=1; python server.py
+cd "C:\Users\muham\OneDrive\Dokumen\Python\ai_python"
 # Open: http://localhost:8000
 
 # CLI mode (chat agents only)
@@ -1122,6 +1369,6 @@ $env:PYTHONUTF8=1; python crewai_agents.py --topic "Your research topic"
 Windows uses `cp1252` as the default terminal encoding. This forces Python to use UTF-8 everywhere — required for Indonesian characters, emoji, and any non-ASCII text in AI responses.
 
 ---
-
-*Documentation updated 2026-04-25 — Personal AI Multi-Agent Assistant*
-*Stack: Python 3.12 · LangChain 1.x · LangGraph · CrewAI · Mistral AI · Gemma 4 · FastAPI · React 18*
+$env:PYTHONUTF8=1; python server.py
+*Documentation updated 2026-05-15 — CassanovaL Personal AI Multi-Agent Assistant*
+*Stack: Python 3.12 · LangChain 1.x · LangGraph · CrewAI · ScrapeGraphAI v2 · Mistral AI · Gemma 4 · FastAPI · React 18*

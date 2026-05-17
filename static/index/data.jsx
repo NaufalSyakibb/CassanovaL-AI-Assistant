@@ -38,9 +38,10 @@ const AGENTS = {
     Ico: () => { const {IcoCalendar} = window.Icons; return <IcoCalendar/>; },
   },
   budget: {
-    name: 'Mansa', sub: 'Finance', hue: 'var(--hue-mansa)',
+    name: 'Mansa', sub: 'Finance Dashboard', hue: 'var(--hue-mansa)',
     issue: 'VI.', cluster: 'personal',
-    tagline: 'A ledger keeper of means and extravagance alike.',
+    url: '/finance',
+    tagline: 'Multi-account wealth tracker — net worth, budgets, portfolio, recurring bills.',
     greeting: 'Every coin has a place in the ledger. Shall we mark one, or take the measure of the month?',
     Ico: () => { const {IcoCoin} = window.Icons; return <IcoCoin/>; },
   },
@@ -52,8 +53,9 @@ const AGENTS = {
     Ico: () => { const {IcoHeart} = window.Icons; return <IcoHeart/>; },
   },
   journal: {
-    name: 'Dostoyevsky', sub: 'Journal', hue: 'var(--hue-dostoy)',
+    name: 'Dostoyevsky', sub: 'Personal Journal', hue: 'var(--hue-dostoy)',
     issue: 'VIII.', cluster: 'personal',
+    url: '/journal',
     tagline: 'A confessional page, held without judgment.',
     greeting: 'This page is yours. Begin anywhere. Begin badly, if you must.',
     Ico: () => { const {IcoBook} = window.Icons; return <IcoBook/>; },
@@ -65,17 +67,30 @@ const AGENTS = {
     greeting: 'Curiosity first. Let us sketch something improbable and see where it leads.',
     Ico: () => { const {IcoLamp} = window.Icons; return <IcoLamp/>; },
   },
+  euler: {
+    name: 'Euler', sub: 'Math Tutor', hue: 'var(--hue-euler)',
+    issue: 'X.', cluster: 'academic',
+    tagline: 'Step-by-step from first principles — calculus, linear algebra, statistics, probability.',
+    greeting: 'Tunjukkan soalnya. Kita selesaikan langkah demi langkah — tidak ada yang di-skip.',
+    Ico: () => { const {IcoChart} = window.Icons; return <IcoChart/>; },
+  },
+  orwell: {
+    name: 'Orwell', sub: 'Writing Coach', hue: 'var(--hue-orwell)',
+    issue: 'XI.', cluster: 'academic',
+    tagline: 'Clear prose, sharp arguments — essays, reports, emails, or creative writing.',
+    greeting: 'Apa yang perlu ditulis? Dari awal, atau ada draft yang perlu dipertajam?',
+    Ico: () => { const {IcoFeather} = window.Icons; return <IcoFeather/>; },
+  },
 };
-const AGENT_ORDER = ['task','notes','news','coding','schedule','budget','fitness','journal','davinci'];
+const AGENT_ORDER = ['task','notes','news','coding','schedule','budget','fitness','journal','davinci','euler','orwell'];
 
 const AGENT_CLUSTERS = {
   all:      { label: 'All',       accent: 'var(--c-fg)' },
   personal:  { label: 'Personal',  accent: 'var(--hue-alfred)' },
   research:  { label: 'Research',  accent: 'var(--hue-najwa)' },
-  academic:  { label: 'Academic',  accent: 'var(--hue-cicero)' },
-  trading:   { label: 'Trading',   accent: '#e6a817' },
+  academic:  { label: 'Academic',  accent: 'var(--hue-euler)' },
 };
-const CLUSTER_ORDER = ['all', 'personal', 'research', 'academic', 'trading'];
+const CLUSTER_ORDER = ['all', 'personal', 'research', 'academic'];
 
 const CHIPS = {
   task:     ['Add a task', 'List pending', 'Mark complete', 'Clear done'],
@@ -87,6 +102,8 @@ const CHIPS = {
   fitness:  ['Log workout', 'Track nutrition', 'My progress', 'Exercise wiki'],
   journal:  ["Today's entry", 'Reflect', 'Vent mode', 'Review the week'],
   davinci:  ['Brainstorm', 'Creative brief', 'Remix an idea', 'Random prompt'],
+  euler:    ['Jelaskan integral', 'Soal kalkulus', 'Aljabar linear', 'Statistik & peluang'],
+  orwell:   ['Tulis esai', 'Perbaiki teks ini', 'Cover letter', 'Email profesional'],
 };
 
 /* ── Formatters ──────────────────────────────────────────── */

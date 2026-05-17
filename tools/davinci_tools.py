@@ -3,17 +3,19 @@ Idea management tools for Leonardo da Vinci agent.
 Saves all ideas to: AI Data/Da Vinci Agent/
 One file per idea: Idea_YYYYMMDD_HHMMSS_Title.md
 """
+import os
 import re
 from pathlib import Path
 from datetime import datetime
 from langchain.tools import tool
 
-DAVINCI_FOLDER = Path(__file__).parent.parent / "AI Data" / "Da Vinci Agent"
-
 
 def _ideas_dir() -> Path:
-    DAVINCI_FOLDER.mkdir(parents=True, exist_ok=True)
-    return DAVINCI_FOLDER
+    vault = os.getenv("OBSIDIAN_VAULT_PATH", "").strip()
+    base = (Path(vault) / "Da Vinci Agent") if vault \
+           else (Path(__file__).parent.parent / "AI Data" / "Da Vinci Agent")
+    base.mkdir(parents=True, exist_ok=True)
+    return base
 
 
 def _now() -> str:

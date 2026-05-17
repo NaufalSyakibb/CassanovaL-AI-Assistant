@@ -276,10 +276,81 @@ async def get_notes():
         return {"notes": [], "total": 0}
 
 
+@app.get("/api/journal/dashboard")
+async def get_journal_dashboard():
+    from datetime import timedelta
+    MONTH_NAMES = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"]
+    DAY_NAMES   = ["Senin","Selasa","Rabu","Kamis","Jumat","Sabtu","Minggu"]
+    POSITIVE    = {"happy","senang","grateful","content","great","baik","gembira","bersyukur","excited","semangat","joy","joyful","calm","tenang","satisfied","puas","lega","antusias"}
+    NEGATIVE    = {"sad","sedih","anxious","cemas","stressed","stress","kecewa","lelah","tired","bad","buruk","down","frustrated","marah","angry","worried","khawatir","berat","burnout"}
+
+    vault = os.getenv("OBSIDIAN_VAULT_PATH","").strip()
+    journal_dir = Path(vault) / "Dostoyevsky Agent" if vault else Path("AI Data") / "Dostoyevsky Agent"
+
+    if not journal_dir.exists():
+        return {"entries":[],"today":None,"streak":0,"total_entries":0,"mood_history":[],"tags":[],"this_month_count":0,"current_month_label":""}
+
+    def mood_cat(mood: str) -> str:
+        m = mood.lower()
+        if any(w in m for w in POSITIVE): return "positive"
+        if any(w in m for w in NEGATIVE): return "negative"
+        if m in ("unspecified","—",""): return "none"
+        return "neutral"
+
+    files = sorted(journal_dir.glob("Journal_*.md"), reverse=True)[:90]
+    entries, mood_history, all_tags = [], [], set()
+
+    for f in files:
+        try: content = f.read_text(encoding="utf-8")
+        except: continue
+        date_str = f.stem.replace("Journal_","")
+        mood_m = re.search(r"^mood:\s*(.+)$", content, re.MULTILINE)
+        mood   = mood_m.group(1).strip() if mood_m else "unspecified"
+        tags_m = re.search(r"^tags:\s*\[([^\]]*)\]", content, re.MULTILINE)
+        tags   = [t.strip() for t in tags_m.group(1).split(",") if t.strip()] if tags_m else []
+        all_tags.update(tags)
+        body   = re.sub(r"^---.*?---\s*", "", content, flags=re.DOTALL).strip()
+        body   = re.sub(r"^# .*\n", "", body).strip()
+        wc     = len(body.split())
+        clean  = re.sub(r"[#*`>_\-]+", "", body).replace("\n"," ").strip()
+        preview= clean[:160] + ("…" if len(clean)>160 else "")
+        try:
+            dt = datetime.strptime(date_str, "%Y-%m-%d")
+            date_label = f"{dt.day} {MONTH_NAMES[dt.month-1]} {dt.year}"
+            day_name   = DAY_NAMES[dt.weekday()]
+        except:
+            date_label, day_name = date_str, ""
+        cat = mood_cat(mood)
+        entries.append({"date":date_str,"date_label":date_label,"day_name":day_name,"mood":mood,"mood_cat":cat,"word_count":wc,"preview":preview,"content":body})
+        mood_history.append({"date":date_str,"mood":mood,"mood_cat":cat})
+
+    today_str  = datetime.now().strftime("%Y-%m-%d")
+    dates_set  = {e["date"] for e in entries}
+    streak, start_i = 0, (0 if today_str in dates_set else 1)
+    for i in range(start_i, 60):
+        d = (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d")
+        if d in dates_set: streak += 1
+        else: break
+
+    now = datetime.now()
+    cur_month = now.strftime("%Y-%m")
+    return {
+        "entries": entries,
+        "today": next((e for e in entries if e["date"]==today_str), None),
+        "streak": streak,
+        "total_entries": len(entries),
+        "mood_history": mood_history,
+        "tags": sorted(all_tags),
+        "this_month_count": sum(1 for e in entries if e["date"].startswith(cur_month)),
+        "current_month_label": f"{MONTH_NAMES[now.month-1]} {now.year}",
+    }
+
+
 @app.get("/api/budget/summary")
 async def get_budget_summary():
     try:
-        data = json.loads(Path("data/budget.json").read_text(encoding="utf-8"))
+        raw = json.loads(Path("data/budget.json").read_text(encoding="utf-8"))
+        data = raw if isinstance(raw, list) else raw.get("transactions", [])
         total_income = sum(t["amount"] for t in data if t["type"] == "income")
         total_expense = sum(t["amount"] for t in data if t["type"] == "expense")
         current_month = datetime.now().strftime("%Y-%m")
@@ -302,6 +373,108 @@ async def get_budget_summary():
         }
 
 
+@app.get("/api/finance/dashboard")
+async def get_finance_dashboard():
+    from dateutil.relativedelta import relativedelta
+    try:
+        raw = json.loads(Path("data/budget.json").read_text(encoding="utf-8"))
+    except Exception:
+        raw = {}
+    if isinstance(raw, list):
+        raw = {"accounts": [], "transactions": raw, "budget_goals": [], "investments": [], "net_worth_history": [], "recurring": []}
+
+    accounts     = raw.get("accounts", [])
+    transactions = raw.get("transactions", [])
+    goals        = raw.get("budget_goals", [])
+    investments  = raw.get("investments", [])
+    recurring    = raw.get("recurring", [])
+
+    LIABILITY_TYPES = {"credit_card", "loan"}
+
+    # ── Net worth ──
+    total_assets      = sum(a["balance"] for a in accounts if a.get("account_type") not in LIABILITY_TYPES)
+    total_liabilities = sum(a["balance"] for a in accounts if a.get("account_type") in LIABILITY_TYPES)
+    inv_value         = sum(i["quantity"] * i.get("current_price", i["buy_price"]) for i in investments)
+    net_worth         = total_assets + inv_value - total_liabilities
+
+    # ── Monthly income/expense ──
+    now           = datetime.now()
+    current_month = now.strftime("%Y-%m")
+    month_names   = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"]
+    current_month_label = f"{month_names[now.month-1]} {now.year}"
+
+    monthly_txs     = [t for t in transactions if t.get("date","").startswith(current_month)]
+    monthly_income  = sum(t["amount"] for t in monthly_txs if t["type"] == "income")
+    monthly_expense = sum(t["amount"] for t in monthly_txs if t["type"] == "expense")
+
+    # ── Expense by category (current month) ──
+    cat_expense: dict = {}
+    for t in monthly_txs:
+        if t["type"] == "expense":
+            cat = t.get("category", "other")
+            cat_expense[cat] = cat_expense.get(cat, 0) + t["amount"]
+
+    # ── Investments with computed fields ──
+    inv_out = []
+    for i in investments:
+        cp    = i.get("current_price", i["buy_price"])
+        mv    = i["quantity"] * cp
+        pnl   = mv - i["quantity"] * i["buy_price"]
+        cost  = i["quantity"] * i["buy_price"]
+        pct   = round(pnl / cost * 100, 2) if cost else 0
+        inv_out.append({**i, "current_price": cp, "market_value": mv, "pnl": pnl, "pnl_pct": pct})
+
+    # ── Budget goals with spent & pct ──
+    goals_out = []
+    for g in goals:
+        if g.get("month") != current_month:
+            continue
+        cat   = g.get("category","")
+        spent = sum(t["amount"] for t in monthly_txs if t["type"]=="expense" and t.get("category")==cat)
+        limit = g.get("monthly_limit", 0)
+        pct   = round(spent / limit * 100, 1) if limit else 0
+        goals_out.append({**g, "spent": spent, "pct": pct})
+
+    # ── Recurring with days_until ──
+    rec_out = []
+    today   = now.date()
+    for r in recurring:
+        nd  = r.get("next_date")
+        try:
+            days = (datetime.strptime(nd, "%Y-%m-%d").date() - today).days
+        except Exception:
+            days = None
+        rec_out.append({**r, "days_until": days})
+    rec_out.sort(key=lambda x: x.get("next_date") or "9999")
+
+    # ── Cash flow last 6 months ──
+    cash_flow = []
+    for i in range(5, -1, -1):
+        m     = (now - relativedelta(months=i))
+        mkey  = m.strftime("%Y-%m")
+        label = f"{month_names[m.month-1][:3]} {m.year}"
+        inc   = sum(t["amount"] for t in transactions if t.get("date","").startswith(mkey) and t["type"]=="income")
+        exp   = sum(t["amount"] for t in transactions if t.get("date","").startswith(mkey) and t["type"]=="expense")
+        cash_flow.append({"month": label, "income": inc, "expense": exp})
+
+    return {
+        "net_worth":        net_worth,
+        "total_assets":     total_assets,
+        "investment_value": inv_value,
+        "total_liabilities":total_liabilities,
+        "monthly_income":   monthly_income,
+        "monthly_expense":  monthly_expense,
+        "current_month":    current_month_label,
+        "accounts":         accounts,
+        "investments":      inv_out,
+        "budget_goals":     goals_out,
+        "recent_transactions": sorted(transactions, key=lambda x: x.get("date",""), reverse=True)[:50],
+        "recurring":        rec_out,
+        "cash_flow":        cash_flow,
+        "cat_expense":      cat_expense,
+    }
+
+
 # ─── Stock Terminal ───────────────────────────────────────────────────────────
 
 def _sse(data: dict) -> str:
@@ -313,12 +486,23 @@ async def _run_agent(loop, fn, *args):
     return await loop.run_in_executor(None, fn, *args)
 
 
+def _normalize_ticker(raw: str) -> str:
+    """Auto-append .JK for IDX tickers (≤4 chars, no exchange suffix already)."""
+    t = raw.upper().strip()
+    if "." not in t and len(t) <= 4:
+        return t + ".JK"
+    return t
+
+
 @app.get("/api/stock/analyze")
 async def stock_analyze(ticker: str):
     if not ticker or len(ticker) > 20:
         raise HTTPException(status_code=400, detail="Invalid ticker symbol")
+    ticker = _normalize_ticker(ticker)
 
     async def generate():
+        # Yield immediately so the client marks gotData=true before imports run
+        yield _sse({"event": "log", "text": f"Initializing pipeline for {ticker}..."})
         try:
             from agents.stock_agents import (
                 run_deep_research, run_news_intelligence,
@@ -334,6 +518,28 @@ async def stock_analyze(ticker: str):
             growth = deep_research_data.get("growth_trend", "N/A")
             yield _sse({"event": "log", "text": f"Harga: {price} | Growth: {growth}"})
             yield _sse({"event": "step", "agent": "DeepResearch", "status": "done"})
+
+            # ── Market stats event (populates key-stats bar in terminal) ──────
+            pe_raw  = deep_research_data.get("pe_ratio")
+            roe_raw = deep_research_data.get("roe")
+            chg_1y  = deep_research_data.get("price_change_1y_pct") or 0
+            closes  = deep_research_data.get("ohlcv", {}).get("close", [])
+            rsi_val = None
+            if len(closes) >= 15:
+                delta  = [float(closes[i]) - float(closes[i-1]) for i in range(1, len(closes))]
+                gains  = [max(d, 0) for d in delta]
+                losses = [max(-d, 0) for d in delta]
+                ag = sum(gains[-14:]) / 14
+                al = sum(losses[-14:]) / 14
+                rsi_val = round(100 - 100 / (1 + ag / (al or 1e-10)), 1)
+            yield _sse({
+                "event": "market",
+                "price": float(price) if isinstance(price, (int, float)) else 0,
+                "chg":   round(float(chg_1y), 2),
+                "pe":    f"{float(pe_raw):.1f}x" if pe_raw else "N/A",
+                "roe":   f"{float(roe_raw) * 100:.1f}%" if roe_raw else "N/A",
+                "rsi":   rsi_val,
+            })
 
             await asyncio.sleep(5)
 
@@ -682,24 +888,47 @@ Path("static/stock").mkdir(exist_ok=True)
 @app.get("/stock", include_in_schema=False)
 @app.get("/stock/", include_in_schema=False)
 async def serve_stock_terminal():
+    # Primary: CassanovaL Terminal v2 in static root
+    terminal_v2 = Path("static/CassanovaL Terminal v2.html")
+    if terminal_v2.exists():
+        return FileResponse(str(terminal_v2))
+    # Fallback: stock/index.html
     stock_index = Path("static/stock/index.html")
     if stock_index.exists():
         return FileResponse(str(stock_index))
     return JSONResponse({"error": "Stock terminal not found"}, status_code=404)
 
 
-@app.get("/stock/v2", include_in_schema=False)
-@app.get("/stock/v2/", include_in_schema=False)
-async def serve_stock_terminal_v2():
-    stock_v2_index = Path("static/stock/index_v2.html")
-    if stock_v2_index.exists():
-        return FileResponse(str(stock_v2_index))
-    return JSONResponse({"error": "Stock terminal v2 not found"}, status_code=404)
-
-
 # Mounts must come AFTER explicit routes so Starlette checks routes first
 app.mount("/stock", StaticFiles(directory="static/stock", html=True), name="stock")
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.get("/journal", include_in_schema=False)
+@app.get("/journal/", include_in_schema=False)
+async def serve_journal():
+    p = Path("static/journal/index.html")
+    if p.exists():
+        return FileResponse(str(p), headers={"Cache-Control": "no-cache"})
+    return JSONResponse({"error": "Journal page not found"}, status_code=404)
+
+
+@app.get("/finance", include_in_schema=False)
+@app.get("/finance/", include_in_schema=False)
+async def serve_finance():
+    p = Path("static/finance/index.html")
+    if p.exists():
+        return FileResponse(str(p), headers={"Cache-Control": "no-cache"})
+    return JSONResponse({"error": "Finance page not found"}, status_code=404)
+
+
+@app.get("/pixel", include_in_schema=False)
+@app.get("/pixel/", include_in_schema=False)
+async def serve_pixel():
+    p = Path("static/pixel/index.html")
+    if p.exists():
+        return FileResponse(str(p), headers={"Cache-Control": "no-cache"})
+    return JSONResponse({"error": "Pixel page not found"}, status_code=404)
 
 
 @app.get("/{full_path:path}")

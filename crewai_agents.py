@@ -11,6 +11,7 @@ Usage:
 """
 
 import os
+import time
 import json
 import argparse
 import requests
@@ -23,8 +24,19 @@ from crewai_tools import SerperDevTool, FileWriterTool
 from langchain_community.tools import DuckDuckGoSearchRun
 from crewai.tools import BaseTool
 from concurrent.futures import ThreadPoolExecutor
+from typing import Type
+from pydantic import BaseModel, Field
 
 load_dotenv()
+
+# ── LiteLLM global retry config (handles 429 RateLimitError) ─────────────────
+try:
+    import litellm
+    litellm.num_retries = 6          # retry up to 6× on 429/5xx
+    litellm.request_timeout = 300    # 5-min timeout per call
+    litellm.drop_params = True       # silently drop unsupported params
+except Exception:
+    pass
 
 # ── LLMs ──────────────────────────────────────────────────────────────────────
 
@@ -33,6 +45,7 @@ def _make_mistral_llm(model: str = "mistral-large-latest", temperature: float = 
 
     base_url is set explicitly so LiteLLM always resolves api.mistral.ai correctly
     on Windows (avoids getaddrinfo failures caused by ambiguous provider routing).
+    max_retries=6 handles 429 RateLimitError with exponential backoff automatically.
     """
     api_key = os.getenv("MISTRAL_API_KEY")
     if not api_key:
@@ -43,55 +56,31 @@ def _make_mistral_llm(model: str = "mistral-large-latest", temperature: float = 
         base_url="https://api.mistral.ai/v1",
         temperature=temperature,
         max_tokens=2048,
+        max_retries=6,
+        timeout=300,
     )
 
 
-def _make_gemma_llm(model: str, api_key_env: str, temperature: float = 0.2) -> LLM:
-    """Create a Gemma LLM via Google AI Studio (LiteLLM gemini/ provider).
-
-    Model names follow Google AI Studio naming, e.g.:
-      'gemma-4'       — Gemma 4 (main / large variant)
-      'gemma-4-2b-it' — Gemma 4 2B instruction-tuned
-    Override model names via env vars GEMMA4_MODEL / GEMMA4_2_MODEL.
-    """
-    api_key = os.getenv(api_key_env)
-    if not api_key:
-        raise ValueError(f"{api_key_env} not found in .env file")
-    return LLM(
-        model=f"gemini/{model}",
-        api_key=api_key,
-        temperature=temperature,
-        max_tokens=2048,
-    )
-
-
-# ── Mistral LLMs (cloud) ───────────────────────────────────────────────────────
+# ── Mistral LLMs (cloud) — all agents use these ───────────────────────────────
 llm_large = _make_mistral_llm("mistral-large-latest", temperature=0.3)
 llm_small = _make_mistral_llm("mistral-small-latest", temperature=0.1)
 
-# ── Gemma4 LLMs (Google AI Studio) ────────────────────────────────────────────
-# Model names can be overridden via .env: GEMMA4_MODEL / GEMMA4_2_MODEL
-_gemma4_model   = os.getenv("GEMMA4_MODEL",   "gemma-4")
-_gemma4_2_model = os.getenv("GEMMA4_2_MODEL", "gemma-4-2b-it")
 
-def _get_gemma4_llm() -> LLM:
-    """Gemma4 large, falls back to mistral-large-latest if GEMMA4_API_KEY is absent."""
-    try:
-        return _make_gemma_llm(_gemma4_model, "GEMMA4_API_KEY", temperature=0.3)
-    except ValueError:
-        print("[WARN] GEMMA4_API_KEY not found — DataAnalyst Stats agent will use Mistral large.")
-        return _make_mistral_llm("mistral-large-latest", temperature=0.3)
+# ── Pydantic schemas for BaseTool args_schema ─────────────────────────────────
+# Prevents "Action Input is not a valid key, value dictionary" when Mistral
+# outputs a plain string instead of {"query": "..."} for tool calls.
 
-def _get_gemma4_2_llm() -> LLM:
-    """Gemma4 2B, falls back to mistral-small-latest if GEMMA4_2_API_KEY is absent."""
-    try:
-        return _make_gemma_llm(_gemma4_2_model, "GEMMA4_2_API_KEY", temperature=0.1)
-    except ValueError:
-        print("[WARN] GEMMA4_2_API_KEY not found — DataAnalyst Viz agent will use Mistral small.")
-        return _make_mistral_llm("mistral-small-latest", temperature=0.1)
+class _QueryInput(BaseModel):
+    query: str = Field(..., description="Search query string")
 
-llm_gemma4   = _get_gemma4_llm()
-llm_gemma4_2 = _get_gemma4_2_llm()
+class _FilenameInput(BaseModel):
+    filename: str = Field(..., description="Dataset filename, e.g. 'sales.csv'")
+
+class _OptQueryInput(BaseModel):
+    query: str = Field("", description="Optional query or instruction string")
+
+class _ModeInput(BaseModel):
+    mode: str = Field("auto", description="Analysis mode: auto, eda, classification, clustering, or regression")
 
 
 # ── Tools ─────────────────────────────────────────────────────────────────────
@@ -103,8 +92,11 @@ class LinkUpSearchTool(BaseTool):
         "Perform a deep web search using LinkUp. Returns full source content. "
         "Input should be a concise search query string."
     )
+    args_schema: Type[_QueryInput] = _QueryInput
 
     def _run(self, query: str) -> str:
+        if isinstance(query, dict):
+            query = query.get("query", "") or str(query)
         from linkup import LinkupClient
         client = LinkupClient(api_key=os.getenv("LINKUP_API_KEY", ""))
         response = client.search(
@@ -124,8 +116,11 @@ class SemanticScholarSearchTool(BaseTool):
         "Use this to find peer-reviewed articles and research publications. "
         "Input: a concise search query string."
     )
+    args_schema: Type[_QueryInput] = _QueryInput
 
     def _run(self, query: str) -> str:
+        if isinstance(query, dict):
+            query = query.get("query", "") or str(query)
         import time
         try:
             params = {
@@ -195,8 +190,11 @@ class OpenLibrarySearchTool(BaseTool):
         "Use this to find book-length references and classic academic texts. "
         "Input: a concise search query string."
     )
+    args_schema: Type[_QueryInput] = _QueryInput
 
     def _run(self, query: str) -> str:
+        if isinstance(query, dict):
+            query = query.get("query", "") or str(query)
         try:
             params = {"q": query, "limit": 8, "fields": "key,title,author_name,first_publish_year,language,edition_count,has_fulltext,ebook_access"}
             resp = requests.get(
@@ -250,8 +248,11 @@ else:
             "Search the web for current information. "
             "Input should be a concise search query string."
         )
+        args_schema: Type[_QueryInput] = _QueryInput
 
         def _run(self, query: str) -> str:
+            if isinstance(query, dict):
+                query = query.get("query", "") or str(query)
             return _ddg.run(query)
 
     research_search_tool = DuckDuckGoTool()
@@ -268,8 +269,11 @@ else:
         class DuckDuckGoToolDA(BaseTool):
             name: str = "DuckDuckGo Search"
             description: str = "Search the web. Input: concise query string."
+            args_schema: Type[_QueryInput] = _QueryInput
 
             def _run(self, query: str) -> str:
+                if isinstance(query, dict):
+                    query = query.get("query", "") or str(query)
                 return _ddg_da.run(query)
 
         search_tool = DuckDuckGoToolDA()
@@ -1194,7 +1198,7 @@ def make_filter_agent(topic: str) -> Agent:
 def make_idea_gen(topic: str) -> Agent:
     """Phase 2-A (parallel): generate novel angles and hypotheses."""
     return Agent(
-        llm=llm_gemma4,
+        llm=llm_large,
         role="Ibn Al-Haytham — Idea Generator",
         goal=(
             f"Based on curated sources about '{topic}', generate 4–6 novel research "
@@ -1225,7 +1229,7 @@ def make_idea_gen(topic: str) -> Agent:
 def make_validator_agent(topic: str) -> Agent:
     """Phase 2-B (parallel): cross-check claims, flag weak evidence."""
     return Agent(
-        llm=llm_gemma4,
+        llm=llm_large,
         role="Ibn Al-Haytham — Evidence Validator",
         goal=(
             f"Cross-check claims in the curated sources about '{topic}', "
@@ -1665,8 +1669,28 @@ class IbnAlHaythamPipeline:
             except Exception as exc:
                 valid_output = f"[PARTIAL: Validator failed — {exc}]"
 
+        # ── Fallback: run sequentially if parallel both failed ────────────────
         if ideas_output.startswith("[PARTIAL") and valid_output.startswith("[PARTIAL"):
-            raise RuntimeError("Phase 2 completely failed — both IdeaGen and Validator errored.")
+            print("[WARN] Phase 2 parallel both failed — retrying sequentially...")
+            try:
+                idea_gen2  = make_idea_gen(topic)
+                idea_task2 = make_idea_task(topic, idea_gen2, filter_context)
+                self._make_crew([idea_gen2], [idea_task2]).kickoff()
+                ideas_output = _read_phase_output("task3a_ideas.txt")
+            except Exception as exc:
+                ideas_output = f"[SKIPPED: IdeaGen unavailable — {exc}]"
+            try:
+                validator2  = make_validator_agent(topic)
+                valid_task2 = make_valid_task(topic, validator2, filter_context)
+                self._make_crew([validator2], [valid_task2]).kickoff()
+                valid_output = _read_phase_output("task3b_validation.txt")
+            except Exception as exc:
+                valid_output = f"[SKIPPED: Validator unavailable — {exc}]"
+
+        # If still both failed, synthesizer will work with partial context notes
+        if ideas_output.startswith("[SKIPPED") and valid_output.startswith("[SKIPPED"):
+            ideas_output = f"[Phase 2 could not run for '{topic}' — synthesize from Phase 1 filter output only.]"
+            valid_output = "[No validation performed — proceed with cautious hedging throughout.]"
 
         # ── Phase 3: Sequential (Synthesizer → Critic → Writer) ───────────────
         synthesizer = make_synthesizer(topic)
@@ -1988,232 +2012,374 @@ def build_career_crew(job_desc: str, cv_text: str = "", step_cb=None, task_cb=No
 # PIPELINE 2 — DATA ANALYST CREW  (Clean → Stats → Viz)
 # ══════════════════════════════════════════════════════════════════════════════
 
-class DataCleanCrewTool(BaseTool):
-    """Load + fully clean a dataset using the shared data_tools session."""
-    name: str = "run_data_cleaning_pipeline"
+# ── Streamline-Analyst Inspired DataAnalyst Crew (5 agents) ──────────────────
+
+
+class ProfilerCrewTool(BaseTool):
+    """Load dataset + profile schema + detect analysis mode."""
+    name: str = "run_dataset_profiling"
     description: str = (
-        "Load and fully clean a dataset file. "
-        "Input: the filename, e.g. 'sales.csv'. "
-        "Runs: load → fix column names → drop high-null rows/cols → fill missing → remove duplicates → save."
+        "Load and profile a dataset file. Detects analysis mode (classification/clustering/regression/eda) "
+        "and identifies target column candidates. Input: filename, e.g. 'sales.csv'."
     )
+    args_schema: Type[_FilenameInput] = _FilenameInput
 
     def _run(self, filename: str) -> str:
-        from tools.data_tools import (
-            _reset_session,
-            load_dataset, fix_column_names, drop_missing,
-            fill_missing, remove_duplicates, save_dataset, cleaning_log,
-        )
-        _reset_session()   # clear stale state from any previous run
+        if isinstance(filename, dict):
+            filename = filename.get("filename", "") or str(filename)
+        from tools.data_tools import _reset_session, load_dataset, inspect_data, detect_analysis_mode
+        _reset_session()
         parts = []
         try:
             parts.append(load_dataset.invoke({"file_path": filename.strip()}))
+            parts.append(inspect_data.invoke({"sample_rows": 3}))
+            parts.append(detect_analysis_mode.invoke({}))
+        except Exception as exc:
+            parts.append(f"Error during profiling: {exc}")
+        return "\n\n".join(p for p in parts if p)
+
+
+class PreprocessingCrewTool(BaseTool):
+    """Clean, encode, and scale the dataset for ML."""
+    name: str = "run_preprocessing_pipeline"
+    description: str = (
+        "Run full preprocessing: fix column names → drop high-null rows/cols → fill missing → "
+        "remove duplicates → encode categorical columns → scale numeric features → save. "
+        "Input: any string (ignored — operates on in-memory dataset)."
+    )
+    args_schema: Type[_OptQueryInput] = _OptQueryInput
+
+    def _run(self, query: str = "") -> str:
+        if isinstance(query, dict):
+            query = query.get("query", "") or ""
+        from tools.data_tools import (
+            fix_column_names, drop_missing, fill_missing, remove_duplicates,
+            encode_features, scale_features, save_dataset, cleaning_log,
+        )
+        parts = []
+        try:
             parts.append(fix_column_names.invoke({}))
             parts.append(drop_missing.invoke({}))
             parts.append(fill_missing.invoke({}))
             parts.append(remove_duplicates.invoke({}))
+            parts.append(encode_features.invoke({"strategy": "auto", "columns": ""}))
+            parts.append(scale_features.invoke({"method": "standard", "columns": ""}))
             parts.append(save_dataset.invoke({"filename": ""}))
             parts.append(cleaning_log.invoke({}))
         except Exception as exc:
-            parts.append(f"Error during cleaning: {exc}")
+            parts.append(f"Error during preprocessing: {exc}")
         return "\n\n".join(p for p in parts if p)
 
 
-class StatsAnalysisCrewTool(BaseTool):
-    """Run descriptive stats + correlation analysis on the already-loaded dataset."""
-    name: str = "run_statistical_analysis"
+class MLAnalysisCrewTool(BaseTool):
+    """Run mode-appropriate ML: classification, clustering, regression, or EDA stats."""
+    name: str = "run_ml_analysis"
     description: str = (
-        "Run full statistical analysis on the currently loaded dataset. "
-        "Computes descriptive stats, Pearson correlation matrix, and top correlations. "
-        "Input: any string (ignored — works on the in-memory dataset)."
+        "Run ML analysis based on detected mode. "
+        "Pass JSON: {\"mode\": \"classification|clustering|regression|eda\", "
+        "\"target_column\": \"col_name\", \"n_clusters\": 0}. "
+        "If mode/target omitted, uses values auto-detected by the Profiler."
     )
+    args_schema: Type[_OptQueryInput] = _OptQueryInput
 
     def _run(self, query: str = "") -> str:
+        if isinstance(query, dict):
+            query = json.dumps(query)
+        import json
         from tools.data_tools import (
-            descriptive_stats, correlation_matrix, top_correlations, save_report,
+            run_classification, run_clustering, run_regression,
+            descriptive_stats, correlation_matrix, top_correlations,
+            _session, save_report,
         )
+        try:
+            params = json.loads(query) if query.strip().startswith("{") else {}
+        except Exception:
+            params = {}
+
+        mode   = params.get("mode") or _session.get("mode") or "eda"
+        target = params.get("target_column") or _session.get("target") or ""
+        n_clus = int(params.get("n_clusters", 0))
+
         parts = []
         try:
-            parts.append(descriptive_stats.invoke({}))
-            parts.append(correlation_matrix.invoke({}))
-            parts.append(top_correlations.invoke({"threshold": 0.3}))
-            report_text = "\n\n".join(p for p in parts if p)
-            save_report.invoke({"content": report_text, "filename": "stats_report.md"})
+            if mode == "classification" and target:
+                parts.append(run_classification.invoke({"target_column": target, "test_size": 0.2}))
+            elif mode == "clustering":
+                parts.append(run_clustering.invoke({"n_clusters": n_clus, "algorithm": "kmeans"}))
+            elif mode == "regression" and target:
+                parts.append(run_regression.invoke({"target_column": target, "test_size": 0.2}))
+            else:
+                parts.append(descriptive_stats.invoke({}))
+                parts.append(correlation_matrix.invoke({}))
+                parts.append(top_correlations.invoke({"threshold": 0.3}))
+                report = "\n\n".join(p for p in parts if p)
+                save_report.invoke({"content": report, "filename": "stats_report.md"})
         except Exception as exc:
-            parts.append(f"Error during stats: {exc}")
+            parts.append(f"Error during ML analysis: {exc}")
         return "\n\n".join(p for p in parts if p)
 
 
-class VizGeneratorCrewTool(BaseTool):
-    """Generate runnable Python visualization code for the loaded dataset."""
-    name: str = "generate_visualization_code"
+class PlotlyVizCrewTool(BaseTool):
+    """Generate interactive Plotly visualization code."""
+    name: str = "generate_plotly_visualization"
     description: str = (
-        "Generate complete Python visualization code (matplotlib + seaborn) for the dataset. "
-        "Creates: correlation heatmap, distributions, pairplot, bar chart. "
-        "Input: any string (ignored — works on the in-memory dataset)."
+        "Generate interactive Plotly visualization code tailored to the analysis mode. "
+        "Input: mode string — 'auto', 'eda', 'classification', 'clustering', or 'regression'."
+    )
+    args_schema: Type[_ModeInput] = _ModeInput
+
+    def _run(self, mode: str = "auto") -> str:
+        if isinstance(mode, dict):
+            mode = mode.get("mode", "auto") or "auto"
+        from tools.data_tools import generate_plotly_viz, _session
+        try:
+            detected = _session.get("mode") or mode or "eda"
+            return generate_plotly_viz.invoke({"mode": detected})
+        except Exception as exc:
+            return f"Error generating visualization: {exc}"
+
+
+_profiler_tool   = ProfilerCrewTool()
+_preprocess_tool = PreprocessingCrewTool()
+_ml_tool         = MLAnalysisCrewTool()
+_plotly_tool     = PlotlyVizCrewTool()
+
+
+def make_profiler_agent() -> Agent:
+    return Agent(
+        llm=llm_small,
+        role="Dataset Profiler",
+        goal="Load the dataset, understand its structure, and determine the best analysis mode",
+        backstory=(
+            "You are a data scientist specialising in exploratory analysis. "
+            "You quickly understand what a dataset contains and recommend the most valuable "
+            "analysis mode — classification, regression, clustering, or pure EDA."
+        ),
+        tools=[_profiler_tool],
+        allow_delegation=False,
+        verbose=True,
+        max_iter=3,
     )
 
-    def _run(self, query: str = "") -> str:
-        from tools.data_tools import generate_viz_code
-        try:
-            return generate_viz_code.invoke({"charts": "all"})
-        except Exception as exc:
-            return f"Error generating viz code: {exc}"
 
-
-_data_clean_tool = DataCleanCrewTool()
-_stats_tool      = StatsAnalysisCrewTool()
-_viz_tool        = VizGeneratorCrewTool()
-
-
-def make_data_cleaner() -> Agent:
-    """Agent 1 — Mistral large: reliable cloud LLM for structured cleaning pipeline."""
+def make_preprocessing_agent() -> Agent:
     return Agent(
         llm=llm_large,
         function_calling_llm=llm_small,
-        role="Data Cleaning Specialist",
-        goal="Load and thoroughly clean the target dataset — standardize columns, handle nulls, remove duplicates",
+        role="Data Preprocessing Specialist",
+        goal="Transform the raw dataset into a clean, ML-ready format",
         backstory=(
-            "You are a meticulous data engineer with 10 years of experience cleaning messy datasets. "
-            "You never skip steps and always report before/after statistics so stakeholders know exactly what changed."
+            "You are a meticulous data engineer. You systematically clean data: fix column names, "
+            "handle missing values, remove duplicates, encode categorical features, and scale "
+            "numeric features — always reporting what changed and why."
         ),
-        tools=[_data_clean_tool],
+        tools=[_preprocess_tool],
         allow_delegation=False,
         verbose=True,
-        max_iter=4,
+        max_iter=3,
     )
 
 
-def make_stats_analyst_agent() -> Agent:
-    """Agent 2 — Gemma4: strong analytical reasoning for statistical interpretation."""
+def make_ml_analyst_agent() -> Agent:
     return Agent(
-        llm=llm_gemma4,
-        role="Statistical Analysis Specialist",
-        goal="Discover meaningful statistical patterns, correlations, and insights in the cleaned dataset",
+        llm=llm_large,
+        role="Machine Learning Analyst",
+        goal="Train and evaluate appropriate ML models, interpreting results and ranking key findings",
         backstory=(
-            "You are a senior data scientist specialising in exploratory data analysis. "
-            "You don't just print numbers — you interpret them, flag multicollinearity, "
-            "and deliver a ranked list of actionable insights."
+            "You are a senior ML engineer expert in supervised and unsupervised learning. "
+            "You select the right algorithm based on data characteristics, train multiple models, "
+            "compare performance, and extract meaningful insights from the metrics."
         ),
-        tools=[_stats_tool],
+        tools=[_ml_tool],
         allow_delegation=False,
         verbose=True,
-        max_iter=4,
+        max_iter=5,
     )
 
 
-def make_viz_agent() -> Agent:
-    """Agent 3 — Gemma4:2b for generation; Gemma4 for reliable tool-calling decisions."""
+def make_insight_agent() -> Agent:
+    # Mistral large — best writing quality for the executive summary
     return Agent(
-        llm=llm_gemma4_2,
-        function_calling_llm=llm_gemma4,
+        llm=llm_large,
+        role="Data Insight Analyst",
+        goal="Translate technical ML results into clear, actionable business insights",
+        backstory=(
+            "You are a data storyteller who bridges technical analysis and business strategy. "
+            "You read the ML results and produce a clear structured narrative: what the data "
+            "reveals, what the model found, and what actions are implied."
+        ),
+        tools=[],
+        allow_delegation=False,
+        verbose=True,
+        max_iter=3,
+    )
+
+
+def make_plotly_viz_agent() -> Agent:
+    return Agent(
+        llm=llm_small,
+        function_calling_llm=llm_large,
         role="Data Visualization Engineer",
-        goal="Generate production-quality Python visualization code that reveals the dataset's story",
+        goal="Generate production-quality interactive Plotly visualization code",
         backstory=(
-            "You are a Python visualization expert who turns raw numbers into compelling charts. "
-            "You write clean, well-commented matplotlib + seaborn code that runs out of the box."
+            "You are an expert in data visualization. You write clean, self-contained Plotly "
+            "code that creates interactive HTML charts, each chosen to reveal the most "
+            "important patterns in the data."
         ),
-        tools=[_viz_tool],
+        tools=[_plotly_tool],
         allow_delegation=False,
         verbose=True,
-        max_iter=4,
+        max_iter=3,
     )
 
 
-def make_clean_task(filename: str, agent: Agent) -> Task:
+def make_profile_task(filename: str, agent: Agent) -> Task:
     return Task(
         description=(
-            f"Load the file **'{filename}'** and run the full data cleaning pipeline:\n\n"
-            f"1. Load the file using `run_data_cleaning_pipeline('{filename}')`\n"
-            "2. The tool will automatically: fix column names, drop rows/cols with >50% nulls, "
-            "fill remaining missing values (median for numeric, mode for categorical), "
-            "remove duplicate rows, and save a `_cleaned.csv` snapshot.\n\n"
-            "Output a concise summary: shape before/after, columns, operations performed, saved filename."
+            f"Load **'{filename}'** using `run_dataset_profiling('{filename}')`. "
+            "Report: dataset shape, column types, missing value counts, "
+            "recommended analysis mode with justification, and suggested target column."
         ),
         expected_output=(
-            "A structured cleaning report: rows before/after, columns, null counts, "
-            "operations performed, and the path of the saved cleaned file."
+            "Dataset profile: shape, column types, null counts, "
+            "recommended analysis mode, target column suggestion."
         ),
         agent=agent,
-        output_file="task1_data_clean.txt",
+        output_file="task1_profile.txt",
     )
 
 
-def make_stats_task(agent: Agent, clean_task: Task) -> Task:
+def make_preprocessing_task(agent: Agent, profile_task: Task) -> Task:
     return Task(
         description=(
-            "The dataset has been cleaned and is loaded in memory. "
-            "Run `run_statistical_analysis('')` to perform:\n\n"
-            "1. Descriptive statistics (mean, std, quartiles, skewness, kurtosis)\n"
-            "2. Pearson correlation matrix\n"
-            "3. Top correlations above threshold 0.3\n\n"
-            "Interpret the results — don't just print numbers. "
-            "Flag strong correlations (|r| > 0.7), skewed distributions, and multicollinearity. "
-            "End with a ranked list of the **top 5 most interesting findings**."
+            "Dataset is loaded. Run `run_preprocessing_pipeline('')` to:\n"
+            "1. Fix column names (lowercase, snake_case)\n"
+            "2. Drop rows/columns with >50% missing values\n"
+            "3. Fill remaining missing values (median/mode)\n"
+            "4. Remove duplicates\n"
+            "5. Encode categorical columns (label for binary, one-hot for multi-class)\n"
+            "6. Scale numeric features (StandardScaler)\n"
+            "7. Save cleaned dataset\n\n"
+            "Report all transformations and final dataset shape."
         ),
         expected_output=(
-            "Statistical analysis report with: descriptive stats table, correlation matrix, "
-            "top correlations, interpretation of key findings, and top-5 insight list. "
-            "Report is auto-saved to stats_report.md."
+            "Preprocessing report: transformations applied, encoding details, "
+            "scaling method, final dataset shape."
         ),
         agent=agent,
-        context=[clean_task],
-        output_file="task2_stats_analysis.txt",
+        context=[profile_task],
+        output_file="task2_preprocessing.txt",
     )
 
 
-def make_viz_task(agent: Agent, stats_task: Task) -> Task:
+def make_ml_task(agent: Agent, profile_task: Task, preprocess_task: Task) -> Task:
     return Task(
         description=(
-            "The dataset is cleaned and analyzed. "
-            "Call `generate_visualization_code('')` to create a full visualization script.\n\n"
-            "The tool generates: correlation heatmap, feature distributions, "
-            "scatter matrix (pairplot), and categorical bar chart.\n\n"
-            "After the tool runs, explain:\n"
-            "1. What each figure shows and how to read it\n"
-            "2. The file path of the saved `visualization.py`\n"
-            "3. How to run it: `python visualization.py`\n"
-            "4. Which packages need to be installed: `pip install matplotlib seaborn pandas`"
+            "Dataset is cleaned and preprocessed. Based on the analysis mode from the Profiler:\n\n"
+            "- **classification** → `run_ml_analysis('{\"mode\":\"classification\",\"target_column\":\"<target>\"}')`\n"
+            "- **regression**     → `run_ml_analysis('{\"mode\":\"regression\",\"target_column\":\"<target>\"}')`\n"
+            "- **clustering**     → `run_ml_analysis('{\"mode\":\"clustering\",\"n_clusters\":0}')`\n"
+            "- **eda**            → `run_ml_analysis('{\"mode\":\"eda\"}')`\n\n"
+            "Read the mode and target column from the Profiler output in your context. "
+            "Interpret results: best model, key metrics, top features."
         ),
         expected_output=(
-            "Description of each chart, the visualization.py file path, run instructions, "
-            "and package install command."
+            "ML results: model comparison table, best model metrics, "
+            "feature importances (if applicable), key findings."
         ),
         agent=agent,
-        context=[stats_task],
-        output_file="task3_visualization.txt",
+        context=[profile_task, preprocess_task],
+        output_file="task3_ml_analysis.txt",
+    )
+
+
+def make_insight_task(agent: Agent, ml_task: Task) -> Task:
+    return Task(
+        description=(
+            "Read the ML analysis results from your context. Write an executive-style report:\n\n"
+            "1. **Data Summary** — key dataset characteristics\n"
+            "2. **Analysis Type** — what was analyzed and why\n"
+            "3. **Key Findings** — top 5 most important discoveries\n"
+            "4. **Model Performance** — what the best model achieves in plain language\n"
+            "5. **Actionable Insights** — concrete recommendations\n"
+            "6. **Next Steps** — caveats and further investigation areas\n\n"
+            "Write for a business audience: clear, concise, no unnecessary jargon."
+        ),
+        expected_output=(
+            "Executive insight report: data summary, key findings (ranked), "
+            "model performance in plain language, actionable recommendations."
+        ),
+        agent=agent,
+        context=[ml_task],
+        output_file="task4_insights.txt",
+    )
+
+
+def make_plotly_viz_task(agent: Agent, ml_task: Task) -> Task:
+    return Task(
+        description=(
+            "Analysis is complete. Generate interactive visualization code: "
+            "`generate_plotly_visualization('<mode>')` where <mode> matches the analysis mode "
+            "from the Profiler (classification/clustering/regression/eda).\n\n"
+            "After running the tool explain:\n"
+            "1. What each chart shows and how to interpret it\n"
+            "2. Saved file: visualization.py\n"
+            "3. Run with: `python visualization.py`\n"
+            "4. Requires: `pip install plotly scikit-learn pandas`"
+        ),
+        expected_output=(
+            "Chart descriptions, visualization.py path, run instructions, dependencies."
+        ),
+        agent=agent,
+        context=[ml_task],
+        output_file="task5_visualization.txt",
     )
 
 
 def build_data_crew(filename: str, step_cb=None, task_cb=None) -> Crew:
-    """Build a 3-agent sequential DataAnalyst crew with mixed LLMs.
+    """5-agent DataAnalyst crew — Streamline-Analyst architecture.
 
-    Agent assignment:
-      Agent 1 — Data Cleaner     → Mistral large (cloud, reliable structured output)
-      Agent 2 — Stats Analyst    → mistral-large-latest  (Mistral Cloud)
-      Agent 3 — Viz Engineer     → mistral-small-latest  (Mistral Cloud)
+    [1] Aristotle  (Profiler)       → mistral-small  — dataset profile + mode detection
+    [2] Lavoisier  (Preprocessing)  → mistral-large  — clean + encode + scale
+    [3] Turing     (ML Analyst)     → mistral-large  — classification / clustering / regression
+    [4] Florence   (Insight Writer) → mistral-large  — executive summary + business insights
+    [5] Tufte      (Viz Engineer)   → mistral-small  — interactive Plotly charts
+
+    All agents use Mistral with max_retries=6 + 2s step throttle to handle rate limits.
     """
-    print(f"\n{'='*60}")
-    print(f"  CrewAI DataAnalyst Crew — Mistral")
+    print(f"\n{'='*65}")
+    print(f"  CassanovaL DataAnalyst — Streamline-Analyst Architecture")
     print(f"  File: {filename}")
-    print(f"  Agents:")
-    print(f"    [1] Data Cleaner    → mistral-large-latest  (Mistral Cloud)")
-    print(f"    [2] Stats Analyst   → mistral-large-latest  (Mistral Cloud)")
-    print(f"    [3] Viz Engineer    → mistral-small-latest  (Mistral Cloud)")
-    print(f"{'='*60}\n")
+    print(f"    [1] Aristotle  (Profiler)       → mistral-small  (retries=6)")
+    print(f"    [2] Lavoisier  (Preprocessing)  → mistral-large  (retries=6)")
+    print(f"    [3] Turing     (ML Analyst)     → mistral-large  (retries=6)")
+    print(f"    [4] Florence   (Insight Writer) → mistral-large  (retries=6)")
+    print(f"    [5] Tufte      (Viz Engineer)   → mistral-small  (retries=6)")
+    print(f"{'='*65}\n")
 
-    cleaner  = make_data_cleaner()
-    stats    = make_stats_analyst_agent()
-    viz      = make_viz_agent()
+    # Throttle between LLM steps to avoid overwhelming the API
+    def _throttled_step_cb(step_output):
+        time.sleep(2)   # 2-second pause between every agent step
+        if step_cb:
+            step_cb(step_output)
 
-    clean_task = make_clean_task(filename, cleaner)
-    stats_task = make_stats_task(stats, clean_task)
-    viz_task   = make_viz_task(viz, stats_task)
+    profiler     = make_profiler_agent()
+    preprocessor = make_preprocessing_agent()
+    ml_analyst   = make_ml_analyst_agent()
+    insight      = make_insight_agent()
+    viz          = make_plotly_viz_agent()
+
+    profile_task    = make_profile_task(filename, profiler)
+    preprocess_task = make_preprocessing_task(preprocessor, profile_task)
+    ml_task         = make_ml_task(ml_analyst, profile_task, preprocess_task)
+    insight_task    = make_insight_task(insight, ml_task)
+    viz_task        = make_plotly_viz_task(viz, ml_task)
 
     return Crew(
-        agents=[cleaner, stats, viz],
-        tasks=[clean_task, stats_task, viz_task],
-        verbose=step_cb is None,   # verbose only in standalone CLI mode
-        step_callback=step_cb,
+        agents=[profiler, preprocessor, ml_analyst, insight, viz],
+        tasks=[profile_task, preprocess_task, ml_task, insight_task, viz_task],
+        verbose=step_cb is None,
+        step_callback=_throttled_step_cb,
         task_callback=task_cb,
     )
 

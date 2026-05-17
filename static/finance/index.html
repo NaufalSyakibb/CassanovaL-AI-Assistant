@@ -1,0 +1,1652 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mansa — Finance Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ── Theme tokens (mirrors main app exactly) ── */
+:root, [data-theme="light"] {
+  --paper:        #F3EEE5;
+  --paper-2:      #ECE6DA;
+  --paper-3:      #E4DDCD;
+  --surface:      #FAF6EE;
+  --surface-2:    #FFFFFF;
+  --ink:          #17171A;
+  --ink-2:        #3B3B3F;
+  --ink-3:        #6B6A6E;
+  --ink-4:        #9B9A9E;
+  --rule:         rgba(23,23,26,0.12);
+  --rule-soft:    rgba(23,23,26,0.06);
+  --hover:        rgba(23,23,26,0.04);
+  --clay:         #CC785C;
+  --clay-soft:    rgba(204,120,92,0.10);
+  --clay-line:    rgba(204,120,92,0.35);
+  --mansa:        #A68A3E;
+  --mansa-soft:   rgba(166,138,62,0.10);
+  --mansa-line:   rgba(166,138,62,0.35);
+  --green:        #5E8A6A;
+  --red:          #A65046;
+  --amber:        #B6834C;
+  --shadow-1:     0 1px 0 rgba(23,23,26,0.04);
+  --shadow-2:     0 4px 24px rgba(23,23,26,0.06);
+  --shadow-3:     0 24px 64px rgba(23,23,26,0.14);
+}
+[data-theme="dark"] {
+  --paper:        #17171A;
+  --paper-2:      #1E1E22;
+  --paper-3:      #24242A;
+  --surface:      #1A1A1E;
+  --surface-2:    #222227;
+  --ink:          #F2EDE3;
+  --ink-2:        #CEC9BE;
+  --ink-3:        #9B9890;
+  --ink-4:        #6D6B67;
+  --rule:         rgba(242,237,227,0.14);
+  --rule-soft:    rgba(242,237,227,0.07);
+  --hover:        rgba(242,237,227,0.05);
+  --clay:         #E59A7F;
+  --clay-soft:    rgba(229,154,127,0.12);
+  --clay-line:    rgba(229,154,127,0.4);
+  --mansa:        #D4B86A;
+  --mansa-soft:   rgba(212,184,106,0.12);
+  --mansa-line:   rgba(212,184,106,0.4);
+  --green:        #8FBDAF;
+  --red:          #D48278;
+  --amber:        #D9AC78;
+  --shadow-1:     0 1px 0 rgba(0,0,0,0.3);
+  --shadow-2:     0 4px 24px rgba(0,0,0,0.4);
+  --shadow-3:     0 24px 64px rgba(0,0,0,0.6);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.35s ease, color 0.35s ease;
+}
+.serif   { font-family: 'Instrument Serif', 'Times New Roman', serif; font-weight: 400; }
+.mono    { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+.sc      { font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.14em; font-size: 10.5px; font-weight: 500; }
+
+/* scrollbars */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-4); }
+
+@keyframes fadeUp { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:none } }
+@keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+@keyframes spin   { to { transform:rotate(360deg) } }
+@keyframes inkPulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+@keyframes dotBounce { 0%,80%,100%{transform:translateY(0);opacity:.4} 40%{transform:translateY(-4px);opacity:1} }
+
+/* ── App shell ── */
+.shell {
+  display: grid;
+  grid-template-columns: 220px 1fr 340px;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── LEFT SIDEBAR ── */
+.sidebar {
+  background: var(--paper-2);
+  border-right: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  padding: 24px 18px 18px;
+  overflow: hidden;
+}
+.brand {
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--rule);
+}
+.brand-eyebrow { color: var(--mansa); margin-bottom: 4px; }
+.brand-mark {
+  font-family: 'Instrument Serif', serif;
+  font-size: 36px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+.brand-mark em { color: var(--mansa); font-style: italic; }
+.brand-sub { color: var(--ink-3); margin-top: 4px; }
+
+/* Nav */
+.nav { display: flex; flex-direction: column; gap: 2px; margin-bottom: 20px; }
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: var(--ink-3);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background 0.15s, color 0.15s;
+  position: relative;
+}
+.nav-item:hover { background: var(--hover); color: var(--ink); }
+.nav-item.active {
+  background: var(--paper-3);
+  color: var(--ink);
+}
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: -18px; top: 10px; bottom: 10px;
+  width: 2px;
+  background: var(--mansa);
+}
+.nav-icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+.nav-label {
+  font-size: 13px;
+  font-weight: 500;
+  flex: 1;
+}
+.nav-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--mansa);
+}
+
+/* Net worth sidebar preview */
+.nw-preview {
+  background: var(--paper-3);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 16px;
+  border: 1px solid var(--rule);
+}
+.nw-preview-label { color: var(--ink-3); margin-bottom: 6px; }
+.nw-preview-val {
+  font-family: 'Instrument Serif', serif;
+  font-size: 28px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.nw-preview-val em { color: var(--mansa); font-style: italic; }
+.nw-preview-sub { color: var(--ink-3); margin-top: 6px; font-size: 12px; }
+
+.sidebar-actions { margin-top: auto; display: flex; flex-direction: column; gap: 6px; }
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--rule);
+  color: var(--ink-3);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  width: 100%;
+  text-align: left;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+.action-btn:hover { background: var(--hover); color: var(--ink); border-color: var(--ink-4); }
+.action-btn.mansa { border-color: var(--mansa-line); color: var(--mansa); background: var(--mansa-soft); }
+.action-btn.mansa:hover { background: var(--mansa); color: var(--paper); }
+
+/* ── MAIN CONTENT ── */
+.main { display: flex; flex-direction: column; overflow: hidden; background: var(--paper); }
+.masthead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 36px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper);
+  flex-shrink: 0;
+  gap: 20px;
+}
+.masthead-left { display: flex; align-items: center; gap: 12px; }
+.masthead-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.masthead-title em { color: var(--mansa); font-style: italic; }
+.masthead-right { display: flex; align-items: center; gap: 8px; }
+.mast-chip {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-4);
+  padding: 4px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 100px;
+}
+.mast-btn {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.15s;
+}
+.mast-btn:hover { background: var(--hover); color: var(--ink); }
+
+.content { flex: 1; overflow-y: auto; padding: 32px 36px 60px; animation: fadeUp 0.35s ease-out; }
+.content-inner { max-width: 900px; }
+
+/* ── Section layouts ── */
+.section { margin-bottom: 48px; }
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 24px;
+}
+.section-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 30px;
+  letter-spacing: -0.02em;
+  font-weight: 400;
+  color: var(--ink);
+}
+.section-title em { font-style: italic; color: var(--mansa); }
+.section-meta { color: var(--ink-3); }
+
+/* ── Stats row (editorial style — no cards, just type) ── */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 40px;
+}
+.stat { padding: 22px 24px 22px 0; position: relative; }
+.stat + .stat { padding-left: 24px; border-left: 1px solid var(--rule); }
+.stat-label { color: var(--ink-3); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.stat-status { width: 5px; height: 5px; border-radius: 50%; background: var(--mansa); animation: inkPulse 2.5s infinite; }
+.stat-value {
+  font-family: 'Instrument Serif', serif;
+  font-size: 44px;
+  line-height: 1;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  font-weight: 400;
+  margin-bottom: 4px;
+}
+.stat-value .unit { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--ink-3); margin-right: 3px; }
+.stat-value.pos { color: var(--green); }
+.stat-value.neg { color: var(--red); }
+.stat-sub { color: var(--ink-3); font-size: 12px; }
+
+/* ── Overview two-col ── */
+.two-col { display: grid; grid-template-columns: 1.4fr 1fr; gap: 48px; margin-bottom: 40px; }
+
+/* Chart */
+.chart-wrap { height: 160px; position: relative; }
+
+/* ── Accounts ── */
+.account-group { margin-bottom: 24px; }
+.account-group-label { color: var(--ink-3); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--rule-soft); }
+.account-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 20px;
+  align-items: baseline;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.account-row:last-child { border-bottom: none; }
+.account-name {
+  font-family: 'Instrument Serif', serif;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.account-type-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-4);
+  display: block;
+  margin-top: 1px;
+}
+.account-amount {
+  font-family: 'Instrument Serif', serif;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+}
+.account-amount.asset { color: var(--green); font-style: italic; }
+.account-amount.liab { color: var(--red); }
+.nw-total-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  padding: 18px 0 0;
+  border-top: 1px solid var(--rule);
+  margin-top: 4px;
+}
+.nw-total-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+}
+.nw-total-val {
+  font-family: 'Instrument Serif', serif;
+  font-size: 32px;
+  letter-spacing: -0.02em;
+  color: var(--mansa);
+  font-style: italic;
+}
+
+/* ── Portfolio ── */
+.portfolio-head {
+  display: grid;
+  grid-template-columns: 80px 1fr 90px 90px 110px 110px;
+  gap: 16px;
+  padding: 0 0 10px;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink-4);
+}
+.portfolio-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 90px 90px 110px 110px;
+  gap: 16px;
+  align-items: baseline;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--rule-soft);
+  transition: background 0.1s;
+}
+.portfolio-row:last-child { border-bottom: none; }
+.ticker-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--paper-3);
+  border: 1px solid var(--rule);
+  padding: 3px 8px;
+  border-radius: 5px;
+  display: inline-block;
+  color: var(--ink-2);
+  letter-spacing: 0.05em;
+}
+.inv-name {
+  font-family: 'Instrument Serif', serif;
+  font-size: 19px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.inv-sub { font-size: 11px; color: var(--ink-3); margin-top: 1px; }
+.inv-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--ink-2);
+  text-align: right;
+}
+.inv-pnl { text-align: right; }
+.inv-pnl-val {
+  font-family: 'Instrument Serif', serif;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+.inv-pnl-val.pos { color: var(--green); font-style: italic; }
+.inv-pnl-val.neg { color: var(--red); }
+.inv-pnl-pct { font-size: 11px; color: var(--ink-4); font-family: 'JetBrains Mono', monospace; }
+.portfolio-total {
+  display: grid;
+  grid-template-columns: 80px 1fr 90px 90px 110px 110px;
+  gap: 16px;
+  align-items: baseline;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-3);
+}
+
+/* ── Budget goals ── */
+.goal-row { margin-bottom: 22px; }
+.goal-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 7px;
+}
+.goal-cat {
+  font-family: 'Instrument Serif', serif;
+  font-size: 19px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-transform: capitalize;
+}
+.goal-nums { color: var(--ink-3); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+.goal-bar-bg {
+  height: 3px;
+  background: var(--rule);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+.goal-bar-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
+.goal-status { font-size: 11px; font-family: 'JetBrains Mono', monospace; }
+.goal-status.ok   { color: var(--green); }
+.goal-status.warn { color: var(--amber); }
+.goal-status.over { color: var(--red); }
+
+/* ── Transactions ── */
+.txn-row {
+  display: grid;
+  grid-template-columns: 60px 1fr auto auto;
+  gap: 18px;
+  align-items: baseline;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.txn-row:last-child { border-bottom: none; }
+.txn-date { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-4); letter-spacing: 0.04em; }
+.txn-desc {
+  font-family: 'Instrument Serif', serif;
+  font-size: 18px;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.txn-cat-badge { font-size: 11px; color: var(--ink-3); }
+.txn-acc { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-4); }
+.txn-amt {
+  font-family: 'Instrument Serif', serif;
+  font-size: 19px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+.txn-amt.income { color: var(--green); font-style: italic; }
+.txn-amt.expense { color: var(--red); }
+
+/* ── Recurring ── */
+.rec-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 24px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.rec-row:last-child { border-bottom: none; }
+.rec-name { font-family: 'Instrument Serif', serif; font-size: 19px; letter-spacing: -0.01em; color: var(--ink); }
+.rec-meta { font-size: 11px; color: var(--ink-3); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+.rec-due { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-align: right; }
+.rec-due.urgent { color: var(--red); }
+.rec-due.soon   { color: var(--amber); }
+.rec-due.ok     { color: var(--ink-4); }
+.rec-amt {
+  font-family: 'Instrument Serif', serif;
+  font-size: 19px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-align: right;
+}
+
+/* ── Pie chart legend ── */
+.pie-legend { display: flex; flex-direction: column; gap: 9px; }
+.pie-legend-item { display: flex; align-items: center; gap: 10px; }
+.pie-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.pie-legend-cat { font-family: 'Instrument Serif', serif; font-size: 16px; color: var(--ink); text-transform: capitalize; flex: 1; letter-spacing: -0.01em; }
+.pie-legend-amt { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+
+/* ── Transaction category groups ── */
+.tx-group { margin-bottom: 20px; }
+.tx-group-header {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 8px 0; border-bottom: 2px solid var(--rule); margin-bottom: 2px;
+}
+.tx-group-cat { font-family: 'Instrument Serif', serif; font-size: 21px; letter-spacing: -0.01em; color: var(--ink); text-transform: capitalize; }
+.tx-group-total { font-family: 'Instrument Serif', serif; font-size: 17px; letter-spacing: -0.01em; font-style: italic; }
+.tx-group-total.income { color: var(--green); }
+.tx-group-total.expense { color: var(--red); }
+
+/* ── Rekening add form ── */
+.acct-form-wrap {
+  border: 1px solid var(--mansa-line); border-radius: 12px;
+  padding: 20px; background: var(--mansa-soft); margin-bottom: 28px;
+}
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.form-field { display: flex; flex-direction: column; gap: 4px; }
+.form-label { font-size: 10px; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-3); }
+.form-input, .form-select {
+  padding: 8px 12px; border: 1px solid var(--rule); border-radius: 8px;
+  background: var(--surface-2); color: var(--ink); font: inherit; font-size: 13px;
+  outline: none; transition: border-color 0.15s; -webkit-appearance: none;
+}
+.form-input:focus, .form-select:focus { border-color: var(--mansa-line); box-shadow: 0 0 0 3px var(--mansa-soft); }
+.form-actions { display: flex; gap: 8px; }
+.form-submit { padding: 8px 20px; border-radius: 8px; border: none; background: var(--mansa); color: var(--paper); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
+.form-submit:hover { opacity: 0.85; }
+.form-submit:disabled { opacity: 0.45; cursor: not-allowed; }
+.form-cancel { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--rule); background: transparent; color: var(--ink-3); font: inherit; font-size: 12px; cursor: pointer; }
+.form-cancel:hover { background: var(--hover); }
+.acct-add-btn {
+  display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+  border-radius: 8px; border: 1px dashed var(--rule); background: transparent;
+  color: var(--mansa); cursor: pointer; font: inherit; font-size: 13px; font-weight: 500;
+  width: 100%; justify-content: center; margin-top: 14px; transition: all 0.15s;
+}
+.acct-add-btn:hover { border-color: var(--mansa-line); background: var(--mansa-soft); }
+
+/* ── Update balance inline ── */
+.update-bal-btn {
+  font-size: 9px; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--ink-4); background: transparent;
+  border: 1px solid var(--rule); border-radius: 5px; padding: 2px 7px; cursor: pointer; transition: all 0.15s;
+}
+.update-bal-btn:hover { border-color: var(--mansa-line); color: var(--mansa); }
+.inline-update { display: flex; gap: 6px; align-items: center; margin-top: 5px; }
+.inline-input { width: 130px; padding: 4px 8px; border: 1px solid var(--mansa-line); border-radius: 6px; background: var(--surface-2); color: var(--ink); font-family: 'JetBrains Mono', monospace; font-size: 12px; outline: none; }
+.inline-save { padding: 4px 10px; border-radius: 6px; border: none; background: var(--mansa); color: var(--paper); font: inherit; font-size: 11px; cursor: pointer; }
+.inline-save:hover { opacity: 0.85; }
+.inline-save:disabled { opacity: 0.45; cursor: not-allowed; }
+.inline-cancel-btn { padding: 4px 8px; border-radius: 6px; border: 1px solid var(--rule); background: transparent; color: var(--ink-3); font: inherit; font-size: 11px; cursor: pointer; }
+
+/* ── Empty / loading states ── */
+.empty {
+  color: var(--ink-4);
+  font-family: 'Instrument Serif', serif;
+  font-style: italic;
+  font-size: 18px;
+  padding: 28px 0;
+  text-align: center;
+}
+.spinner {
+  width: 14px; height: 14px;
+  border: 1.5px solid transparent;
+  border-top-color: currentColor;
+  border-right-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+/* ── RIGHT PANEL — Chat ── */
+.chat-panel {
+  background: var(--paper-2);
+  border-left: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.chat-head {
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid var(--rule);
+  flex-shrink: 0;
+}
+.chat-head-eyebrow { color: var(--mansa); margin-bottom: 4px; }
+.chat-head-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 26px;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.chat-head-title em { color: var(--mansa); font-style: italic; }
+.chat-head-sub { color: var(--ink-3); margin-top: 2px; }
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.chat-msg { animation: fadeUp 0.2s ease-out; }
+.chat-msg + .chat-msg { border-top: 1px solid var(--rule-soft); padding-top: 16px; }
+.chat-msg-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--ink-3);
+}
+.chat-msg-author {
+  font-family: 'Instrument Serif', serif;
+  font-size: 15px;
+  color: var(--ink);
+}
+.chat-msg-author em { color: var(--mansa); font-style: italic; }
+.chat-msg-time { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-4); }
+.chat-msg-body {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--ink);
+  white-space: pre-wrap;
+}
+.chat-msg.agent .chat-msg-body {
+  border-left: 2px solid var(--mansa);
+  padding-left: 14px;
+  margin-left: 2px;
+  color: var(--ink-2);
+}
+.chat-msg-body code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.88em;
+  background: var(--paper-3);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--mansa);
+}
+.typing-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-3);
+  animation: fadeIn 0.2s;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule-soft);
+}
+.typing-dots { display: flex; gap: 3px; }
+.typing-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--mansa);
+  animation: dotBounce 1.2s infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+/* Quick chips */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 24px 10px; flex-shrink: 0; }
+.chip {
+  padding: 4px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 100px;
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.chip:hover { border-color: var(--mansa); color: var(--mansa); background: var(--mansa-soft); }
+
+/* Composer */
+.composer-wrap {
+  padding: 14px 24px 20px;
+  border-top: 1px solid var(--rule);
+  background: var(--paper-2);
+  flex-shrink: 0;
+}
+.composer-box {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  padding: 6px 6px 6px 14px;
+  box-shadow: var(--shadow-2);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.composer-box:focus-within {
+  border-color: var(--mansa-line);
+  box-shadow: var(--shadow-2), 0 0 0 4px var(--mansa-soft);
+}
+.composer-ta {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  resize: none;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink);
+  padding: 8px 4px;
+  max-height: 120px;
+}
+.composer-ta::placeholder { color: var(--ink-4); font-style: italic; font-family: 'Instrument Serif', serif; font-size: 16px; }
+.composer-send {
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  border: none;
+  background: var(--ink);
+  color: var(--paper);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, transform 0.1s;
+}
+.composer-send:hover { background: var(--mansa); }
+.composer-send:active { transform: scale(0.94); }
+.composer-send:disabled { opacity: 0.3; cursor: not-allowed; background: var(--ink); }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-eyebrow sc">Cassanova<em>L</em></div>
+      <div class="brand-mark serif">Man<em>sa</em></div>
+      <div class="brand-sub sc">Wealth Dashboard</div>
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <a href="/hub" style="font-size:10px;color:var(--mansa);text-decoration:none;font-family:'JetBrains Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;opacity:0.8">⊞ Hub ↗</a>
+        <a href="/" style="font-size:10px;color:var(--ink-3);text-decoration:none;font-family:'JetBrains Mono',monospace;letter-spacing:0.06em;text-transform:uppercase;opacity:0.8">← Editorial</a>
+      </div>
+    </div>
+
+    <div id="nw-preview" class="nw-preview">
+      <div class="nw-preview-label sc">Net Worth</div>
+      <div class="nw-preview-val serif">—</div>
+      <div class="nw-preview-sub sc" id="nw-month">Loading…</div>
+    </div>
+
+    <nav class="nav" id="nav">
+      <button class="nav-item active" data-section="overview" onclick="switchSection('overview',this)">
+        <span class="nav-icon">◈</span>
+        <span class="nav-label">Overview</span>
+      </button>
+      <button class="nav-item" data-section="accounts" onclick="switchSection('accounts',this)">
+        <span class="nav-icon">⊞</span>
+        <span class="nav-label">Rekening</span>
+        <span class="nav-badge" id="nav-accounts-count"></span>
+      </button>
+      <button class="nav-item" data-section="portfolio" onclick="switchSection('portfolio',this)">
+        <span class="nav-icon">◎</span>
+        <span class="nav-label">Portofolio</span>
+        <span class="nav-badge" id="nav-portfolio-count"></span>
+      </button>
+      <button class="nav-item" data-section="budget" onclick="switchSection('budget',this)">
+        <span class="nav-icon">▤</span>
+        <span class="nav-label">Budget Goals</span>
+        <span class="nav-badge" id="nav-budget-count"></span>
+      </button>
+      <button class="nav-item" data-section="transactions" onclick="switchSection('transactions',this)">
+        <span class="nav-icon">≡</span>
+        <span class="nav-label">Transaksi</span>
+      </button>
+      <button class="nav-item" data-section="recurring" onclick="switchSection('recurring',this)">
+        <span class="nav-icon">↻</span>
+        <span class="nav-label">Tagihan Rutin</span>
+        <span class="nav-badge" id="nav-rec-count"></span>
+      </button>
+    </nav>
+
+    <div class="sidebar-actions">
+      <a class="action-btn" href="/" style="justify-content:flex-start">
+        <span>←</span>
+        <span>Back to Agents</span>
+      </a>
+      <button class="action-btn" onclick="loadDashboard()">
+        <span>↺</span>
+        <span>Refresh data</span>
+      </button>
+      <button class="action-btn mansa" onclick="toggleTheme()">
+        <span id="theme-icon">☀</span>
+        <span id="theme-label">Light Mode</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main class="main">
+    <div class="masthead">
+      <div class="masthead-left">
+        <span class="sc" style="color:var(--mansa)">Finance</span>
+        <span style="color:var(--rule);font-size:18px">|</span>
+        <span class="masthead-title serif">The <em>Ledger</em></span>
+      </div>
+      <div class="masthead-right">
+        <span class="mast-chip" id="updated-chip">—</span>
+      </div>
+    </div>
+
+    <div class="content" id="content">
+      <!-- Sections rendered by JS -->
+      <div class="content-inner" id="sections"></div>
+    </div>
+  </main>
+
+  <!-- ── CHAT PANEL ── -->
+  <aside class="chat-panel">
+    <div class="chat-head">
+      <div class="chat-head-eyebrow sc">CFO Pribadi</div>
+      <div class="chat-head-title serif">Man<em>sa</em> Musa</div>
+      <div class="chat-head-sub sc">
+        <span style="color:var(--green)">●</span> Online
+      </div>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <div class="chat-msg agent">
+        <div class="chat-msg-head">
+          <span class="chat-msg-author serif">Man<em>sa</em></span>
+          <span class="chat-msg-time mono">now</span>
+        </div>
+        <div class="chat-msg-body">Halo. Saya Mansa Musa — CFO pribadi kamu. Tanyakan apa saja soal keuanganmu, atau mulai catat transaksi hari ini.</div>
+      </div>
+    </div>
+    <div class="chips" id="chips">
+      <button class="chip" onclick="quickMsg('Lihat semua rekening saya')">Rekening</button>
+      <button class="chip" onclick="quickMsg('Berapa kekayaan bersih saya?')">Net Worth</button>
+      <button class="chip" onclick="quickMsg('Ringkasan bulan ini')">Bulan Ini</button>
+      <button class="chip" onclick="quickMsg('Tagihan yang jatuh tempo minggu ini?')">Tagihan</button>
+      <button class="chip" onclick="quickMsg('Portfolio saya')">Portfolio</button>
+      <button class="chip" onclick="quickMsg('Cek budget goals bulan ini')">Budget</button>
+    </div>
+    <div class="composer-wrap">
+      <div class="composer-box">
+        <textarea class="composer-ta" id="chat-ta" rows="1"
+          placeholder="Tanya Mansa…"
+          onkeydown="handleKey(event)"
+          oninput="autoResize(this)"></textarea>
+        <button class="composer-send" id="send-btn" onclick="sendMessage()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<script>
+// ── Utilities ──
+const fmtRp = (n) => {
+  if (n == null || isNaN(n)) return '—';
+  const abs = Math.abs(n);
+  return 'Rp ' + new Intl.NumberFormat('id-ID').format(Math.round(abs));
+};
+const fmtRpShort = (n) => {
+  const abs = Math.abs(n);
+  if (abs >= 1e9) return 'Rp ' + (abs/1e9).toFixed(1) + 'M';
+  if (abs >= 1e6) return 'Rp ' + (abs/1e6).toFixed(1) + 'jt';
+  if (abs >= 1e3) return 'Rp ' + (abs/1e3).toFixed(0) + 'rb';
+  return 'Rp ' + Math.round(abs);
+};
+const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+const LIABILITY_TYPES = new Set(['credit_card','loan']);
+
+// ── Theme ──
+function initTheme() {
+  const saved = localStorage.getItem('cassanoval-theme') || 'light';
+  applyTheme(saved);
+}
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('theme-icon').textContent = t === 'dark' ? '☀' : '☾';
+  document.getElementById('theme-label').textContent = t === 'dark' ? 'Light Mode' : 'Dark Mode';
+  localStorage.setItem('cassanoval-theme', t);
+  if (_chartInstance) updateChartTheme();
+  if (_pieInstance) updatePieTheme();
+}
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme');
+  applyTheme(cur === 'dark' ? 'light' : 'dark');
+}
+
+// ── Section routing ──
+let _currentSection = 'overview';
+let _dashData = null;
+let _acctNamesById = {};
+
+function switchSection(id, btn) {
+  _currentSection = id;
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSection(id);
+  document.getElementById('content').scrollTop = 0;
+}
+
+// ── Data loading ──
+let _lastSig = '';
+async function loadDashboard(silent = false) {
+  const chip = document.getElementById('updated-chip');
+  if (!silent) chip.textContent = 'Loading…';
+  try {
+    const res = await fetch('/api/finance/dashboard');
+    const fresh = await res.json();
+    // Skip re-render if nothing changed (avoids flicker during auto-poll)
+    const sig = JSON.stringify(fresh);
+    if (silent && sig === _lastSig) return;
+    _lastSig = sig;
+    _dashData = fresh;
+    updateSidebarPreview(_dashData);
+    updateNavBadges(_dashData);
+    renderSection(_currentSection);
+    const now = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+    chip.textContent = `Updated ${now}`;
+  } catch(e) {
+    if (!silent) {
+      chip.textContent = 'Error';
+      document.getElementById('sections').innerHTML = `<div class="empty">⚠ Gagal memuat data: ${esc(e.message)}</div>`;
+    }
+  }
+}
+
+// Auto-refresh every 30 s so edits from the main chat always appear here
+setInterval(() => loadDashboard(true), 30_000);
+
+function updateSidebarPreview(d) {
+  const nw = d.net_worth || 0;
+  const parts = fmtRp(Math.abs(nw)).split(' ');
+  document.querySelector('#nw-preview .nw-preview-val').innerHTML =
+    `<span class="unit mono" style="font-size:14px;color:var(--ink-3);margin-right:3px">${parts[0]}</span>${parts[1] || ''}`;
+  const net = d.monthly_income - d.monthly_expense;
+  const sign = net >= 0 ? '+' : '-';
+  document.getElementById('nw-month').textContent =
+    `${d.current_month} · Net ${sign}${fmtRpShort(net)}`;
+}
+
+function updateNavBadges(d) {
+  const set = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = n > 0 ? n : ''; };
+  set('nav-accounts-count', (d.accounts||[]).length);
+  set('nav-portfolio-count', (d.investments||[]).length);
+  set('nav-budget-count', (d.budget_goals||[]).length);
+  set('nav-rec-count', (d.recurring||[]).length);
+}
+
+// ── Section renderers ──
+function renderSection(id) {
+  const d = _dashData;
+  if (!d) return;
+  const el = document.getElementById('sections');
+  el.innerHTML = '';
+  const fns = { overview: renderOverview, accounts: renderAccounts, portfolio: renderPortfolio, budget: renderBudget, transactions: renderTransactions, recurring: renderRecurring };
+  if (fns[id]) fns[id](el, d);
+}
+
+// Overview
+let _chartInstance = null;
+function renderOverview(el, d) {
+  const txs = d.recent_transactions || [];
+  const net = d.monthly_income - d.monthly_expense;
+  const sr = d.monthly_income > 0 ? ((net / d.monthly_income) * 100).toFixed(1) : 0;
+  const srClass = sr >= 20 ? 'pos' : sr >= 10 ? '' : 'neg';
+  const nw = d.net_worth || 0;
+
+  el.innerHTML = `
+  <div class="section">
+    <div class="stats-row">
+      <div class="stat">
+        <div class="stat-label sc"><span class="stat-status"></span>Net Worth</div>
+        <div class="stat-value serif ${nw >= 0 ? '' : 'neg'}">
+          <span class="unit">Rp</span>${fmtRpShort(nw).replace('Rp ','')}
+        </div>
+        <div class="stat-sub sc">Aset ${fmtRpShort(d.total_assets + d.investment_value)} · Hutang ${fmtRpShort(d.total_liabilities)}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label sc">Pemasukan Bulan Ini</div>
+        <div class="stat-value serif pos"><span class="unit">Rp</span>${fmtRpShort(d.monthly_income).replace('Rp ','')}</div>
+        <div class="stat-sub sc">${d.current_month}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label sc">Pengeluaran</div>
+        <div class="stat-value serif neg"><span class="unit">Rp</span>${fmtRpShort(d.monthly_expense).replace('Rp ','')}</div>
+        <div class="stat-sub sc">Savings rate <span class="${srClass}" style="color:var(--${srClass==='pos'?'green':srClass==='neg'?'red':'ink-3'})">${sr}%</span></div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <div class="section-head" style="margin-bottom:16px">
+          <div class="section-title serif">Cash <em>Flow</em></div>
+          <div class="section-meta sc">6 Bulan</div>
+        </div>
+        <div class="chart-wrap"><canvas id="cashflow-chart"></canvas></div>
+      </div>
+      <div>
+        <div class="section-head" style="margin-bottom:16px">
+          <div class="section-title serif">Rekening <em>Utama</em></div>
+          <div class="section-meta sc">${(d.accounts||[]).length} akun</div>
+        </div>
+        ${renderAccountsInline(d)}
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head" style="margin-bottom:16px">
+      <div class="section-title serif">Pengeluaran per <em>Kategori</em></div>
+      <div class="section-meta sc">${d.current_month}</div>
+    </div>
+    <div id="expense-pie-wrap" style="display:grid;grid-template-columns:190px 1fr;gap:32px;align-items:center;margin-bottom:36px">
+      <div style="height:190px;position:relative"><canvas id="expense-pie-chart"></canvas></div>
+      <div id="pie-legend" class="pie-legend"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title serif">Transaksi <em>Terakhir</em></div>
+      <div class="section-meta sc">${txs.length} entri</div>
+    </div>
+    ${renderTxList(txs.slice(0,8))}
+  </div>`;
+
+  initCashFlowChart(d.cash_flow || []);
+  initExpensePieChart(d.cat_expense || {});
+}
+
+function renderAccountsInline(d) {
+  const accs = d.accounts || [];
+  if (!accs.length) return `<div class="empty" style="font-size:14px;padding:16px 0">Belum ada rekening</div>`;
+  const nw = d.net_worth || 0;
+  const rows = accs.map(a => {
+    const isLiab = LIABILITY_TYPES.has(a.account_type);
+    return `<div class="account-row">
+      <div>
+        <div class="account-name serif">${esc(a.name)}</div>
+        <span class="account-type-badge sc">${esc(a.account_type)}</span>
+      </div>
+      <div class="account-amount serif ${isLiab?'liab':'asset'}">${isLiab?'-':''}${fmtRp(a.balance)}</div>
+    </div>`;
+  }).join('');
+  return rows + `<div class="nw-total-row">
+    <div class="nw-total-label sc">Net Worth</div>
+    <div class="nw-total-val serif">${fmtRp(Math.abs(nw))}</div>
+  </div>`;
+}
+
+// Accounts — with add-account form and update-balance inline
+function renderAccounts(el, d) {
+  _acctNamesById = {};
+  const accs = d.accounts || [];
+  const assetAcc = accs.filter(a => !LIABILITY_TYPES.has(a.account_type));
+  const liabAcc  = accs.filter(a => LIABILITY_TYPES.has(a.account_type));
+  const totalAsset = assetAcc.reduce((s,a) => s+a.balance, 0) + (d.investment_value||0);
+  const totalLiab  = liabAcc.reduce((s,a)  => s+a.balance, 0);
+  const nw = d.net_worth || 0;
+
+  let html = `<div class="section">
+    <div class="section-head">
+      <div class="section-title serif">Rekening & <em>Aset</em></div>
+      <div class="section-meta sc">${accs.length} akun</div>
+    </div>
+
+    <div id="add-account-form" class="acct-form-wrap" style="display:none">
+      <div class="form-grid">
+        <div class="form-field">
+          <label class="form-label">Nama Rekening</label>
+          <input class="form-input" id="acct-name" type="text" placeholder="BCA Tabungan"/>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Jenis</label>
+          <select class="form-select" id="acct-type">
+            <option value="checking">Rekening Giro</option>
+            <option value="savings">Tabungan</option>
+            <option value="e_wallet">E-Wallet</option>
+            <option value="credit_card">Kartu Kredit</option>
+            <option value="investment_account">Investasi</option>
+            <option value="loan">Pinjaman</option>
+            <option value="property">Properti</option>
+            <option value="other">Lainnya</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Saldo (Rp)</label>
+          <input class="form-input" id="acct-balance" type="number" placeholder="5000000"/>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Mata Uang</label>
+          <select class="form-select" id="acct-currency">
+            <option value="IDR">IDR</option>
+            <option value="USD">USD</option>
+            <option value="SGD">SGD</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="form-submit" id="add-acct-submit-btn" onclick="submitAddAccount()">Tambah Rekening</button>
+        <button class="form-cancel" onclick="document.getElementById('add-account-form').style.display='none'">Batal</button>
+      </div>
+    </div>`;
+
+  if (!accs.length) {
+    html += `<div class="empty">Belum ada rekening.</div>`;
+  } else {
+    html += `<div class="account-group">
+      <div class="account-group-label sc">Aset &nbsp;·&nbsp; ${fmtRp(totalAsset)}</div>`;
+    assetAcc.forEach(a => { html += renderAccountRow(a, false); });
+    if (d.investment_value > 0) {
+      html += `<div class="account-row">
+        <div><div class="account-name serif">Portofolio Investasi</div><span class="account-type-badge sc">investment</span></div>
+        <div class="account-amount serif asset">+${fmtRp(d.investment_value)}</div>
+        <div></div>
+      </div>`;
+    }
+    html += `</div>`;
+    if (liabAcc.length) {
+      html += `<div class="account-group">
+        <div class="account-group-label sc">Hutang &nbsp;·&nbsp; ${fmtRp(totalLiab)}</div>`;
+      liabAcc.forEach(a => { html += renderAccountRow(a, true); });
+      html += `</div>`;
+    }
+    html += `<div class="nw-total-row">
+      <div class="nw-total-label sc">Net Worth</div>
+      <div class="nw-total-val serif">${nw >= 0 ? '' : '-'}${fmtRp(Math.abs(nw))}</div>
+    </div>`;
+  }
+
+  html += `<button class="acct-add-btn" onclick="showAddAccountForm()">
+    <span style="font-size:17px;line-height:1">+</span> Tambah Rekening
+  </button></div>`;
+  el.innerHTML = html;
+}
+
+function renderAccountRow(a, isLiab) {
+  const sid = a.name.replace(/[^a-zA-Z0-9]/g, '_');
+  _acctNamesById[sid] = a.name;
+  return `<div class="account-row" style="grid-template-columns:1fr auto 48px;gap:12px 14px">
+    <div>
+      <div class="account-name serif">${esc(a.name)}</div>
+      <span class="account-type-badge sc">${esc(a.account_type)}</span>
+    </div>
+    <div>
+      <div class="account-amount serif ${isLiab?'liab':'asset'}" id="bal-disp-${sid}">${isLiab?'-':'+'}${fmtRp(a.balance)}</div>
+      <div id="bal-upd-${sid}" class="inline-update" style="display:none">
+        <input class="inline-input" id="bal-in-${sid}" type="number" value="${a.balance}" placeholder="${a.balance}"/>
+        <button class="inline-save" onclick="submitUpdateBalance('${sid}')">✓</button>
+        <button class="inline-cancel-btn" onclick="cancelUpdateBal('${sid}')">✕</button>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-start;padding-top:4px">
+      <button class="update-bal-btn" id="upd-btn-${sid}" onclick="showUpdateBalForm('${sid}')">Edit</button>
+    </div>
+  </div>`;
+}
+
+// Portfolio
+function renderPortfolio(el, d) {
+  const invs = d.investments || [];
+  const totalVal = invs.reduce((s,i) => s+i.market_value, 0);
+  const totalPnl = invs.reduce((s,i) => s+i.pnl, 0);
+  const totalPct = totalVal - totalPnl > 0 ? (totalPnl/(totalVal-totalPnl)*100).toFixed(2) : 0;
+  let html = `<div class="section">
+    <div class="section-head">
+      <div class="section-title serif"><em>Portofolio</em> Investasi</div>
+      <div class="section-meta sc">${invs.length} aset</div>
+    </div>`;
+  if (!invs.length) { html += `<div class="empty">Belum ada investasi. Minta Mansa untuk mencatat aset investasimu.</div>`; }
+  else {
+    html += `<div class="portfolio-head sc">
+      <span>Ticker</span><span>Nama</span>
+      <span style="text-align:right">Harga Beli</span>
+      <span style="text-align:right">Harga Kini</span>
+      <span style="text-align:right">P&amp;L</span>
+      <span style="text-align:right">Nilai</span>
+    </div>`;
+    invs.forEach(i => {
+      const pnlClass = i.pnl >= 0 ? 'pos' : 'neg';
+      const pnlSign  = i.pnl >= 0 ? '+' : '-';
+      html += `<div class="portfolio-row">
+        <div><span class="ticker-tag">${esc(i.ticker)}</span></div>
+        <div><div class="inv-name serif">${esc(i.name)}</div><div class="inv-sub sc">${esc(i.inv_type)} · ${Number(i.quantity).toLocaleString('id-ID')} unit</div></div>
+        <div class="inv-num">${fmtRp(i.buy_price)}</div>
+        <div class="inv-num">${fmtRp(i.current_price)}</div>
+        <div class="inv-pnl">
+          <div class="inv-pnl-val serif ${pnlClass}">${pnlSign}${fmtRpShort(Math.abs(i.pnl))}</div>
+          <div class="inv-pnl-pct">${i.pnl_pct >= 0 ? '+' : ''}${i.pnl_pct}%</div>
+        </div>
+        <div class="inv-num" style="font-family:'Instrument Serif',serif;font-size:17px">${fmtRp(i.market_value)}</div>
+      </div>`;
+    });
+    const tpClass = totalPnl >= 0 ? 'pos' : 'neg';
+    html += `<div class="portfolio-total sc">
+      <span></span><span>Total Portofolio</span><span></span><span></span>
+      <span style="text-align:right;color:var(--${tpClass==='pos'?'green':'red'});font-family:'Instrument Serif',serif;font-size:16px;font-style:italic">
+        ${totalPnl >= 0?'+':'-'}${fmtRpShort(Math.abs(totalPnl))} (${totalPct}%)
+      </span>
+      <span style="text-align:right;font-family:'Instrument Serif',serif;font-size:18px;color:var(--ink)">${fmtRp(totalVal)}</span>
+    </div>`;
+  }
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+// Budget goals
+function renderBudget(el, d) {
+  const goals = d.budget_goals || [];
+  let html = `<div class="section">
+    <div class="section-head">
+      <div class="section-title serif">Budget <em>Goals</em></div>
+      <div class="section-meta sc">${d.current_month}</div>
+    </div>`;
+  if (!goals.length) { html += `<div class="empty">Belum ada budget goal. Minta Mansa: "set budget makan 1.5 juta bulan ini"</div>`; }
+  else {
+    goals.forEach(g => {
+      const pct = Math.min(g.pct || 0, 100);
+      const over = g.pct > 100, warn = g.pct >= 80;
+      const color  = over ? 'var(--red)' : warn ? 'var(--amber)' : 'var(--green)';
+      const sc     = over ? 'over' : warn ? 'warn' : 'ok';
+      const txt    = over ? `OVER BUDGET ${g.pct.toFixed(0)}%` : warn ? `WASPADA ${g.pct.toFixed(0)}%` : `AMAN ${g.pct.toFixed(0)}%`;
+      html += `<div class="goal-row">
+        <div class="goal-top">
+          <div class="goal-cat serif">${esc(g.category)}</div>
+          <div class="goal-nums">${fmtRpShort(g.spent)} / ${fmtRpShort(g.monthly_limit)}</div>
+        </div>
+        <div class="goal-bar-bg"><div class="goal-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+        <div class="goal-status ${sc} sc">${txt}</div>
+      </div>`;
+    });
+  }
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+// Transactions — grouped by category
+function renderTransactions(el, d) {
+  const txs = d.recent_transactions || [];
+  if (!txs.length) {
+    el.innerHTML = `<div class="section">
+      <div class="section-head">
+        <div class="section-title serif"><em>Transaksi</em> Terkini</div>
+        <div class="section-meta sc">0 entri</div>
+      </div>
+      <div class="empty">Belum ada transaksi. Minta Mansa untuk mencatat pengeluaran hari ini.</div>
+    </div>`;
+    return;
+  }
+
+  const groups = {};
+  txs.forEach(t => {
+    const cat = t.category || 'Lainnya';
+    if (!groups[cat]) groups[cat] = { txs: [], total: 0, hasIncome: false, hasExpense: false };
+    groups[cat].txs.push(t);
+    groups[cat].total += t.amount;
+    if (t.type === 'income') groups[cat].hasIncome = true;
+    else groups[cat].hasExpense = true;
+  });
+
+  const sortedGroups = Object.entries(groups).sort((a, b) => b[1].total - a[1].total);
+
+  let html = `<div class="section">
+    <div class="section-head">
+      <div class="section-title serif"><em>Transaksi</em> Terkini</div>
+      <div class="section-meta sc">${txs.length} entri · ${sortedGroups.length} kategori</div>
+    </div>`;
+
+  sortedGroups.forEach(([cat, grp]) => {
+    const totalType = (grp.hasIncome && !grp.hasExpense) ? 'income' : 'expense';
+    html += `<div class="tx-group">
+      <div class="tx-group-header">
+        <div class="tx-group-cat serif">${esc(cat)}</div>
+        <div class="tx-group-total ${totalType}">${totalType === 'income' ? '+' : '-'}${fmtRp(grp.total)}</div>
+      </div>`;
+    grp.txs.forEach(t => {
+      html += `<div class="txn-row">
+        <div class="txn-date">${t.date ? t.date.slice(5) : ''}</div>
+        <div>
+          <div class="txn-desc serif">${esc(t.description || t.category)}</div>
+          ${t.account ? `<span class="txn-acc">${esc(t.account)}</span>` : ''}
+        </div>
+        <div></div>
+        <div class="txn-amt serif ${t.type}">${t.type === 'income' ? '+' : '-'}${fmtRp(t.amount)}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+function renderTxList(txs) {
+  if (!txs.length) return `<div class="empty">Belum ada transaksi</div>`;
+  return txs.map(t => `<div class="txn-row">
+    <div class="txn-date">${t.date ? t.date.slice(5) : ''}</div>
+    <div>
+      <div class="txn-desc serif">${esc(t.description || t.category)}</div>
+      <span class="txn-cat-badge sc">${esc(t.category)}</span>
+      ${t.account ? `<span class="txn-acc"> · ${esc(t.account)}</span>` : ''}
+    </div>
+    <div></div>
+    <div class="txn-amt serif ${t.type}">${t.type==='income'?'+':'-'}${fmtRp(t.amount)}</div>
+  </div>`).join('');
+}
+
+// Recurring
+function renderRecurring(el, d) {
+  const items = d.recurring || [];
+  let html = `<div class="section">
+    <div class="section-head">
+      <div class="section-title serif">Tagihan <em>Rutin</em></div>
+      <div class="section-meta sc">${items.length} tagihan</div>
+    </div>`;
+  if (!items.length) { html += `<div class="empty">Belum ada tagihan rutin. Minta Mansa: "tambah tagihan Spotify 55rb tiap bulan"</div>`; }
+  else {
+    const totalRec = items.reduce((s,r) => s+r.amount, 0);
+    items.forEach(r => {
+      const days = r.days_until;
+      const dc = days <= 3 ? 'urgent' : days <= 7 ? 'soon' : 'ok';
+      const dueText = days === null ? (r.next_date||'—') : `${days} hari lagi · ${r.next_date||''}`;
+      html += `<div class="rec-row">
+        <div>
+          <div class="rec-name serif">${esc(r.description)}</div>
+          <div class="rec-meta">${esc(r.frequency)}${r.account?' · '+esc(r.account):''}</div>
+        </div>
+        <div class="rec-due ${dc} sc">${esc(dueText)}</div>
+        <div class="rec-amt serif">-${fmtRp(r.amount)}</div>
+      </div>`;
+    });
+    html += `<div class="nw-total-row" style="margin-top:8px">
+      <div class="nw-total-label sc">Total / bulan</div>
+      <div style="font-family:'Instrument Serif',serif;font-size:22px;letter-spacing:-0.01em;color:var(--red)">-${fmtRp(totalRec)}</div>
+    </div>`;
+  }
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+// ── Cash flow chart ──
+function getCSSVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function initCashFlowChart(cashFlow) {
+  const ctx = document.getElementById('cashflow-chart');
+  if (!ctx) return;
+  if (_chartInstance) { _chartInstance.destroy(); }
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  _chartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: cashFlow.map(m => m.month),
+      datasets: [
+        { label: 'Pemasukan', data: cashFlow.map(m => m.income),
+          backgroundColor: 'rgba(95,138,106,0.35)', borderColor: getCSSVar('--green'),
+          borderWidth: 1.5, borderRadius: 3 },
+        { label: 'Pengeluaran', data: cashFlow.map(m => m.expense),
+          backgroundColor: 'rgba(166,80,70,0.25)', borderColor: getCSSVar('--red'),
+          borderWidth: 1.5, borderRadius: 3 },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: getCSSVar('--ink-3'), font: { size: 10, family: "'JetBrains Mono', monospace" }, boxWidth: 8, boxHeight: 8 } },
+        tooltip: {
+          backgroundColor: getCSSVar('--surface-2'),
+          borderColor: getCSSVar('--rule'),
+          borderWidth: 1,
+          titleColor: getCSSVar('--ink'),
+          bodyColor: getCSSVar('--ink-2'),
+          callbacks: { label: ctx => ' ' + fmtRpShort(ctx.raw) }
+        }
+      },
+      scales: {
+        x: { grid: { color: getCSSVar('--rule-soft') }, ticks: { color: getCSSVar('--ink-4'), font: { size: 10, family: "'JetBrains Mono', monospace" } } },
+        y: { grid: { color: getCSSVar('--rule-soft') }, ticks: { color: getCSSVar('--ink-4'), font: { size: 10, family: "'JetBrains Mono', monospace" }, callback: v => fmtRpShort(v) } },
+      },
+    },
+  });
+}
+function updateChartTheme() {
+  if (!_chartInstance) return;
+  _chartInstance.options.scales.x.grid.color = getCSSVar('--rule-soft');
+  _chartInstance.options.scales.x.ticks.color = getCSSVar('--ink-4');
+  _chartInstance.options.scales.y.grid.color = getCSSVar('--rule-soft');
+  _chartInstance.options.scales.y.ticks.color = getCSSVar('--ink-4');
+  _chartInstance.options.plugins.legend.labels.color = getCSSVar('--ink-3');
+  _chartInstance.data.datasets[0].borderColor = getCSSVar('--green');
+  _chartInstance.data.datasets[1].borderColor = getCSSVar('--red');
+  _chartInstance.update();
+}
+
+// ── Expense pie chart ──
+let _pieInstance = null;
+const PIE_COLORS = ['#A65046','#5E8A6A','#A68A3E','#4A6EA8','#8A5A9E','#CC785C','#6B8A5E','#B6834C','#5A7A9E','#9E6B6B','#6B5EA8','#9E8A5A'];
+
+function initExpensePieChart(catExpense) {
+  const ctx = document.getElementById('expense-pie-chart');
+  if (!ctx) return;
+  if (_pieInstance) { _pieInstance.destroy(); _pieInstance = null; }
+
+  const entries = Object.entries(catExpense).sort((a, b) => b[1] - a[1]);
+  const wrap = document.getElementById('expense-pie-wrap');
+  if (!entries.length) {
+    if (wrap) wrap.style.display = 'none';
+    return;
+  }
+  if (wrap) wrap.style.display = '';
+
+  const labels = entries.map(e => e[0]);
+  const values = entries.map(e => e[1]);
+  const colors = labels.map((_, i) => PIE_COLORS[i % PIE_COLORS.length]);
+
+  _pieInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: colors.map(c => c + 'bb'),
+        borderColor: colors,
+        borderWidth: 1.5,
+        hoverOffset: 5,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '60%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: getCSSVar('--surface-2'),
+          borderColor: getCSSVar('--rule'),
+          borderWidth: 1,
+          titleColor: getCSSVar('--ink'),
+          bodyColor: getCSSVar('--ink-2'),
+          callbacks: { label: ctx => ' ' + fmtRpShort(ctx.raw) },
+        },
+      },
+    },
+  });
+
+  const legendEl = document.getElementById('pie-legend');
+  if (legendEl) {
+    const total = values.reduce((s, v) => s + v, 0);
+    legendEl.innerHTML = entries.map(([cat, amt], i) => {
+      const pct = total > 0 ? (amt / total * 100).toFixed(0) : 0;
+      return `<div class="pie-legend-item">
+        <div class="pie-legend-dot" style="background:${colors[i]}"></div>
+        <div class="pie-legend-cat">${esc(cat)}</div>
+        <div class="pie-legend-amt">${fmtRpShort(amt)} · ${pct}%</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function updatePieTheme() {
+  if (!_pieInstance) return;
+  try {
+    _pieInstance.options.plugins.tooltip.backgroundColor = getCSSVar('--surface-2');
+    _pieInstance.options.plugins.tooltip.borderColor = getCSSVar('--rule');
+    _pieInstance.options.plugins.tooltip.titleColor = getCSSVar('--ink');
+    _pieInstance.options.plugins.tooltip.bodyColor = getCSSVar('--ink-2');
+    _pieInstance.update();
+  } catch (e) { _pieInstance = null; }
+}
+
+// ── Account form helpers ──
+function showAddAccountForm() {
+  const form = document.getElementById('add-account-form');
+  if (!form) return;
+  form.style.display = 'block';
+  document.getElementById('acct-name')?.focus();
+  form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function showUpdateBalForm(sid) {
+  document.getElementById(`bal-disp-${sid}`)?.style.setProperty('display', 'none');
+  const upd = document.getElementById(`bal-upd-${sid}`);
+  if (upd) upd.style.display = 'flex';
+  document.getElementById(`upd-btn-${sid}`)?.style.setProperty('display', 'none');
+  document.getElementById(`bal-in-${sid}`)?.focus();
+}
+
+function cancelUpdateBal(sid) {
+  document.getElementById(`bal-disp-${sid}`)?.style.setProperty('display', '');
+  const upd = document.getElementById(`bal-upd-${sid}`);
+  if (upd) upd.style.display = 'none';
+  document.getElementById(`upd-btn-${sid}`)?.style.setProperty('display', '');
+}
+
+async function submitUpdateBalance(sid) {
+  const accountName = _acctNamesById[sid];
+  if (!accountName) return;
+  const input = document.getElementById(`bal-in-${sid}`);
+  const newBal = parseFloat(input?.value);
+  if (isNaN(newBal)) { input?.focus(); return; }
+
+  const saveBtn = document.querySelector(`#bal-upd-${sid} .inline-save`);
+  if (saveBtn) { saveBtn.textContent = '…'; saveBtn.disabled = true; }
+
+  try {
+    await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: `update saldo rekening ${accountName} menjadi ${newBal}`, agent: 'budget' }),
+    });
+    await loadDashboard();
+  } catch (e) {
+    if (saveBtn) { saveBtn.textContent = '✓'; saveBtn.disabled = false; }
+    cancelUpdateBal(sid);
+  }
+}
+
+async function submitAddAccount() {
+  const name    = document.getElementById('acct-name')?.value?.trim();
+  const type    = document.getElementById('acct-type')?.value;
+  const balance = parseFloat(document.getElementById('acct-balance')?.value);
+  const currency = document.getElementById('acct-currency')?.value || 'IDR';
+
+  if (!name)        { document.getElementById('acct-name')?.focus(); return; }
+  if (isNaN(balance)) { document.getElementById('acct-balance')?.focus(); return; }
+
+  const btn = document.getElementById('add-acct-submit-btn');
+  if (btn) { btn.textContent = 'Menambahkan…'; btn.disabled = true; }
+
+  try {
+    await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: `tambah rekening ${name} jenis ${type} saldo ${balance} ${currency}`, agent: 'budget' }),
+    });
+    const form = document.getElementById('add-account-form');
+    if (form) form.style.display = 'none';
+    await loadDashboard();
+  } catch (e) {
+    if (btn) { btn.textContent = 'Tambah Rekening'; btn.disabled = false; }
+  }
+}
+
+// ── Chat ──
+let _chatBusy = false;
+function nowTime() { return new Date().toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit'}); }
+
+function appendMsg(role, text) {
+  const wrap = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = `chat-msg ${role}`;
+  const authorHtml = role === 'agent'
+    ? `Man<em>sa</em>`
+    : `<span style="color:var(--clay)">Kamu</span>`;
+  const bodyHtml = text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+  div.innerHTML = `<div class="chat-msg-head">
+    <span class="chat-msg-author serif">${authorHtml}</span>
+    <span class="chat-msg-time mono">${nowTime()}</span>
+  </div>
+  <div class="chat-msg-body">${bodyHtml}</div>`;
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+  return div;
+}
+
+function showTyping() {
+  const wrap = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.id = 'typing';
+  div.className = 'typing-row';
+  div.innerHTML = `<div class="typing-dots">
+    <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+  </div>
+  <span class="sc" style="color:var(--ink-3)">Mansa is thinking…</span>`;
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+async function sendMessage() {
+  if (_chatBusy) return;
+  const ta = document.getElementById('chat-ta');
+  const text = ta.value.trim();
+  if (!text) return;
+  ta.value = '';
+  ta.style.height = '';
+  document.getElementById('send-btn').disabled = true;
+
+  appendMsg('user', text);
+  showTyping();
+  _chatBusy = true;
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({message: text, agent: 'budget'}),
+    });
+    const data = await res.json();
+    document.getElementById('typing')?.remove();
+    appendMsg('agent', data.response || data.detail || 'Error');
+    // Wait 600 ms to let any tool file-write flush before reloading
+    await new Promise(r => setTimeout(r, 600));
+    await loadDashboard();
+  } catch(e) {
+    document.getElementById('typing')?.remove();
+    appendMsg('agent', '⚠ Koneksi error: ' + e.message);
+  } finally {
+    _chatBusy = false;
+    document.getElementById('send-btn').disabled = false;
+  }
+}
+
+function quickMsg(text) {
+  document.getElementById('chat-ta').value = text;
+  sendMessage();
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+function autoResize(ta) {
+  ta.style.height = 'auto';
+  ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+}
+
+// ── Init ──
+initTheme();
+loadDashboard();
+</script>
+</body>
+</html>

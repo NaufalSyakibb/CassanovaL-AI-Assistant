@@ -6,7 +6,7 @@ const { useState: _useState, useEffect: _useEffect, useRef: _useRef, useCallback
 /* ── Sidebar ──────────────────────────────────────────────── */
 function Sidebar({ active, setActive, onCmd, onCrew, theme, toggleTheme }) {
   const { AGENTS, AGENT_ORDER, AGENT_CLUSTERS, CLUSTER_ORDER } = window.CLData;
-  const { IcoCmd, IcoUsers, IcoSun, IcoMoon, IcoCandlestick } = window.Icons;
+  const { IcoCmd, IcoUsers, IcoSun, IcoMoon, IcoCandlestick, IcoPixel } = window.Icons;
   const [cluster, setCluster] = _useState('all');
 
   const filteredKeys = cluster === 'all'
@@ -41,11 +41,9 @@ function Sidebar({ active, setActive, onCmd, onCrew, theme, toggleTheme }) {
         {filteredKeys.length > 0 ? filteredKeys.map((k, i) => {
           const ag = AGENTS[k];
           const isAct = active === k;
-          return (
-            <button key={k}
-              className={`roster-row ${isAct ? 'active' : ''}`}
-              style={{ '--agent-hue': ag.hue }}
-              onClick={() => setActive(k)}>
+          const isExternal = !!ag.url;
+          const inner = (
+            <>
               <span className="roster-num">{String(i+1).padStart(2,'0')}</span>
               <div className="roster-body">
                 <div className="roster-name">
@@ -53,7 +51,21 @@ function Sidebar({ active, setActive, onCmd, onCrew, theme, toggleTheme }) {
                 </div>
                 <div className="roster-role">{ag.sub}</div>
               </div>
-              <span className="roster-dot"/>
+              {isExternal ? <span className="roster-ext-arrow">↗</span> : <span className="roster-dot"/>}
+            </>
+          );
+          return isExternal ? (
+            <a key={k} href={ag.url}
+              className={`roster-row roster-row-external`}
+              style={{ '--agent-hue': ag.hue }}>
+              {inner}
+            </a>
+          ) : (
+            <button key={k}
+              className={`roster-row ${isAct ? 'active' : ''}`}
+              style={{ '--agent-hue': ag.hue }}
+              onClick={() => setActive(k)}>
+              {inner}
             </button>
           );
         }) : (
@@ -67,10 +79,21 @@ function Sidebar({ active, setActive, onCmd, onCrew, theme, toggleTheme }) {
           </div>
         )}
       </div>
+      <a className="terminal-nav-btn" href="/stock">
+        <IcoCandlestick/>
+        <span className="terminal-nav-label">Stock Terminal</span>
+        <span className="terminal-nav-arrow">→</span>
+      </a>
+
+      <a className="pixel-nav-btn" href="/pixel">
+        <IcoPixel/>
+        <span className="pixel-nav-label">Pixel Mode</span>
+        <span className="pixel-nav-arrow">→</span>
+      </a>
+
       <div className="sidebar-footer">
         <button className="side-btn" onClick={onCmd} title="Command Palette (⌘K)"><IcoCmd/></button>
         <button className="side-btn" onClick={onCrew} title="Crew Mode"><IcoUsers/></button>
-        <a className="side-btn" href="/stock" target="_blank" rel="noopener noreferrer" title="Stock Terminal"><IcoCandlestick/></a>
         <button className="side-btn" onClick={toggleTheme} title="Toggle theme">
           {theme === 'dark' ? <IcoSun/> : <IcoMoon/>}
         </button>

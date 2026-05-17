@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CassanovaL — Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:     #0e0d12;
+  --panel:  #18171f;
+  --panel2: #1f1d28;
+  --line:   #2a2632;
+  --text:   #ededed;
+  --dim:    #9a93a8;
+  --dim2:   #6b6678;
+  --accent: #f5d048;
+  --ok:     #4ac86a;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100vh; background: var(--bg); color: var(--text);
+  font-family: 'JetBrains Mono', monospace; }
+
+/* CRT scanlines */
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px,
+    rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px);
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line); }
+
+/* ── Header ── */
+.hub-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 32px; height: 52px;
+  background: var(--panel);
+  border-bottom: 2px solid var(--accent);
+}
+.hub-brand {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 14px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+}
+.hub-brand-dot { width: 9px; height: 9px; background: var(--accent); flex-shrink: 0; }
+.hub-brand-name { color: var(--text); }
+.hub-brand-sub { font-size: 11px; color: var(--dim); font-weight: 400; margin-left: 6px; letter-spacing: 0.05em; }
+.hub-meta { font-size: 10px; color: var(--dim2); text-transform: uppercase; letter-spacing: 0.12em; }
+
+/* ── Hero ── */
+.hero {
+  text-align: center;
+  padding: 60px 32px 40px;
+  border-bottom: 1px solid var(--line);
+}
+.hero-eyebrow {
+  font-size: 10px; color: var(--dim2); text-transform: uppercase; letter-spacing: 0.2em;
+  margin-bottom: 14px;
+}
+.hero-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: clamp(40px, 6vw, 72px);
+  color: var(--text); line-height: 1.05;
+  letter-spacing: -0.02em; margin-bottom: 14px;
+}
+.hero-title em { color: var(--accent); font-style: italic; }
+.hero-sub {
+  font-size: 13px; color: var(--dim); max-width: 440px; margin: 0 auto;
+  line-height: 1.75;
+}
+.hero-status {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: 24px; padding: 6px 16px;
+  background: rgba(74,200,106,0.08); border: 1px solid rgba(74,200,106,0.25);
+  font-size: 11px; color: var(--ok); text-transform: uppercase; letter-spacing: 0.1em;
+}
+.status-dot {
+  width: 6px; height: 6px; background: var(--ok);
+  animation: blink 1s step-start infinite;
+}
+
+/* ── Grid ── */
+.grid-section { padding: 40px 32px 20px; max-width: 1080px; margin: 0 auto; }
+.section-label {
+  font-size: 10px; color: var(--dim2); text-transform: uppercase;
+  letter-spacing: 0.2em; margin-bottom: 20px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--line);
+}
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+
+.card {
+  background: var(--panel); border: 1px solid var(--line);
+  padding: 20px; cursor: pointer;
+  text-decoration: none; color: inherit;
+  display: flex; flex-direction: column; gap: 10px;
+  transition: border-color 0.15s, background 0.15s, transform 0.12s;
+  position: relative; overflow: hidden;
+}
+.card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--card-color, var(--accent));
+  opacity: 0.5; transition: opacity 0.15s;
+}
+.card:hover { border-color: var(--card-color, var(--accent)); transform: translateY(-2px); }
+.card:hover::before { opacity: 1; }
+
+.card-icon {
+  width: 36px; height: 36px; background: var(--panel2);
+  border: 1px solid var(--line); display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+.card-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--card-color, var(--text));
+}
+.card-name {
+  font-family: 'Instrument Serif', serif;
+  font-size: 20px; color: var(--text); letter-spacing: -0.01em; line-height: 1.1;
+}
+.card-desc { font-size: 11px; color: var(--dim); line-height: 1.65; flex: 1; }
+.card-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 3px 8px; border: 1px solid;
+  color: var(--card-color, var(--accent));
+  border-color: currentColor; opacity: 0.7; align-self: flex-start;
+}
+.card-arrow {
+  position: absolute; top: 14px; right: 14px;
+  font-size: 16px; color: var(--dim2);
+  transition: color 0.15s, transform 0.12s;
+}
+.card:hover .card-arrow { color: var(--card-color, var(--accent)); transform: translate(2px, -2px); }
+
+/* ── Agent cluster rows ── */
+.agent-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.agent-chip {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 12px; background: var(--panel); border: 1px solid var(--line);
+  font-size: 11px; text-decoration: none; color: var(--text);
+  transition: all 0.12s;
+}
+.agent-chip:hover { border-color: var(--chip-color, var(--accent)); background: var(--panel2); }
+.agent-chip-dot { width: 6px; height: 6px; background: var(--chip-color, var(--accent)); flex-shrink: 0; }
+.agent-chip-name { font-weight: 600; }
+.agent-chip-role { font-size: 10px; color: var(--dim); margin-left: 2px; }
+
+/* ── Footer ── */
+.hub-footer {
+  text-align: center; padding: 40px 32px;
+  border-top: 1px solid var(--line); margin-top: 20px;
+  font-size: 11px; color: var(--dim2);
+}
+.hub-footer span { color: var(--accent); }
+
+/* ── Animations ── */
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.cards .card { animation: fadeUp 0.3s ease-out both; }
+.cards .card:nth-child(2) { animation-delay: 0.05s; }
+.cards .card:nth-child(3) { animation-delay: 0.10s; }
+.cards .card:nth-child(4) { animation-delay: 0.15s; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="hub-hdr">
+  <div class="hub-brand">
+    <div class="hub-brand-dot"></div>
+    <div class="hub-brand-name">CassanovaL</div>
+    <div class="hub-brand-sub">Personal AI System</div>
+  </div>
+  <div class="hub-meta">Hub — All Pages</div>
+</header>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-eyebrow">Central Navigation</div>
+  <h1 class="hero-title">Your AI <em>Command Center</em></h1>
+  <p class="hero-sub">10 specialist agents, 4 pipeline crews, and real-time dashboards. Everything in one place.</p>
+  <div class="hero-status">
+    <div class="status-dot"></div>
+    <span>System Online · localhost:8000</span>
+  </div>
+</section>
+
+<!-- Main Pages -->
+<div class="grid-section">
+  <div class="section-label">Main Interfaces</div>
+  <div class="cards">
+
+    <a class="card" href="/" style="--card-color:#a0a0b8">
+      <div class="card-arrow">↗</div>
+      <div class="card-icon">📝</div>
+      <div class="card-label">Editorial</div>
+      <div class="card-name">Main Chat</div>
+      <div class="card-desc">The primary interface. Talk to any of the 10 AI agents. Light &amp; dark themes.</div>
+      <div class="card-badge">Default View</div>
+    </a>
+
+    <a class="card" href="/finance" style="--card-color:#4ac86a">
+      <div class="card-arrow">↗</div>
+      <div class="card-icon">💰</div>
+      <div class="card-label">Finance</div>
+      <div class="card-name">Mansa Dashboard</div>
+      <div class="card-desc">Multi-account wealth tracker. Net worth, budgets, investments, and recurring transactions.</div>
+      <div class="card-badge">Live Data</div>
+    </a>
+
+    <a class="card" href="/terminal" style="--card-color:#c180ff">
+      <div class="card-arrow">↗</div>
+      <div class="card-icon">📈</div>
+      <div class="card-label">Stock Terminal</div>
+      <div class="card-name">Trading View</div>
+      <div class="card-desc">5-agent equity analysis pipeline. Real-time Indonesian stock market data and signals.</div>
+      <div class="card-badge">Market Data</div>
+    </a>
+
+  </div>
+</div>
+
+<!-- Chat Agents -->
+<div class="grid-section">
+  <div class="section-label">Chat Agents — 10 Specialists</div>
+  <div class="agent-list">
+    <a class="agent-chip" href="/?agent=task"     style="--chip-color:#4ac86a">
+      <div class="agent-chip-dot"></div><span class="agent-chip-name">Alfred</span><span class="agent-chip-role">Tasks</span>
+    </a>
+    <a class="agent-chip" href="/?agent=notes"    style="--chip-color:#5bc8f5">
+      <div class="agent-chip-dot"></div><span class="agent-chip-name">Cicero</span><span class="agent-chip-role">Notes</span>
+    </a>
+    <a class="agent-chip" href="/?agent=news"     style="--chip-color:#f5d048">
+      <div class="agent-chip-dot"></div><span class="agent-chip-name">Najwa</span><span class="agent-chip-role">News</span>
+    </a>
+    <a class="agent-chip" href="/?agent=coding"   style="--chip-color:#c180ff">
+      <div class="agent-chip-dot"></div><span class="agent-chip-name">Linus</span><span class="agent-chip-role">Coding</span>
+    </a>
+    <a class="agent-chip" href="/?agent=schedule" style="--chip-color:#4ac8c0">
+      <div class="agent-chip-dot"></div><span class="agent-chip-name">CalCore</span><span class="agent-chip-role">Schedule</span>
+    </a>
+    <a class="agent-chip" href="/finance"          style="--chip-color:#f5d048">
+      <div class="agent-chip-dot"></div><span class="agent-chip-name">Mansa</span><span class="agent-chip-role">Finance ↗</span>
+    </a>
+    <a class="agent-chip" href="/?agent=fitness"  style="--chip-color:#ff6b6b">
+      <div class="agent-chip-dot"></div><span class="agent-chip-name">Lavoisier</span><span class="agent-chip-role">Fitness</span>
+    </a>
+    <a class="agent-chip" href="/?agent=research" style="--chip-color:#5bc8f5">
+      <div class="agent-chip-dot"></div><span class="agent-chip-name">Ferry</span><span class="agent-chip-role">Research</span>
+    </a>
+    <a class="agent-chip" href="/?agent=davinci"  style="--chip-color:#f97316">
+      <div class="agent-chip-dot"></div><span class="agent-chip-name">Da Vinci</span><span class="agent-chip-role">Creative</span>
+    </a>
+    <a class="agent-chip" href="/?agent=journal"  style="--chip-color:#c084fc">
+      <div class="agent-chip-dot"></div><span class="agent-chip-name">Dostoyevsky</span><span class="agent-chip-role">Journal</span>
+    </a>
+  </div>
+</div>
+
+<!-- Crew Pipelines -->
+<div class="grid-section">
+  <div class="section-label">Crew Pipelines — Background Jobs</div>
+  <div class="cards">
+
+    <a class="card" href="/" style="--card-color:#5bc8f5">
+      <div class="card-arrow">↗</div>
+      <div class="card-icon">🔬</div>
+      <div class="card-label">Research Crew</div>
+      <div class="card-name">Ibn Al-Haytham</div>
+      <div class="card-desc">7-agent autonomous research pipeline. Scout → Filter → Hypothesize → Validate → Synthesize → Critique → Write.</div>
+      <div class="card-badge">7 Agents</div>
+    </a>
+
+    <a class="card" href="/" style="--card-color:#4ac86a">
+      <div class="card-arrow">↗</div>
+      <div class="card-icon">📊</div>
+      <div class="card-label">Data Analyst</div>
+      <div class="card-name">DataBot Crew</div>
+      <div class="card-desc">3-agent CSV analysis crew. Auto-cleans data, runs statistics, and produces visualization plans.</div>
+      <div class="card-badge">3 Agents</div>
+    </a>
+
+    <a class="card" href="/" style="--card-color:#f97316">
+      <div class="card-arrow">↗</div>
+      <div class="card-icon">📱</div>
+      <div class="card-label">Social Scraper</div>
+      <div class="card-name">Trend Harvester</div>
+      <div class="card-desc">Multi-platform social media harvester. Generates AI summaries per platform via Mistral.</div>
+      <div class="card-badge">12 Platforms</div>
+    </a>
+
+    <div class="card" style="--card-color:#a0a0b8; opacity:0.5; cursor:default">
+      <div class="card-icon">🎓</div>
+      <div class="card-label">Academic Swarm</div>
+      <div class="card-name">Meta-Orchestrated</div>
+      <div class="card-desc">Multi-agent academic paper swarm. Available via Crew Mode in the main chat.</div>
+      <div class="card-badge">In Progress</div>
+    </div>
+
+  </div>
+  <p style="font-size:11px;color:var(--dim2);margin-top:14px">
+    → Launch pipelines from the main page via <span style="color:var(--accent)">Crew Mode</span> button.
+  </p>
+</div>
+
+<!-- Footer -->
+<footer class="hub-footer">
+  <span>CassanovaL</span> · Personal AI Multi-Agent System · Powered by Mistral AI + LangChain
+</footer>
+
+</body>
+</html>

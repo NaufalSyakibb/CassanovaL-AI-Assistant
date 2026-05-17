@@ -20,3 +20,9 @@ crewai-tools
 yfinance
 pandas
 plotly
+chromadb
+langchain-chroma
+scikit-learn
+scipy
+openpyxl
+scrapegraphai

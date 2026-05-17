@@ -1,6 +1,7 @@
 import sys
 import io
-from router import SupervisorRouter
+import argparse
+from router import SupervisorRouter, AGENT_REGISTRY
 
 # Fix Windows terminal encoding
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
@@ -70,7 +71,21 @@ Example commands:
 
 
 def main():
+    parser = argparse.ArgumentParser(description="CassanovaL — Personal AI Assistant")
+    parser.add_argument(
+        "--agent", "-a",
+        choices=list(AGENT_REGISTRY.keys()),
+        default=None,
+        metavar="AGENT",
+        help=f"Pin to a specific agent: {', '.join(AGENT_REGISTRY.keys())}",
+    )
+    args = parser.parse_args()
+    pinned = args.agent
+
     print(BANNER)
+    if pinned:
+        icon = AGENT_ICONS.get(pinned, "[ AGENT   ]")
+        print(f"  Pinned to {icon.strip()} — all messages go directly to this agent.\n")
 
     try:
         router = SupervisorRouter()
@@ -99,7 +114,10 @@ def main():
             continue
 
         try:
-            agent_name, answer = router.chat(user_input)
+            if pinned:
+                agent_name, answer = router.chat_direct(pinned, user_input)
+            else:
+                agent_name, answer = router.chat(user_input)
             icon = AGENT_ICONS.get(agent_name, "[ AGENT   ]")
             print(f"\n{icon}\n{answer}\n")
         except Exception as e:
