@@ -1,7 +1,7 @@
 # tools/intelligence_tools.py
 from pathlib import Path
-import os, json, re
-from datetime import datetime, timedelta
+import os, json, re  # json/re used by generate_intelligence_synthesis (Task 2)
+from datetime import datetime, timedelta  # used by generate_intelligence_synthesis (Task 2)
 
 # Defined here (not imported from autoresearch_tools) so we can include orwell
 # and avoid depending on a private variable in another module.
@@ -56,4 +56,10 @@ def _parse_program_md(program_path: Path) -> dict:
          if line.strip().startswith("updated:")),
         None,
     )
+    if updated is None:
+        updated = next(
+            (line.split(":", 1)[1].strip() for line in text.split("\n")
+             if line.strip().startswith("created:")),
+            None,
+        )
     return {"hypothesis": hypothesis, "updated": updated}
