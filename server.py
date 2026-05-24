@@ -485,9 +485,12 @@ async def get_intelligence():
 @app.post("/api/alfred/intelligence/refresh", status_code=202)
 async def refresh_intelligence(background_tasks: BackgroundTasks):
     """Trigger a fresh Mistral synthesis in the background. Returns 202 immediately."""
-    from tools.intelligence_tools import generate_intelligence_synthesis
-    background_tasks.add_task(generate_intelligence_synthesis, True)
-    return {"status": "generating"}
+    try:
+        from tools.intelligence_tools import generate_intelligence_synthesis
+        background_tasks.add_task(generate_intelligence_synthesis, force=True)
+        return {"status": "generating"}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
 
 
 # ─── Data Endpoints ───────────────────────────────────────────────────────────
