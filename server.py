@@ -127,6 +127,17 @@ async def _lifespan(app):
     _setup_scheduler(scheduler)
     scheduler.start()
     app.state.scheduler = scheduler
+
+    # Pre-warm router + Alfred agent in background (eliminates first-open cold start)
+    def _prewarm():
+        try:
+            sv = get_supervisor()
+            sv._load_agent("task")
+            print("[Startup] Alfred agent pre-warmed.")
+        except Exception as e:
+            print(f"[Startup] Alfred pre-warm failed: {e}")
+    threading.Thread(target=_prewarm, daemon=True).start()
+
     yield
     scheduler.shutdown(wait=False)
 
