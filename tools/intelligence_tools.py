@@ -1,6 +1,6 @@
 # tools/intelligence_tools.py
 from pathlib import Path
-import os, json, re  # json/re used by generate_intelligence_synthesis (Task 2)
+import os, json  # json used by generate_intelligence_synthesis
 from datetime import datetime, timedelta  # used by generate_intelligence_synthesis (Task 2)
 
 # Defined here (not imported from autoresearch_tools) so we can include orwell
@@ -104,25 +104,31 @@ def generate_intelligence_synthesis(force: bool = False) -> dict:
     lines = ["Kamu adalah analis sistem AI. Berikut adalah data eksperimen dari semua agent milik user:\n"]
     active_agents = [a for a in agents if a["experiments"]["total"] > 0]
     if not active_agents:
-        synthesis = "Belum ada data eksperimen yang cukup. Gunakan CassanovaL lebih sering agar sistem dapat mulai belajar tentang preferensimu."
-    else:
-        for a in active_agents:
-            lines += [
-                f"### {a['folder']} ({a['agent_key']})",
-                f"Hipotesis saat ini: {a['hypothesis'] or '(belum ada)'}",
-                f"Eksperimen: {a['experiments']['KEEP']} KEEP, {a['experiments']['DISCARD']} DISCARD, {a['experiments']['INCONCLUSIVE']} INCONCLUSIVE\n",
-            ]
+        # No data yet — return immediately without caching so fresh data will trigger synthesis later
+        return {
+            "synthesis":    "Belum ada data eksperimen yang cukup. Gunakan CassanovaL lebih sering agar sistem dapat mulai belajar tentang preferensimu.",
+            "generated_at": None,
+            "agents":       agents,
+        }
+
+    # Synthesize via LLM
+    for a in active_agents:
         lines += [
-            "\nTulis laporan ringkas dalam Bahasa Indonesia (3–5 paragraf) yang menjawab:",
-            "1. Apa yang sudah dipelajari sistem tentang preferensi dan kebiasaan user?",
-            "2. Agent mana yang paling aktif belajar, dan mana yang paling sedikit datanya?",
-            "3. Pola apa yang muncul lintas agent (misalnya: gaya komunikasi, format respons)?",
-            "4. Area konkret mana yang butuh lebih banyak eksperimen agar sistem bisa berkembang?",
+            f"### {a['folder']} ({a['agent_key']})",
+            f"Hipotesis saat ini: {a['hypothesis'] or '(belum ada)'}",
+            f"Eksperimen: {a['experiments']['KEEP']} KEEP, {a['experiments']['DISCARD']} DISCARD, {a['experiments']['INCONCLUSIVE']} INCONCLUSIVE\n",
         ]
-        from langchain_mistralai import ChatMistralAI
-        from langchain_core.messages import HumanMessage
-        llm = ChatMistralAI(model="mistral-large-latest", temperature=0.3)
-        synthesis = llm.invoke([HumanMessage(content="\n".join(lines))]).content
+    lines += [
+        "\nTulis laporan ringkas dalam Bahasa Indonesia (3–5 paragraf) yang menjawab:",
+        "1. Apa yang sudah dipelajari sistem tentang preferensi dan kebiasaan user?",
+        "2. Agent mana yang paling aktif belajar, dan mana yang paling sedikit datanya?",
+        "3. Pola apa yang muncul lintas agent (misalnya: gaya komunikasi, format respons)?",
+        "4. Area konkret mana yang butuh lebih banyak eksperimen agar sistem bisa berkembang?",
+    ]
+    from langchain_mistralai import ChatMistralAI
+    from langchain_core.messages import HumanMessage
+    llm = ChatMistralAI(model="mistral-large-latest", temperature=0.3)
+    synthesis = llm.invoke([HumanMessage(content="\n".join(lines))]).content
 
     result_to_cache = {
         "synthesis":    synthesis,
