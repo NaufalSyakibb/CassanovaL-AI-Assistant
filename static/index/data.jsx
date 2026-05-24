@@ -158,6 +158,8 @@ const contradictionsAPI = () => apiFetch('/api/alfred/contradictions');
 const fitnessDashAPI    = () => apiFetch('/api/fitness/dashboard');
 const newsFeedAPI       = () => apiFetch('/api/news/feed');
 const journalDashAPI    = () => apiFetch('/api/journal/dashboard');
+const intelligenceAPI        = () => apiFetch('/api/alfred/intelligence');
+const refreshIntelligenceAPI = () => fetch('/api/alfred/intelligence/refresh', { method: 'POST' }).then(r => r.json());
 
 const SCRAPER_PLATFORMS = [
   { key: 'youtube',    label: 'YouTube' },
@@ -214,4 +216,5 @@ window.CLData = {
   chatAPI, tasksAPI, notesAPI, budgetAPI, daFilesAPI,
   uploadDAAPI, receiptAPI, crewKick, crewPoll,
   patternsAPI, contradictionsAPI, fitnessDashAPI, newsFeedAPI, journalDashAPI,
+  intelligenceAPI, refreshIntelligenceAPI,
 };

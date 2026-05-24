@@ -54,6 +54,7 @@ const IcoPixel = ({size=15}) => (
     <rect x="6" y="11" width="4" height="4"/>
   </svg>
 );
+const IcoRefresh    = ({size=14})=> <S size={size}><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.5 9A9 9 0 0 0 5.2 5.2L1 10M23 14l-4.2 4.8A9 9 0 0 1 3.5 15"/></S>;
 
 window.Icons = {
   IcoSend, IcoSearch, IcoClock, IcoFile, IcoCmd, IcoUsers, IcoX, IcoClip,
@@ -61,5 +62,5 @@ window.Icons = {
   IcoArrowRight, IcoPlus, IcoUpload, IcoCheck, IcoReceipt, IcoSparkle,
   IcoDashboard, IcoChat, IcoLeaf, IcoFeather, IcoNewspaper, IcoCode,
   IcoCalendar, IcoCoin, IcoHeart, IcoBook, IcoLamp, IcoCandlestick,
-  IcoChart, IcoTrend, IcoBell, IcoMic, IcoMicOff,
+  IcoChart, IcoTrend, IcoBell, IcoMic, IcoMicOff, IcoRefresh,
 };
