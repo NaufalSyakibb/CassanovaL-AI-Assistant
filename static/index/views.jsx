@@ -541,6 +541,7 @@ function DashboardView({ dash, setAgent, loading }) {
 function IntelAgentCard({ agent }) {
   const { KEEP: k, DISCARD: d, INCONCLUSIVE: i, total } = agent.experiments;
   const dot = total === 0         ? 'grey'
+            : total < 3           ? 'yellow'
             : k / total >= 0.6   ? 'green'
             : d / total >= 0.6   ? 'red'
             : 'yellow';
