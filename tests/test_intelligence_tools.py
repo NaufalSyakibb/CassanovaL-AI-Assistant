@@ -4,7 +4,10 @@ from pathlib import Path
 import sys, os
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from tools.intelligence_tools import _parse_experiment_log, _parse_program_md
+from tools.intelligence_tools import (
+    _parse_experiment_log, _parse_program_md,
+    get_all_agent_stats, _AGENT_FOLDER_MAP,
+)
 
 
 def test_parse_experiment_log_counts_verdicts(tmp_path):
@@ -63,3 +66,15 @@ def test_parse_program_md_falls_back_to_created_date(tmp_path):
     result = _parse_program_md(prog)
     assert result["updated"] == "2026-04-01"
     assert result["hypothesis"] == "User prefers concise answers."
+
+
+def test_get_all_agent_stats_returns_all_agents():
+    stats = get_all_agent_stats()
+    assert len(stats) == len(_AGENT_FOLDER_MAP)
+    keys = {s["agent_key"] for s in stats}
+    assert "task" in keys
+    assert "orwell" in keys
+    assert "budget" in keys
+    for s in stats:
+        assert "experiments" in s
+        assert "total" in s["experiments"]

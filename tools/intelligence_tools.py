@@ -63,3 +63,72 @@ def _parse_program_md(program_path: Path) -> dict:
             None,
         )
     return {"hypothesis": hypothesis, "updated": updated}
+
+
+def get_all_agent_stats() -> list[dict]:
+    """Read program.md + experiment_log.md for every agent. Returns list of stat dicts."""
+    result = []
+    for agent_key, folder_name in _AGENT_FOLDER_MAP.items():
+        d = _get_agent_dir(agent_key)
+        program = _parse_program_md(d / "program.md")
+        exps    = _parse_experiment_log(d / "experiment_log.md")
+        result.append({
+            "agent_key":   agent_key,
+            "folder":      folder_name,
+            "hypothesis":  program["hypothesis"],
+            "updated":     program["updated"],
+            "experiments": exps,
+        })
+    return result
+
+
+def generate_intelligence_synthesis(force: bool = False) -> dict:
+    """
+    Synthesize a learning report via mistral-large-latest.
+    Caches to data/intelligence_synthesis.json for 7 days.
+    Returns {"synthesis": str, "generated_at": ISO str, "agents": list[dict]}.
+    """
+    agents = get_all_agent_stats()
+
+    # Return cached version if still fresh
+    if not force and _CACHE_FILE.exists():
+        try:
+            cached = json.loads(_CACHE_FILE.read_text(encoding="utf-8"))
+            if datetime.fromisoformat(cached["generated_at"]) > datetime.now() - timedelta(days=_CACHE_TTL_DAYS):
+                cached["agents"] = agents
+                return cached
+        except Exception:
+            pass  # corrupt cache → regenerate
+
+    # Build prompt
+    lines = ["Kamu adalah analis sistem AI. Berikut adalah data eksperimen dari semua agent milik user:\n"]
+    active_agents = [a for a in agents if a["experiments"]["total"] > 0]
+    if not active_agents:
+        synthesis = "Belum ada data eksperimen yang cukup. Gunakan CassanovaL lebih sering agar sistem dapat mulai belajar tentang preferensimu."
+    else:
+        for a in active_agents:
+            lines += [
+                f"### {a['folder']} ({a['agent_key']})",
+                f"Hipotesis saat ini: {a['hypothesis'] or '(belum ada)'}",
+                f"Eksperimen: {a['experiments']['KEEP']} KEEP, {a['experiments']['DISCARD']} DISCARD, {a['experiments']['INCONCLUSIVE']} INCONCLUSIVE\n",
+            ]
+        lines += [
+            "\nTulis laporan ringkas dalam Bahasa Indonesia (3–5 paragraf) yang menjawab:",
+            "1. Apa yang sudah dipelajari sistem tentang preferensi dan kebiasaan user?",
+            "2. Agent mana yang paling aktif belajar, dan mana yang paling sedikit datanya?",
+            "3. Pola apa yang muncul lintas agent (misalnya: gaya komunikasi, format respons)?",
+            "4. Area konkret mana yang butuh lebih banyak eksperimen agar sistem bisa berkembang?",
+        ]
+        from langchain_mistralai import ChatMistralAI
+        from langchain_core.messages import HumanMessage
+        llm = ChatMistralAI(model="mistral-large-latest", temperature=0.3)
+        synthesis = llm.invoke([HumanMessage(content="\n".join(lines))]).content
+
+    result_to_cache = {
+        "synthesis":    synthesis,
+        "generated_at": datetime.now().isoformat(),
+    }
+    _CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    _CACHE_FILE.write_text(json.dumps(result_to_cache, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    return {**result_to_cache, "agents": agents}
