@@ -539,13 +539,13 @@ function DashboardView({ dash, setAgent, loading }) {
 
 /* ── Intelligence Dashboard (inside Alfred Overview) ─────── */
 function IntelAgentCard({ agent }) {
-  const { KEEP: k, DISCARD: d, INCONCLUSIVE: i, total } = agent.experiments;
+  const { KEEP: k = 0, DISCARD: d = 0, INCONCLUSIVE: i = 0, total = 0 } = agent.experiments ?? {};
   const dot = total === 0         ? 'grey'
             : total < 3           ? 'yellow'
             : k / total >= 0.6   ? 'green'
             : d / total >= 0.6   ? 'red'
             : 'yellow';
-  const name = agent.folder.replace(' Agent', '').replace('TaskCore', 'Alfred');
+  const name = (agent.folder ?? '').replace(' Agent', '').replace('TaskCore', 'Alfred');
   const hyp  = agent.hypothesis
     ? (agent.hypothesis.length > 95 ? agent.hypothesis.slice(0, 95) + '…' : agent.hypothesis)
     : 'No experiments yet.';
@@ -582,16 +582,19 @@ function IntelligenceDashboard() {
 
   const handleRefresh = async () => {
     setSpinning(true);
-    await refreshIntelligenceAPI();
-    const prev = intel?.generated_at;
-    for (let i = 0; i < 10; i++) {
-      await new Promise(r => setTimeout(r, 3000));
-      try {
-        const fresh = await intelligenceAPI();
-        if (fresh.generated_at !== prev) { setIntel(fresh); break; }
-      } catch {}
+    try {
+      await refreshIntelligenceAPI();
+      const prev = intel?.generated_at;
+      for (let i = 0; i < 10; i++) {
+        await new Promise(r => setTimeout(r, 3000));
+        try {
+          const fresh = await intelligenceAPI();
+          if (fresh.generated_at !== prev) { setIntel(fresh); break; }
+        } catch {}
+      }
+    } finally {
+      setSpinning(false);
     }
-    setSpinning(false);
   };
 
   return (
