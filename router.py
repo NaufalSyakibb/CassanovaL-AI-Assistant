@@ -7,7 +7,7 @@ import time
 import logging
 from dotenv import load_dotenv
 from langchain_mistralai import ChatMistralAI
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from tenacity import (
     retry,
     stop_after_attempt,
@@ -223,7 +223,27 @@ class SupervisorRouter:
         agent = self._load_agent(agent_name)
         history = self._chat_histories[agent_name]
 
-        messages = history + [HumanMessage(content=user_message)]
+        # Inject cross-domain life context (silent — only when alerts exist)
+        try:
+            from tools.context_mesh import get_life_snapshot
+            snapshot = get_life_snapshot()
+        except Exception:
+            snapshot = ""
+
+        # Inject user profile for this agent (silent — only relevant sections)
+        try:
+            from tools.profile_tools import _load_profile, _format_profile_for_agent
+            profile_ctx = _format_profile_for_agent(agent_name, _load_profile())
+        except Exception:
+            profile_ctx = ""
+
+        base_messages = history + [HumanMessage(content=user_message)]
+        prefix = []
+        if snapshot:
+            prefix.append(SystemMessage(content=snapshot))
+        if profile_ctx:
+            prefix.append(SystemMessage(content=profile_ctx))
+        messages = prefix + base_messages
         limit = _RECURSION_LIMITS.get(agent_name, _DEFAULT_RECURSION)
         response = _invoke_with_retry(agent, messages, limit)
 
@@ -242,6 +262,13 @@ class SupervisorRouter:
         except Exception:
             pass
 
+        # Log interaction for Alfred's daily overview
+        try:
+            from tools.interaction_tools import log_interaction
+            log_interaction(agent_name, user_message, answer)
+        except Exception:
+            pass
+
         return agent_name, answer
 
     def chat_direct(self, agent_name: str, user_message: str) -> tuple[str, str]:
@@ -251,7 +278,15 @@ class SupervisorRouter:
         agent = self._load_agent(agent_name)
         history = self._chat_histories[agent_name]
 
-        messages = history + [HumanMessage(content=user_message)]
+        # Inject user profile for this agent
+        try:
+            from tools.profile_tools import _load_profile, _format_profile_for_agent
+            profile_ctx = _format_profile_for_agent(agent_name, _load_profile())
+        except Exception:
+            profile_ctx = ""
+
+        base_messages = history + [HumanMessage(content=user_message)]
+        messages = ([SystemMessage(content=profile_ctx)] if profile_ctx else []) + base_messages
         limit = _RECURSION_LIMITS.get(agent_name, _DEFAULT_RECURSION)
         response = _invoke_with_retry(agent, messages, limit)
 
@@ -266,6 +301,13 @@ class SupervisorRouter:
         try:
             from tools.obsidian_tools import append_to_history
             append_to_history(agent_name, user_message, answer)
+        except Exception:
+            pass
+
+        # Log interaction for Alfred's daily overview
+        try:
+            from tools.interaction_tools import log_interaction
+            log_interaction(agent_name, user_message, answer)
         except Exception:
             pass
 

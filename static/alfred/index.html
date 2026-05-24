@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Alfred — Task & Schedule</title>
+<style>
+/* ── Tokens ─────────────────────────────────────────────────────────────── */
+:root {
+  --paper: #F3EEE5;
+  --paper2: #EDE7DB;
+  --ink: #17171A;
+  --ink2: #3A3A40;
+  --ink3: #6B6B72;
+  --rule: rgba(23,23,26,.10);
+  --rule2: rgba(23,23,26,.06);
+  --clay: #CC785C;
+  --hue: #3D5A80;        /* Alfred — deep navy slate */
+  --hue-soft: #EAF0F8;
+  --hue-mid: #6B8FB5;
+  --hue-text: #2A3F58;
+
+  --red: #B94040;
+  --amber: #C47D28;
+  --green: #4A8A5C;
+  --blue: #3D5A80;
+
+  --sidebar-w: 230px;
+  --panel-w: 290px;
+  --radius: 8px;
+  --fsize: 14px;
+}
+[data-theme="dark"] {
+  --paper: #17171A;
+  --paper2: #1F1F23;
+  --ink: #F3EEE5;
+  --ink2: #C8C4BB;
+  --ink3: #7A7672;
+  --rule: rgba(243,238,229,.09);
+  --rule2: rgba(243,238,229,.05);
+  --hue: #6B9BC8;
+  --hue-soft: #1A2535;
+  --hue-mid: #4A7099;
+  --hue-text: #A8CAEC;
+}
+
+/* ── Reset ──────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: var(--fsize);
+  background: var(--paper);
+  color: var(--ink);
+  line-height: 1.5;
+}
+button { cursor: pointer; border: none; background: none; font: inherit; color: inherit; }
+input, textarea { font: inherit; color: inherit; background: none; border: none; outline: none; }
+a { color: inherit; text-decoration: none; }
+
+/* ── Typography helpers ─────────────────────────────────────────────────── */
+.serif  { font-family: 'Instrument Serif', Georgia, serif; }
+.mono   { font-family: 'JetBrains Mono', 'Fira Mono', monospace; font-size: .8em; }
+.small-caps { font-variant: small-caps; letter-spacing: .06em; }
+
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+.app {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr var(--panel-w);
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Sidebar ────────────────────────────────────────────────────────────── */
+.sidebar {
+  border-right: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sidebar-head {
+  padding: 20px 18px 16px;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.agent-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 2px solid var(--hue);
+}
+.agent-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.agent-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  background: var(--hue-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--hue);
+  font-family: 'Instrument Serif', serif;
+}
+.sprite-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 0 6px;
+}
+.sprite-wrap canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: block;
+}
+.agent-name { font-family: 'Instrument Serif', Georgia, serif; font-size: 1.1em; line-height: 1.2; }
+.agent-role { font-size: .72em; color: var(--ink3); font-variant: small-caps; letter-spacing: .05em; }
+
+.sidebar-body { flex: 1; overflow-y: auto; padding: 14px 0; }
+
+.sidebar-section { padding: 0 18px 16px; }
+.sidebar-label {
+  font-size: .68em;
+  font-variant: small-caps;
+  letter-spacing: .08em;
+  color: var(--ink3);
+  margin-bottom: 10px;
+}
+
+/* Stats grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.stat-card {
+  background: var(--paper2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+}
+.stat-card.accent {
+  background: var(--hue-soft);
+  border-color: color-mix(in srgb, var(--hue) 25%, transparent);
+}
+.stat-card.danger { background: rgba(185,64,64,.08); border-color: rgba(185,64,64,.2); }
+.stat-card.success { background: rgba(74,138,92,.08); border-color: rgba(74,138,92,.2); }
+.stat-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.45em;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 2px;
+  color: var(--hue);
+}
+.stat-card.danger .stat-num { color: var(--red); }
+.stat-card.success .stat-num { color: var(--green); }
+.stat-lbl { font-size: .70em; color: var(--ink3); }
+
+/* Priority bars */
+.priority-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.priority-label-w { width: 46px; font-size: .72em; color: var(--ink3); }
+.priority-bar-track {
+  flex: 1;
+  height: 5px;
+  background: var(--rule);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.priority-bar-fill { height: 100%; border-radius: 3px; transition: width .5s ease; }
+.fill-high { background: var(--red); }
+.fill-medium { background: var(--amber); }
+.fill-low { background: var(--green); }
+.priority-count { font-size: .72em; color: var(--ink3); width: 18px; text-align: right; font-family: 'JetBrains Mono', monospace; }
+
+/* Today quick events */
+.today-event-mini {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--rule2);
+}
+.today-event-mini:last-child { border-bottom: none; }
+.tev-time { font-family: 'JetBrains Mono', monospace; font-size: .7em; color: var(--hue); width: 36px; padding-top: 1px; flex-shrink: 0; }
+.tev-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--hue); margin-top: 5px; flex-shrink: 0; }
+.tev-title { font-size: .78em; color: var(--ink2); line-height: 1.3; }
+
+.no-events-mini { font-size: .76em; color: var(--ink3); padding: 8px 0; font-style: italic; }
+
+/* ── Main ───────────────────────────────────────────────────────────────── */
+.main {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--rule);
+}
+.main-head {
+  padding: 18px 24px 0;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.main-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.main-title { font-family: 'Instrument Serif', Georgia, serif; font-size: 1.55em; line-height: 1; }
+.date-label { font-size: .76em; color: var(--ink3); font-family: 'JetBrains Mono', monospace; }
+
+/* Tab bar */
+.tab-bar {
+  display: flex;
+  gap: 0;
+  border-top: 1px solid var(--rule);
+  margin-top: 4px;
+}
+.tab-btn {
+  padding: 10px 18px;
+  font-size: .78em;
+  font-variant: small-caps;
+  letter-spacing: .06em;
+  color: var(--ink3);
+  border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+  position: relative;
+  top: 1px;
+}
+.tab-btn.active { color: var(--hue); border-bottom-color: var(--hue); }
+.tab-btn:hover:not(.active) { color: var(--ink2); }
+
+/* Tab content area */
+.tab-content { flex: 1; overflow-y: auto; }
+.tab-pane { display: none; padding: 20px 24px; }
+.tab-pane.active { display: block; }
+
+/* ── Task filters ───────────────────────────────────────────────────────── */
+.task-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.filter-group { display: flex; gap: 4px; }
+.filter-btn {
+  padding: 4px 11px;
+  border: 1px solid var(--rule);
+  border-radius: 20px;
+  font-size: .73em;
+  color: var(--ink3);
+  background: var(--paper2);
+  transition: all .15s;
+}
+.filter-btn.active {
+  background: var(--hue);
+  border-color: var(--hue);
+  color: var(--paper);
+}
+.filter-btn:hover:not(.active) { border-color: var(--hue); color: var(--hue); }
+.search-wrap {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--rule);
+  border-radius: 20px;
+  padding: 4px 12px;
+  background: var(--paper2);
+}
+.search-wrap svg { color: var(--ink3); flex-shrink: 0; }
+.search-wrap input { flex: 1; font-size: .78em; background: none; }
+.search-wrap input::placeholder { color: var(--ink3); }
+
+/* Task card */
+.task-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  background: var(--paper2);
+  transition: border-color .15s, box-shadow .15s;
+}
+.task-card:hover { border-color: var(--hue-mid); box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+.task-card.done-card { opacity: .55; }
+.task-check {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid var(--rule);
+  flex-shrink: 0;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.task-card.done-card .task-check {
+  background: var(--green);
+  border-color: var(--green);
+}
+.check-mark { color: white; font-size: 10px; }
+.task-body { flex: 1; min-width: 0; }
+.task-title {
+  font-size: .88em;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.35;
+  margin-bottom: 5px;
+  word-break: break-word;
+}
+.task-card.done-card .task-title { text-decoration: line-through; color: var(--ink3); }
+.task-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-size: .68em;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.badge-high   { background: rgba(185,64,64,.12);  color: var(--red); }
+.badge-medium { background: rgba(196,125,40,.12); color: var(--amber); }
+.badge-low    { background: rgba(74,138,92,.12);  color: var(--green); }
+.badge-done   { background: rgba(74,138,92,.12);  color: var(--green); }
+.badge-pending{ background: var(--hue-soft);      color: var(--hue); }
+.badge-date   { background: var(--paper); border: 1px solid var(--rule); color: var(--ink3); font-family: 'JetBrains Mono', monospace; }
+.badge-overdue { background: rgba(185,64,64,.1); color: var(--red); border: 1px solid rgba(185,64,64,.2); }
+
+.task-count-label { font-size: .74em; color: var(--ink3); margin-bottom: 10px; font-family: 'JetBrains Mono', monospace; }
+
+/* ── Schedule (future + history) ────────────────────────────────────────── */
+.day-group { margin-bottom: 28px; }
+.day-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  position: sticky;
+  top: 0;
+  background: var(--paper);
+  padding: 4px 0;
+  z-index: 2;
+}
+.day-header::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+}
+.day-label {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 1.05em;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.day-badge {
+  font-size: .68em;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--paper);
+  background: var(--hue);
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+.day-badge.today-tag { background: var(--clay); }
+.day-badge.past-tag  { background: var(--ink3); }
+
+.event-card {
+  display: flex;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  background: var(--paper2);
+  transition: border-color .15s;
+}
+.event-card:hover { border-color: var(--hue-mid); }
+.event-time-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 52px;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+.event-start { font-family: 'JetBrains Mono', monospace; font-size: .78em; color: var(--hue); font-weight: 600; }
+.event-end   { font-family: 'JetBrains Mono', monospace; font-size: .68em; color: var(--ink3); }
+.event-body { flex: 1; min-width: 0; }
+.event-title {
+  font-size: .88em;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.3;
+  margin-bottom: 4px;
+}
+.event-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 4px; }
+.event-loc {
+  font-size: .72em;
+  color: var(--ink3);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.event-desc {
+  font-size: .76em;
+  color: var(--ink3);
+  margin-top: 4px;
+  line-height: 1.4;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.event-allday { font-size: .7em; color: var(--paper); background: var(--hue-mid); padding: 2px 7px; border-radius: 10px; }
+.event-dur { font-family: 'JetBrains Mono', monospace; font-size: .68em; color: var(--ink3); }
+
+.no-cal-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--ink3);
+}
+.no-cal-banner svg { color: var(--hue); opacity: .4; }
+.no-cal-title { font-family: 'Instrument Serif', serif; font-size: 1.1em; color: var(--ink2); }
+.no-cal-sub { font-size: .8em; max-width: 260px; line-height: 1.5; }
+
+.empty-state {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--ink3);
+  font-size: .83em;
+  font-style: italic;
+}
+
+/* ── Right panel ────────────────────────────────────────────────────────── */
+.panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.panel-head {
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid var(--rule);
+}
+.panel-title { font-family: 'Instrument Serif', Georgia, serif; font-size: 1em; }
+.panel-body { flex: 1; overflow-y: auto; padding: 14px 0; }
+.panel-section { padding: 0 18px 18px; }
+.panel-label {
+  font-size: .68em;
+  font-variant: small-caps;
+  letter-spacing: .08em;
+  color: var(--ink3);
+  margin-bottom: 10px;
+}
+
+/* Due-soon task */
+.duesoon-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule2);
+}
+.duesoon-item:last-child { border-bottom: none; }
+.duesoon-bullet {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+.bullet-high   { background: var(--red); }
+.bullet-medium { background: var(--amber); }
+.bullet-low    { background: var(--green); }
+.duesoon-body { flex: 1; min-width: 0; }
+.duesoon-title { font-size: .80em; color: var(--ink2); line-height: 1.3; word-break: break-word; }
+.duesoon-date  { font-size: .68em; color: var(--ink3); font-family: 'JetBrains Mono', monospace; margin-top: 2px; }
+
+/* Timeline */
+.timeline-item {
+  display: flex;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule2);
+}
+.timeline-item:last-child { border-bottom: none; }
+.tl-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--hue);
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+.tl-body { flex: 1; min-width: 0; }
+.tl-title { font-size: .80em; color: var(--ink2); line-height: 1.3; }
+.tl-time  { font-size: .68em; color: var(--ink3); font-family: 'JetBrains Mono', monospace; margin-top: 1px; }
+
+/* Cal connect notice */
+.connect-notice {
+  margin: 12px 0;
+  padding: 10px 12px;
+  background: var(--hue-soft);
+  border: 1px solid color-mix(in srgb, var(--hue) 20%, transparent);
+  border-radius: var(--radius);
+  font-size: .76em;
+  color: var(--hue-text);
+  line-height: 1.5;
+}
+
+/* ── Masthead ────────────────────────────────────────────────────────────── */
+.masthead {
+  height: 40px;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  flex-shrink: 0;
+}
+.masthead-left { display: flex; align-items: center; gap: 10px; }
+.masthead-logo {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: .85em;
+  color: var(--ink3);
+  text-decoration: none;
+}
+.masthead-logo span { color: var(--hue); }
+.masthead-sep { color: var(--rule); }
+.masthead-agent { font-size: .72em; color: var(--ink3); font-variant: small-caps; letter-spacing: .05em; }
+.masthead-right { display: flex; align-items: center; gap: 8px; }
+.theme-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink3);
+  background: var(--paper2);
+  transition: all .15s;
+}
+.theme-btn:hover { color: var(--ink); border-color: var(--ink3); }
+.home-btn {
+  font-size: .72em;
+  color: var(--ink3);
+  padding: 4px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  background: var(--paper2);
+  transition: all .15s;
+}
+.home-btn:hover { color: var(--hue); border-color: var(--hue); }
+
+/* Loading overlay */
+.loading-overlay {
+  position: fixed; inset: 0;
+  background: var(--paper);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  z-index: 100;
+  transition: opacity .3s;
+}
+.loading-overlay.hidden { opacity: 0; pointer-events: none; }
+.loading-title { font-family: 'Instrument Serif', serif; font-size: 1.6em; }
+.loading-sub { font-size: .80em; color: var(--ink3); font-family: 'JetBrains Mono', monospace; }
+.spinner {
+  width: 28px; height: 28px;
+  border: 2.5px solid var(--rule);
+  border-top-color: var(--hue);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink3); }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .app { grid-template-columns: 0 1fr 0; }
+  .sidebar, .panel { display: none; }
+}
+
+/* ── Chat panel ───────────────────────────────────────────── */
+.panel { display:flex; flex-direction:column; overflow:hidden; background:var(--paper2); border-left:1px solid var(--rule); }
+.cp-head { padding:18px 18px 14px; border-bottom:1px solid var(--rule); flex-shrink:0; }
+.cp-title { font-family:'Instrument Serif',Georgia,serif; font-size:22px; color:var(--ink); letter-spacing:-.02em; }
+.cp-title em { font-style:italic; color:var(--hue); }
+.cp-sub { font-size:.68em; font-family:'JetBrains Mono',monospace; color:var(--ink3); margin-top:3px; }
+.cp-msgs { flex:1; overflow-y:auto; padding:14px 16px; display:flex; flex-direction:column; gap:12px; }
+.cp-msgs::-webkit-scrollbar { width:4px; }
+.cp-msgs::-webkit-scrollbar-thumb { background:var(--rule); border-radius:3px; }
+.c-msg { animation:fadeUp .18s ease-out; }
+.c-msg+.c-msg { border-top:1px solid var(--rule2); padding-top:12px; }
+.c-msg-head { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+.c-msg-author { font-family:'Instrument Serif',Georgia,serif; font-size:14px; color:var(--ink); }
+.c-msg-author em { font-style:italic; color:var(--hue); }
+.c-msg-time { margin-left:auto; font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--ink3); }
+.c-msg-body { font-size:.82em; line-height:1.65; color:var(--ink2); white-space:pre-wrap; word-break:break-word; }
+.c-msg.agent .c-msg-body { border-left:2px solid var(--hue); padding-left:10px; }
+.c-msg-body code { font-family:'JetBrains Mono',monospace; font-size:.88em; background:var(--hue-soft); padding:1px 4px; border-radius:3px; color:var(--hue-text); }
+.c-typing-row { display:flex; align-items:center; gap:7px; color:var(--ink3); padding-top:12px; border-top:1px solid var(--rule2); font-size:.78em; }
+.c-dots { display:flex; gap:3px; }
+.c-dot { width:4px; height:4px; border-radius:50%; background:var(--hue); animation:dotBounce 1.2s infinite; }
+.c-dot:nth-child(2){animation-delay:.15s} .c-dot:nth-child(3){animation-delay:.3s}
+@keyframes dotBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
+.cp-chips { display:flex; flex-wrap:wrap; gap:5px; padding:0 16px 8px; flex-shrink:0; }
+.cp-chip { padding:3px 9px; border:1px solid var(--rule); border-radius:100px; background:transparent; font-size:.70em; font-family:'JetBrains Mono',monospace; color:var(--ink3); cursor:pointer; transition:all .12s; }
+.cp-chip:hover { border-color:var(--hue); color:var(--hue); }
+.cp-compose { padding:8px 14px 14px; border-top:1px solid var(--rule); flex-shrink:0; }
+.cp-box { display:flex; align-items:flex-end; gap:7px; border:1px solid var(--rule); border-radius:9px; background:var(--paper); padding:7px 10px; transition:border-color .15s; }
+.cp-box:focus-within { border-color:var(--hue-mid); }
+.cp-ta { flex:1; border:none; outline:none; background:transparent; font:inherit; font-size:.82em; resize:none; min-height:20px; max-height:90px; line-height:1.5; color:var(--ink); }
+.cp-ta::placeholder { color:var(--ink3); font-style:italic; font-family:'Instrument Serif',Georgia,serif; font-size:1.05em; }
+.cp-send { width:28px; height:28px; border-radius:7px; border:none; background:var(--hue); color:#fff; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; transition:opacity .12s; }
+.cp-send:hover:not(:disabled) { opacity:.82; }
+.cp-send:disabled { opacity:.35; cursor:not-allowed; }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<!-- Loading -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-title serif">Alfred</div>
+  <div class="loading-sub">Loading tasks & schedule…</div>
+</div>
+
+<div class="app">
+
+  <!-- ── Sidebar ─────────────────────────────────────────────────────────── -->
+  <aside class="sidebar">
+    <!-- Masthead slot in sidebar -->
+    <div class="masthead">
+      <div class="masthead-left">
+        <a href="/" class="masthead-logo">Cass<span>anova</span>L</a>
+        <span class="masthead-sep">·</span>
+        <span class="masthead-agent">Alfred</span>
+      </div>
+      <div class="masthead-right">
+        <button class="theme-btn" id="themeBtn" title="Toggle theme">
+          <svg id="themeIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="sidebar-body">
+
+      <!-- Agent identity -->
+      <div class="sidebar-section" style="padding-top:16px;">
+        <div class="sprite-wrap">
+          <canvas id="agent-sprite" style="image-rendering:pixelated;"></canvas>
+        </div>
+        <div style="margin-bottom:14px;">
+          <div class="agent-name serif">Alfred</div>
+          <div class="agent-role">Task &amp; Goal Manager</div>
+        </div>
+      </div>
+
+      <!-- Task stats -->
+      <div class="sidebar-section">
+        <div class="sidebar-label">Task Overview</div>
+        <div class="stats-grid">
+          <div class="stat-card accent">
+            <div class="stat-num" id="s-pending">—</div>
+            <div class="stat-lbl">Pending</div>
+          </div>
+          <div class="stat-card success">
+            <div class="stat-num" id="s-done">—</div>
+            <div class="stat-lbl">Completed</div>
+          </div>
+          <div class="stat-card danger">
+            <div class="stat-num" id="s-overdue">—</div>
+            <div class="stat-lbl">Overdue</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="s-total">—</div>
+            <div class="stat-lbl">Total</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Priority breakdown -->
+      <div class="sidebar-section">
+        <div class="sidebar-label">Priority Breakdown</div>
+        <div class="priority-row">
+          <div class="priority-label-w">High</div>
+          <div class="priority-bar-track"><div class="priority-bar-fill fill-high" id="bar-high" style="width:0%"></div></div>
+          <div class="priority-count" id="cnt-high">0</div>
+        </div>
+        <div class="priority-row">
+          <div class="priority-label-w">Medium</div>
+          <div class="priority-bar-track"><div class="priority-bar-fill fill-medium" id="bar-medium" style="width:0%"></div></div>
+          <div class="priority-count" id="cnt-medium">0</div>
+        </div>
+        <div class="priority-row">
+          <div class="priority-label-w">Low</div>
+          <div class="priority-bar-track"><div class="priority-bar-fill fill-low" id="bar-low" style="width:0%"></div></div>
+          <div class="priority-count" id="cnt-low">0</div>
+        </div>
+      </div>
+
+      <!-- Today's events -->
+      <div class="sidebar-section">
+        <div class="sidebar-label">Today's Events</div>
+        <div id="todayMiniEvents">
+          <div class="no-events-mini">Loading…</div>
+        </div>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- ── Main ───────────────────────────────────────────────────────────── -->
+  <main class="main">
+    <div class="main-head">
+      <div class="main-title-row">
+        <div class="main-title serif">Task &amp; Schedule</div>
+        <div class="date-label" id="dateLabel">—</div>
+      </div>
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="tasks">Tasks</button>
+        <button class="tab-btn" data-tab="upcoming">Upcoming Schedule</button>
+        <button class="tab-btn" data-tab="history">History</button>
+      </div>
+    </div>
+
+    <div class="tab-content">
+
+      <!-- Tasks tab -->
+      <div class="tab-pane active" id="tab-tasks">
+        <div class="task-filters">
+          <div class="filter-group" id="statusFilters">
+            <button class="filter-btn active" data-status="pending">Pending</button>
+            <button class="filter-btn" data-status="done">Done</button>
+            <button class="filter-btn" data-status="all">All</button>
+          </div>
+          <div class="filter-group" id="priorityFilters">
+            <button class="filter-btn active" data-priority="all">All Priority</button>
+            <button class="filter-btn" data-priority="high">High</button>
+            <button class="filter-btn" data-priority="medium">Medium</button>
+            <button class="filter-btn" data-priority="low">Low</button>
+          </div>
+          <div class="search-wrap">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="taskSearch" placeholder="Search tasks…" />
+          </div>
+        </div>
+        <div class="task-count-label" id="taskCountLabel">— tasks</div>
+        <div id="taskList"></div>
+      </div>
+
+      <!-- Upcoming Schedule tab -->
+      <div class="tab-pane" id="tab-upcoming">
+        <div id="upcomingContent"></div>
+      </div>
+
+      <!-- History tab -->
+      <div class="tab-pane" id="tab-history">
+        <div id="historyContent"></div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ── Right Panel — Alfred Chat ──────────────────────────────────────── -->
+  <aside class="panel">
+    <div class="cp-head">
+      <div class="cp-title">Ask <em>Alfred</em></div>
+      <div class="cp-sub">Task &amp; schedule · Mistral AI</div>
+    </div>
+    <div class="cp-msgs" id="cp-msgs">
+      <div class="c-msg agent">
+        <div class="c-msg-meta">Alfred</div>
+        <div class="c-msg-body">Hello! I'm Alfred, your task and schedule manager. Ask me to add tasks, check what's due, or manage your calendar.</div>
+      </div>
+    </div>
+    <div class="cp-chips" id="cp-chips">
+      <button class="cp-chip" onclick="cpQuick('Show my pending tasks')">Pending tasks</button>
+      <button class="cp-chip" onclick="cpQuick('What\'s on my schedule today?')">Today's schedule</button>
+      <button class="cp-chip" onclick="cpQuick('Tasks due this week')">Due this week</button>
+      <button class="cp-chip" onclick="cpQuick('Add a task')">Add task</button>
+    </div>
+    <div class="cp-compose">
+      <div class="cp-box">
+        <textarea class="cp-ta" id="cp-ta" rows="1" placeholder="Ask Alfred…" onkeydown="cpKey(event)" oninput="cpResize(this)"></textarea>
+        <button class="cp-send" id="cp-send" onclick="cpSend()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+<script>
+// ── Helpers ──────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+
+const MONTH_NAMES = ['January','February','March','April','May','June',
+  'July','August','September','October','November','December'];
+const DAY_NAMES   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+function fmtDate(iso) {
+  const [y,m,d] = iso.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  return `${DAY_NAMES[dt.getDay()]}, ${d} ${MONTH_NAMES[m-1]} ${y}`;
+}
+function fmtDateShort(iso) {
+  const [y,m,d] = iso.split('-').map(Number);
+  return `${d} ${MONTH_NAMES[m-1].slice(0,3)}`;
+}
+function relLabel(iso, todayIso) {
+  if (iso === todayIso) return 'Today';
+  const [ty,tm,td] = todayIso.split('-').map(Number);
+  const [ey,em,ed] = iso.split('-').map(Number);
+  const today = new Date(ty,tm-1,td);
+  const ev    = new Date(ey,em-1,ed);
+  const diff  = Math.round((ev - today) / 86400000);
+  if (diff === 1) return 'Tomorrow';
+  if (diff === -1) return 'Yesterday';
+  if (diff > 0 && diff < 7) return DAY_NAMES[ev.getDay()];
+  return fmtDateShort(iso);
+}
+function durText(min) {
+  if (min >= 1440) return 'All day';
+  if (min >= 60) {
+    const h = Math.floor(min/60), m = min%60;
+    return m ? `${h}h ${m}m` : `${h}h`;
+  }
+  return `${min}m`;
+}
+function isOverdue(task, todayIso) {
+  return task.due_date && task.due_date < todayIso && task.status !== 'done';
+}
+function esc(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Theme ────────────────────────────────────────────────────────────────
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('theme', t);
+  const icon = $('themeIcon');
+  if (t === 'dark') {
+    icon.innerHTML = '<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" stroke-width="2" fill="none"/>';
+  } else {
+    icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+  }
+}
+const savedTheme = localStorage.getItem('theme') || 'light';
+applyTheme(savedTheme);
+$('themeBtn').addEventListener('click', () => {
+  applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+});
+
+// ── State ────────────────────────────────────────────────────────────────
+let DATA = null;
+let activeStatus   = 'pending';
+let activePriority = 'all';
+let searchQuery    = '';
+
+// ── Tabs ─────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    $('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ── Filters ──────────────────────────────────────────────────────────────
+$('statusFilters').querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $('statusFilters').querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeStatus = btn.dataset.status;
+    if (DATA) renderTasks();
+  });
+});
+$('priorityFilters').querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $('priorityFilters').querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activePriority = btn.dataset.priority;
+    if (DATA) renderTasks();
+  });
+});
+$('taskSearch').addEventListener('input', e => {
+  searchQuery = e.target.value.toLowerCase();
+  if (DATA) renderTasks();
+});
+
+// ── Task rendering ───────────────────────────────────────────────────────
+function renderTasks() {
+  const todayIso = DATA.today;
+  let tasks = DATA.tasks || [];
+
+  // Filter by status
+  if (activeStatus === 'pending') tasks = tasks.filter(t => t.status !== 'done');
+  else if (activeStatus === 'done') tasks = tasks.filter(t => t.status === 'done');
+
+  // Filter by priority
+  if (activePriority !== 'all') tasks = tasks.filter(t => t.priority === activePriority);
+
+  // Search
+  if (searchQuery) {
+    tasks = tasks.filter(t => (t.title||'').toLowerCase().includes(searchQuery));
+  }
+
+  $('taskCountLabel').textContent = `${tasks.length} task${tasks.length !== 1 ? 's' : ''}`;
+
+  if (!tasks.length) {
+    $('taskList').innerHTML = '<div class="empty-state">No tasks found.</div>';
+    return;
+  }
+
+  const pOrder = {high:0, medium:1, low:2};
+  tasks.sort((a,b) => {
+    if (a.status !== 'done' && b.status === 'done') return -1;
+    if (a.status === 'done' && b.status !== 'done') return 1;
+    const pa = pOrder[a.priority||'medium'] ?? 1;
+    const pb = pOrder[b.priority||'medium'] ?? 1;
+    if (pa !== pb) return pa - pb;
+    return (a.due_date||'9999') < (b.due_date||'9999') ? -1 : 1;
+  });
+
+  $('taskList').innerHTML = tasks.map(t => {
+    const done    = t.status === 'done';
+    const overdue = isOverdue(t, todayIso);
+    const p       = t.priority || 'medium';
+    const dueStr  = t.due_date ? fmtDateShort(t.due_date) : '';
+    return `
+    <div class="task-card${done ? ' done-card' : ''}">
+      <div class="task-check">${done ? '<span class="check-mark">✓</span>' : ''}</div>
+      <div class="task-body">
+        <div class="task-title">${esc(t.title || 'Untitled')}</div>
+        <div class="task-meta">
+          <span class="badge badge-${p}">${p.charAt(0).toUpperCase()+p.slice(1)}</span>
+          ${done
+            ? '<span class="badge badge-done">Done</span>'
+            : overdue
+              ? '<span class="badge badge-overdue">Overdue</span>'
+              : '<span class="badge badge-pending">Pending</span>'
+          }
+          ${dueStr ? `<span class="badge badge-date">${esc(dueStr)}</span>` : ''}
+          ${t.project ? `<span class="badge" style="background:var(--paper);border:1px solid var(--rule);color:var(--ink3)">${esc(t.project)}</span>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Schedule rendering helper ─────────────────────────────────────────────
+function renderEventCard(ev) {
+  return `
+  <div class="event-card">
+    <div class="event-time-col">
+      ${ev.is_all_day
+        ? '<span class="event-allday">All day</span>'
+        : `<span class="event-start">${esc(ev.start_time)}</span>
+           ${ev.end_time ? `<span class="event-end">${esc(ev.end_time)}</span>` : ''}`
+      }
+      ${ev.duration_min < 1440 ? `<span class="event-dur">${durText(ev.duration_min)}</span>` : ''}
+    </div>
+    <div class="event-body">
+      <div class="event-title">${esc(ev.title)}</div>
+      ${ev.location ? `<div class="event-loc">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+        </svg>
+        ${esc(ev.location)}</div>` : ''}
+      ${ev.description ? `<div class="event-desc">${esc(ev.description)}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function renderDayGroup(dayIso, events, todayIso, isPast) {
+  const label   = relLabel(dayIso, todayIso);
+  const isToday = dayIso === todayIso;
+  const tag     = isToday ? 'today-tag' : isPast ? 'past-tag' : '';
+  return `
+  <div class="day-group">
+    <div class="day-header">
+      <span class="day-label serif">${label}</span>
+      ${isToday
+        ? '<span class="day-badge today-tag">Today</span>'
+        : `<span class="day-badge${tag ? ' '+tag : ''}">${fmtDate(dayIso)}</span>`
+      }
+    </div>
+    ${events.map(renderEventCard).join('')}
+  </div>`;
+}
+
+// ── Upcoming schedule ────────────────────────────────────────────────────
+function renderUpcoming() {
+  const el = $('upcomingContent');
+  if (!DATA.calendar_connected) {
+    el.innerHTML = `
+    <div class="no-cal-banner">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+      <div class="no-cal-title serif">Google Calendar not connected</div>
+      <div class="no-cal-sub">Add your <code>credentials.json</code> to the <code>credentials/</code> folder and restart the server to see your schedule here.</div>
+    </div>`;
+    return;
+  }
+
+  let html = '';
+  if (DATA.today_events && DATA.today_events.length) {
+    html += renderDayGroup(DATA.today, DATA.today_events, DATA.today, false);
+  }
+  const days = DATA.future_days || [];
+  if (!days.length && !(DATA.today_events && DATA.today_events.length)) {
+    html = '<div class="empty-state">No upcoming events in the next 90 days.</div>';
+  } else {
+    days.forEach(day => {
+      const evs = DATA.future_grouped[day] || [];
+      if (evs.length) html += renderDayGroup(day, evs, DATA.today, false);
+    });
+  }
+  el.innerHTML = html;
+}
+
+// ── History ──────────────────────────────────────────────────────────────
+function renderHistory() {
+  const el = $('historyContent');
+  if (!DATA.calendar_connected) {
+    el.innerHTML = `
+    <div class="no-cal-banner">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      </svg>
+      <div class="no-cal-title serif">Calendar not connected</div>
+      <div class="no-cal-sub">Connect Google Calendar to view your schedule history for the last 30 days.</div>
+    </div>`;
+    return;
+  }
+
+  const days = DATA.past_days || [];
+  if (!days.length) {
+    el.innerHTML = '<div class="empty-state">No past events found in the last 30 days.</div>';
+    return;
+  }
+  el.innerHTML = days.map(day => {
+    const evs = DATA.past_grouped[day] || [];
+    return evs.length ? renderDayGroup(day, evs, DATA.today, true) : '';
+  }).join('');
+}
+
+// ── Sidebar: today's mini events ─────────────────────────────────────────
+function renderTodayMini() {
+  const evs = DATA.today_events || [];
+  if (!DATA.calendar_connected) {
+    $('todayMiniEvents').innerHTML = `<div class="no-events-mini">Calendar not connected</div>`;
+    return;
+  }
+  if (!evs.length) {
+    $('todayMiniEvents').innerHTML = `<div class="no-events-mini">No events today</div>`;
+    return;
+  }
+  $('todayMiniEvents').innerHTML = evs.slice(0,5).map(ev => `
+  <div class="today-event-mini">
+    <div class="tev-time">${ev.is_all_day ? '–' : esc(ev.start_time)}</div>
+    <div class="tev-dot"></div>
+    <div class="tev-title">${esc(ev.title)}</div>
+  </div>`).join('');
+}
+
+// ── Panel: due soon ──────────────────────────────────────────────────────
+function renderDueSoon() {
+  const tasks = DATA.due_soon || [];
+  if (!tasks.length) {
+    $('dueSoonList').innerHTML = '<div class="no-events-mini">Nothing due this week</div>';
+    return;
+  }
+  const sorted = [...tasks].sort((a,b) => (a.due_date||'9999') < (b.due_date||'9999') ? -1 : 1);
+  $('dueSoonList').innerHTML = sorted.slice(0,6).map(t => `
+  <div class="duesoon-item">
+    <div class="duesoon-bullet bullet-${t.priority||'medium'}"></div>
+    <div class="duesoon-body">
+      <div class="duesoon-title">${esc(t.title||'Untitled')}</div>
+      ${t.due_date ? `<div class="duesoon-date">Due ${fmtDateShort(t.due_date)}</div>` : ''}
+    </div>
+  </div>`).join('');
+}
+
+// ── Panel: today timeline ────────────────────────────────────────────────
+function renderTodayTimeline() {
+  const evs = DATA.today_events || [];
+  if (!DATA.calendar_connected) {
+    $('todayTimeline').innerHTML = '<div class="no-events-mini">Calendar not connected</div>';
+    return;
+  }
+  if (!evs.length) {
+    $('todayTimeline').innerHTML = '<div class="no-events-mini">Free day — nothing scheduled</div>';
+    return;
+  }
+  const sorted = [...evs].sort((a,b) => (a.hour*60+a.minute) - (b.hour*60+b.minute));
+  $('todayTimeline').innerHTML = sorted.map(ev => `
+  <div class="timeline-item">
+    <div class="tl-dot"></div>
+    <div class="tl-body">
+      <div class="tl-title">${esc(ev.title)}</div>
+      <div class="tl-time">${ev.is_all_day ? 'All day' : esc(ev.start_time) + (ev.end_time ? ' – ' + esc(ev.end_time) : '')}</div>
+    </div>
+  </div>`).join('');
+}
+
+// ── Panel: calendar status ───────────────────────────────────────────────
+function renderCalStatus() {
+  if (!DATA.calendar_connected) {
+    $('calStatusSection').innerHTML = `
+    <div class="connect-notice">
+      <strong>Calendar not connected.</strong><br/>
+      Place <code>credentials.json</code> in <code>credentials/</code> and restart to enable schedule sync.
+    </div>`;
+  }
+}
+
+// ── Stats ────────────────────────────────────────────────────────────────
+function renderStats() {
+  const s = DATA.stats;
+  $('s-pending').textContent = s.pending;
+  $('s-done').textContent    = s.done;
+  $('s-overdue').textContent = s.overdue;
+  $('s-total').textContent   = s.total;
+
+  const maxP = Math.max(s.high, s.medium, s.low, 1);
+  $('bar-high').style.width   = (s.high   / maxP * 100) + '%';
+  $('bar-medium').style.width = (s.medium / maxP * 100) + '%';
+  $('bar-low').style.width    = (s.low    / maxP * 100) + '%';
+  $('cnt-high').textContent   = s.high;
+  $('cnt-medium').textContent = s.medium;
+  $('cnt-low').textContent    = s.low;
+}
+
+// ── Alfred Chat Panel ────────────────────────────────────────────────────
+let _chatBusy = false;
+function _nowTime(){ const n=new Date(); return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0'); }
+function cpAppendMsg(role, text){
+  const box = document.getElementById('cp-msgs');
+  const el = document.createElement('div'); el.className = 'c-msg '+role;
+  const safe = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  el.innerHTML = `<div class="c-msg-meta">${role==='user'?'You':'Alfred'} · ${_nowTime()}</div><div class="c-msg-body">${safe}</div>`;
+  box.appendChild(el); box.scrollTop = box.scrollHeight;
+}
+function cpShowTyping(){
+  const box = document.getElementById('cp-msgs');
+  const el = document.createElement('div'); el.className = 'c-msg agent'; el.id = 'cp-typing';
+  el.innerHTML = '<div class="c-msg-meta">Alfred</div><div class="c-msg-body"><span class="c-dots"><span class="c-dot" style="animation-delay:0s"></span><span class="c-dot" style="animation-delay:.2s"></span><span class="c-dot" style="animation-delay:.4s"></span></span></div>';
+  box.appendChild(el); box.scrollTop = box.scrollHeight;
+}
+function cpHideTyping(){ const el = document.getElementById('cp-typing'); if(el) el.remove(); }
+async function cpSend(){
+  if(_chatBusy) return;
+  const ta = document.getElementById('cp-ta');
+  const text = ta.value.trim(); if(!text) return;
+  ta.value = ''; ta.style.height = 'auto';
+  document.getElementById('cp-chips').style.display = 'none';
+  _chatBusy = true; document.getElementById('cp-send').disabled = true;
+  cpAppendMsg('user', text);
+  cpShowTyping();
+  try {
+    const res = await fetch('/api/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message:text, agent:'task'})});
+    const data = await res.json();
+    cpHideTyping();
+    cpAppendMsg('agent', data.response || '(no response)');
+    setTimeout(() => init(), 600);
+  } catch(e) {
+    cpHideTyping();
+    cpAppendMsg('agent', 'Error: '+String(e.message||e));
+  } finally {
+    _chatBusy = false; document.getElementById('cp-send').disabled = false;
+    document.getElementById('cp-ta').focus();
+  }
+}
+function cpQuick(text){ document.getElementById('cp-ta').value = text; cpSend(); }
+function cpKey(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); cpSend(); } }
+function cpResize(ta){ ta.style.height='auto'; ta.style.height=Math.min(ta.scrollHeight,100)+'px'; }
+
+// ── Boot ─────────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    const res  = await fetch('/api/alfred/dashboard');
+    DATA = await res.json();
+
+    $('dateLabel').textContent = DATA.today_label || '';
+
+    renderStats();
+    renderTodayMini();
+    renderTasks();
+    renderUpcoming();
+    renderHistory();
+    renderDueSoon();
+    renderTodayTimeline();
+    renderCalStatus();
+
+  } catch (err) {
+    console.error('Alfred dashboard load error:', err);
+  } finally {
+    const ol = $('loadingOverlay');
+    ol.classList.add('hidden');
+    setTimeout(() => ol.remove(), 400);
+  }
+}
+
+init();
+</script>
+<script src="/static/pixel/sprites.js"></script>
+<script>
+(function() {
+  var cv = document.getElementById('agent-sprite');
+  if (cv && window.PixelSprites) PixelSprites.render(cv, 'alfred', 4);
+})();
+</script>
+</body>
+</html>

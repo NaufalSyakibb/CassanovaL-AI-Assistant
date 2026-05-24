@@ -89,6 +89,8 @@ body {
 @keyframes spin   { to { transform:rotate(360deg) } }
 @keyframes inkPulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 @keyframes dotBounce { 0%,80%,100%{transform:translateY(0);opacity:.4} 40%{transform:translateY(-4px);opacity:1} }
+@keyframes refreshFlash { 0%{box-shadow:0 0 0 0 rgba(176,112,48,.45)} 70%{box-shadow:0 0 0 10px rgba(176,112,48,0)} 100%{box-shadow:none} }
+.refreshed { animation: refreshFlash .7s ease-out; }
 
 /* ── App shell ── */
 .shell {
@@ -934,6 +936,16 @@ async function loadDashboard(silent = false) {
     renderSection(_currentSection);
     const now = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
     chip.textContent = `Updated ${now}`;
+    // Flash hero strip when triggered by chat
+    if (_afterChat) {
+      const hero = document.getElementById('nw-preview');
+      if (hero) {
+        hero.classList.remove('refreshed');
+        void hero.offsetWidth;
+        hero.classList.add('refreshed');
+      }
+      _afterChat = false;
+    }
   } catch(e) {
     if (!silent) {
       chip.textContent = 'Error';
@@ -1560,7 +1572,17 @@ async function submitAddAccount() {
 }
 
 // ── Chat ──
-let _chatBusy = false;
+let _chatBusy  = false;
+let _afterChat = false;
+
+// Cross-tab sync via BroadcastChannel
+const _syncBC = typeof BroadcastChannel !== 'undefined'
+  ? new BroadcastChannel('cassanoval-sync') : null;
+if (_syncBC) {
+  _syncBC.onmessage = (e) => {
+    if (e.data?.agent === 'budget') { _afterChat = true; loadDashboard(); }
+  };
+}
 function nowTime() { return new Date().toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit'}); }
 
 function appendMsg(role, text) {
@@ -1619,9 +1641,12 @@ async function sendMessage() {
     const data = await res.json();
     document.getElementById('typing')?.remove();
     appendMsg('agent', data.response || data.detail || 'Error');
-    // Wait 600 ms to let any tool file-write flush before reloading
-    await new Promise(r => setTimeout(r, 600));
-    await loadDashboard();
+    // Tool already ran before response returned — refresh immediately
+    _afterChat = true;
+    loadDashboard();
+    if (_syncBC) _syncBC.postMessage({ agent: 'budget', ts: Date.now() });
+    // Safety second-load
+    setTimeout(() => { _afterChat = true; loadDashboard(); }, 2000);
   } catch(e) {
     document.getElementById('typing')?.remove();
     appendMsg('agent', '⚠ Koneksi error: ' + e.message);

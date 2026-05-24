@@ -41,6 +41,9 @@ const IcoLamp       = ({size=14})=> <S size={size}><path d="M9 18h6M10 22h4M8 14
 const IcoCandlestick= ({size=16})=> <S size={size}><path d="M9 4v3M9 13v3M15 8v3M15 17v3"/><rect x="7" y="7" width="4" height="6" rx="0.5"/><rect x="13" y="11" width="4" height="6" rx="0.5"/></S>;
 const IcoChart      = ({size=14})=> <S size={size}><path d="M3 20h18M3 20V8l5 4 4-6 4 4 5-6"/></S>;
 const IcoTrend      = ({size=14})=> <S size={size}><path d="M22 7l-8 8-4-4-7 7"/><path d="M16 7h6v6"/></S>;
+const IcoBell       = ({size=15})=> <S size={size}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a2 2 0 0 0 3.4 0"/></S>;
+const IcoMic        = ({size=16})=> <S size={size}><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 10a7 7 0 0 1-14 0M12 19v3M8 22h8"/></S>;
+const IcoMicOff     = ({size=16})=> <S size={size}><line x1="2" y1="2" x2="22" y2="22"/><path d="M18.9 10A7 7 0 0 1 5 15.7M12 19v3M8 22h8"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V5a3 3 0 0 0-5.94-.6"/></S>;
 const IcoPixel = ({size=15}) => (
   <svg viewBox="0 0 15 15" width={size} height={size} fill="currentColor">
     <rect x="0" y="0" width="4" height="4"/>
@@ -58,5 +61,5 @@ window.Icons = {
   IcoArrowRight, IcoPlus, IcoUpload, IcoCheck, IcoReceipt, IcoSparkle,
   IcoDashboard, IcoChat, IcoLeaf, IcoFeather, IcoNewspaper, IcoCode,
   IcoCalendar, IcoCoin, IcoHeart, IcoBook, IcoLamp, IcoCandlestick,
-  IcoChart, IcoTrend,
+  IcoChart, IcoTrend, IcoBell, IcoMic, IcoMicOff,
 };

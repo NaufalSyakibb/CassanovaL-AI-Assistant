@@ -7,8 +7,9 @@ import re
 import base64
 import threading
 import uuid
+from contextlib import asynccontextmanager
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, date
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,7 +23,102 @@ load_dotenv()
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
-app = FastAPI(title="OmniSync API", version="1.0.0")
+# ─── Proactive Scheduler ─────────────────────────────────────────────────────
+
+_NOTIF_FILE = Path("data/notifications.json")
+
+
+def _load_json_s(path: Path, default):
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return default
+
+
+def _run_morning_brief():
+    """Daily 07:00 — generate and save morning brief if not already done today."""
+    today_str = date.today().isoformat()
+    data = _load_json_s(_NOTIF_FILE, {"notifications": []})
+    if any(n.get("date") == today_str for n in data.get("notifications", [])):
+        return  # already generated today
+    try:
+        from tools.sentinel_tools import (
+            _overdue_tasks, _budget_status, _fitness_gaps,
+            _mood_trend, _save_notification,
+        )
+        day_str = datetime.now().strftime("%A, %d %B %Y")
+        sections = [
+            f"# Morning Brief — {day_str}\n",
+            f"## Tasks\n{_overdue_tasks()}",
+            f"## Budget\n{_budget_status()}",
+            f"## Fitness\n{_fitness_gaps()}",
+            f"## Mood\n{_mood_trend()}",
+        ]
+        try:
+            from tools.contradiction_tools import get_all_contradictions
+            conflicts = get_all_contradictions()
+            if conflicts:
+                sections.append("## Conflicts\n" + "\n".join(f"  {c}" for c in conflicts))
+        except Exception:
+            pass
+        _save_notification("\n\n".join(sections))
+        print(f"[Scheduler] Morning brief generated for {today_str}")
+    except Exception as e:
+        print(f"[Scheduler] Morning brief error: {e}")
+
+
+def _run_weekly_patterns():
+    """Sunday 08:00 — compute behavioral patterns and save as notification."""
+    try:
+        from tools.pattern_tools import compute_patterns
+        from tools.sentinel_tools import _save_notification
+        result = compute_patterns(30)
+        insights = result.get("insights", [])
+        coverage = result.get("data_coverage_days", 0)
+        if insights and coverage >= 14:
+            day_str = datetime.now().strftime("%A, %d %B %Y")
+            brief = f"# Weekly Pattern Report — {day_str}\n\n" + "\n".join(f"  • {i}" for i in insights)
+            _save_notification(brief)
+            print(f"[Scheduler] Weekly patterns saved ({len(insights)} insights)")
+    except Exception as e:
+        print(f"[Scheduler] Weekly patterns error: {e}")
+
+
+def _run_monthly_budget():
+    """1st of month 09:00 — check budget goals and save alert if goals exceeded."""
+    try:
+        from tools.contradiction_tools import check_budget_conflicts, check_income_vs_obligations
+        from tools.sentinel_tools import _save_notification
+        conflicts = check_budget_conflicts() + check_income_vs_obligations()
+        if conflicts:
+            day_str = datetime.now().strftime("%B %Y")
+            brief = f"# Monthly Budget Alert — {day_str}\n\n" + "\n".join(f"  ⚠ {c}" for c in conflicts)
+            _save_notification(brief)
+            print(f"[Scheduler] Monthly budget alert saved ({len(conflicts)} conflicts)")
+    except Exception as e:
+        print(f"[Scheduler] Monthly budget error: {e}")
+
+
+def _setup_scheduler(scheduler):
+    brief_hour = int(os.getenv("MORNING_BRIEF_HOUR", "7"))
+    scheduler.add_job(_run_morning_brief,   "cron", hour=brief_hour, minute=0,  id="morning_brief",   replace_existing=True)
+    scheduler.add_job(_run_weekly_patterns, "cron", day_of_week="sun", hour=8, minute=0, id="weekly_patterns", replace_existing=True)
+    scheduler.add_job(_run_monthly_budget,  "cron", day=1, hour=9, minute=0,    id="monthly_budget",  replace_existing=True)
+    print(f"[Scheduler] Morning brief → daily {brief_hour:02d}:00 WIB | Weekly patterns → Sun 08:00 | Monthly budget → 1st 09:00")
+
+
+@asynccontextmanager
+async def _lifespan(app):
+    from apscheduler.schedulers.background import BackgroundScheduler
+    scheduler = BackgroundScheduler(timezone="Asia/Jakarta")
+    _setup_scheduler(scheduler)
+    scheduler.start()
+    app.state.scheduler = scheduler
+    yield
+    scheduler.shutdown(wait=False)
+
+
+app = FastAPI(title="OmniSync API", version="1.0.0", lifespan=_lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -46,6 +142,10 @@ def get_supervisor():
 class ChatRequest(BaseModel):
     message: str
     agent: Optional[str] = None  # if provided, skip auto-classification
+
+
+class FitnessRecommendRequest(BaseModel):
+    ingredients: str = ""
 
 
 # ─── Receipt Scanner ─────────────────────────────────────────────────────────
@@ -157,6 +257,32 @@ def _save_chat_history(agent_key: str, agent_display: str, user_msg: str, ai_res
         pass  # Never let logging break the chat response
 
 
+_DATA_DIR = Path(__file__).resolve().parent / "data"
+_DATA_DIR.mkdir(exist_ok=True)
+_WRAP_LOG_PATH = _DATA_DIR / "chat_log.json"
+
+def _log_chat_wrap(agent_key: str, user_msg: str):
+    """Append one entry to data/chat_log.json for Monthly Wrap tracking."""
+    try:
+        if agent_key not in ("news", "coding", "schedule", "fitness", "journal", "budget", "task"):
+            return
+        log: list = []
+        if _WRAP_LOG_PATH.exists():
+            try:
+                log = json.loads(_WRAP_LOG_PATH.read_text(encoding="utf-8"))
+            except Exception:
+                log = []
+        log.append({
+            "ts":     datetime.now().isoformat(timespec="seconds"),
+            "month":  datetime.now().strftime("%Y-%m"),
+            "agent":  agent_key,
+            "preview": user_msg[:200],
+        })
+        _WRAP_LOG_PATH.write_text(json.dumps(log, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
+
 # ─── Chat ────────────────────────────────────────────────────────────────────
 
 @app.post("/api/chat")
@@ -168,9 +294,9 @@ async def chat(req: ChatRequest):
         else:
             agent_name, response = supervisor.chat(req.message)
 
-        # Save to AI Data/My AI/<agent>.md
         agent_key = req.agent or agent_name.lower()
         _save_chat_history(agent_key, agent_name, req.message, response)
+        _log_chat_wrap(agent_key, req.message)
 
         return {"agent": agent_name, "response": response}
     except Exception as e:
@@ -244,12 +370,101 @@ async def download_dataanalyst_file(filename: str):
     return FileResponse(str(file_path), filename=filename)
 
 
+# ─── Alfred Sentinel Endpoints ────────────────────────────────────────────────
+
+@app.get("/api/alfred/notifications")
+async def get_alfred_notifications():
+    """Return all saved morning briefs / notifications, newest first."""
+    from tools.sentinel_tools import _load_json, _NOTIF_FILE
+    data = _load_json(_NOTIF_FILE, {"notifications": []})
+    if not isinstance(data, dict):
+        data = {"notifications": []}
+    return data
+
+
+@app.get("/api/alfred/brief/today")
+async def get_alfred_brief_today():
+    """Return today's morning brief, generating and saving it if not yet created."""
+    from tools.sentinel_tools import (
+        _load_json, _NOTIF_FILE, _save_notification,
+        _overdue_tasks, _budget_status, _fitness_gaps, _mood_trend,
+    )
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    data = _load_json(_NOTIF_FILE, {"notifications": []})
+    existing = next((n for n in data.get("notifications", []) if n.get("date") == today_str), None)
+    if existing:
+        return {"brief": existing["brief"], "date": today_str, "fresh": False}
+
+    day_str = datetime.now().strftime("%A, %d %B %Y")
+    sections = [
+        f"# Morning Brief — {day_str}\n",
+        f"## Tasks\n{_overdue_tasks()}",
+        f"## Budget\n{_budget_status()}",
+        f"## Fitness\n{_fitness_gaps()}",
+        f"## Mood\n{_mood_trend()}",
+    ]
+    brief = "\n\n".join(sections)
+    _save_notification(brief)
+    return {"brief": brief, "date": today_str, "fresh": True}
+
+
+@app.post("/api/alfred/notifications/read")
+async def mark_alfred_notifications_read():
+    """Mark all notifications as read (clears the bell badge)."""
+    from tools.sentinel_tools import _load_json, _NOTIF_FILE
+    data = _load_json(_NOTIF_FILE, {"notifications": []})
+    for n in data.get("notifications", []):
+        n["read"] = True
+    _NOTIF_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"ok": True}
+
+
+@app.get("/api/alfred/schedule")
+async def get_alfred_schedule():
+    """Return all active scheduled jobs with their next run times."""
+    try:
+        scheduler = app.state.scheduler
+        jobs = []
+        for job in scheduler.get_jobs():
+            next_run = job.next_run_time
+            jobs.append({
+                "id":       job.id,
+                "next_run": next_run.strftime("%Y-%m-%d %H:%M %Z") if next_run else None,
+                "trigger":  str(job.trigger),
+            })
+        return {"jobs": jobs}
+    except Exception as e:
+        return {"jobs": [], "error": str(e)}
+
+
+@app.get("/api/alfred/contradictions")
+async def get_alfred_contradictions():
+    """Run all contradiction detectors and return detected life conflicts."""
+    try:
+        from tools.contradiction_tools import get_all_contradictions
+        conflicts = get_all_contradictions()
+        return {"conflicts": conflicts, "count": len(conflicts)}
+    except Exception as e:
+        return {"conflicts": [], "count": 0, "error": str(e)}
+
+
+@app.get("/api/alfred/patterns")
+async def get_alfred_patterns():
+    """Return behavioral pattern analysis from the last 30 days of personal data."""
+    try:
+        from tools.pattern_tools import compute_patterns
+        result = compute_patterns(30)
+        return result
+    except Exception as e:
+        return {"insights": [], "error": str(e)}
+
+
 # ─── Data Endpoints ───────────────────────────────────────────────────────────
 
 @app.get("/api/tasks")
 async def get_tasks():
     try:
-        data = json.loads(Path("data/tasks.json").read_text(encoding="utf-8"))
+        data = json.loads((_DATA_DIR / "tasks.json").read_text(encoding="utf-8"))
         pending = [t for t in data if t["status"] == "pending"]
         completed = [t for t in data if t["status"] == "completed"]
         high = [t for t in pending if t.get("priority") == "high"]
@@ -269,7 +484,7 @@ async def get_tasks():
 @app.get("/api/notes")
 async def get_notes():
     try:
-        data = json.loads(Path("data/notes.json").read_text(encoding="utf-8"))
+        data = json.loads((_DATA_DIR / "notes.json").read_text(encoding="utf-8"))
         sorted_notes = sorted(data, key=lambda x: x.get("updated_at", ""), reverse=True)
         return {"notes": sorted_notes[:8], "total": len(data)}
     except Exception:
@@ -346,10 +561,501 @@ async def get_journal_dashboard():
     }
 
 
+@app.get("/api/productivity/dashboard")
+async def get_productivity_dashboard():
+    from datetime import timedelta as _td
+    loop = asyncio.get_running_loop()
+    today = datetime.now()
+    today_str = today.strftime("%Y-%m-%d")
+
+    # ── Tasks ──────────────────────────────────────────────────────────────────
+    try:
+        tasks_raw = json.loads((_DATA_DIR / "tasks.json").read_text(encoding="utf-8"))
+        priority_order = {"high": 0, "medium": 1, "low": 2}
+        pending = [t for t in tasks_raw if t.get("status", "pending") != "done"]
+        pending.sort(key=lambda t: (priority_order.get(t.get("priority", "medium"), 1), t.get("due_date") or "9999"))
+        tasks = pending[:15]
+    except Exception:
+        tasks = []
+
+    # ── Google Calendar ────────────────────────────────────────────────────────
+    def _fetch_events():
+        from tools.schedule_tools import _get_calendar_service
+        service = _get_calendar_service()
+        day_start = datetime(today.year, today.month, today.day).isoformat() + "Z"
+        end_utc   = (datetime(today.year, today.month, today.day) + _td(days=14)).isoformat() + "Z"
+        result = service.events().list(
+            calendarId="primary",
+            timeMin=day_start,
+            timeMax=end_utc,
+            maxResults=60,
+            singleEvents=True,
+            orderBy="startTime",
+        ).execute()
+        return result.get("items", [])
+
+    cal_connected, raw_events = False, []
+    try:
+        raw_events   = await loop.run_in_executor(None, _fetch_events)
+        cal_connected = True
+    except Exception:
+        pass
+
+    def _parse_event(e):
+        start   = e["start"].get("dateTime", e["start"].get("date", ""))
+        end_val = e["end"].get("dateTime",   e["end"].get("date",   ""))
+        all_day = "T" not in start
+        if all_day:
+            day = start; st = "All day"; et = ""; hour = 0; minute = 0; dur = 1440
+        else:
+            day = start[:10]; st = start[11:16]; et = end_val[11:16] if end_val else ""
+            try:
+                hour, minute = int(start[11:13]), int(start[14:16])
+                eh,   em     = int(end_val[11:13]), int(end_val[14:16])
+                dur = max((eh * 60 + em) - (hour * 60 + minute), 15)
+            except Exception:
+                hour, minute, dur = 0, 0, 60
+        return {
+            "id":           e["id"][:12],
+            "title":        e.get("summary", "Untitled"),
+            "day":          day,
+            "start_time":   st,
+            "end_time":     et,
+            "is_all_day":   all_day,
+            "hour":         hour,
+            "minute":       minute,
+            "duration_min": dur,
+            "description":  e.get("description") or "",
+            "location":     e.get("location")    or "",
+            "color_id":     e.get("colorId",      ""),
+        }
+
+    events      = [_parse_event(e) for e in raw_events]
+    today_evs   = [ev for ev in events if ev["day"] == today_str]
+    week_events: dict = {}
+    for ev in events:
+        week_events.setdefault(ev["day"], []).append(ev)
+    upcoming    = [ev for ev in events if ev["day"] != today_str][:20]
+    week_days   = [(today + _td(days=i)).strftime("%Y-%m-%d") for i in range(7)]
+
+    return {
+        "calendar_connected": cal_connected,
+        "today":              today_str,
+        "today_label":        today.strftime("%A, %d %B %Y"),
+        "today_events":       today_evs,
+        "week_days":          week_days,
+        "week_events":        week_events,
+        "upcoming":           upcoming,
+        "tasks":              tasks,
+    }
+
+
+@app.get("/api/fitness/dashboard")
+async def get_fitness_dashboard():
+    from datetime import timedelta as _td
+    today = datetime.now()
+    today_str = today.strftime("%Y-%m-%d")
+
+    try:
+        raw: dict = json.loads((_DATA_DIR / "food_log.json").read_text(encoding="utf-8"))
+    except Exception:
+        raw = {}
+
+    def _day_totals(entries: list) -> dict:
+        return {
+            "calories":  round(sum(e.get("calories", 0)  for e in entries), 1),
+            "protein_g": round(sum(e.get("protein_g", 0) for e in entries), 1),
+            "carbs_g":   round(sum(e.get("carbs_g", 0)   for e in entries), 1),
+            "fiber_g":   round(sum(e.get("fiber_g", 0)   for e in entries), 1),
+            "fat_g":     round(sum(e.get("fat_g", 0)     for e in entries), 1),
+        }
+
+    # ── Today ──────────────────────────────────────────────────────────────────
+    today_entries = raw.get(today_str, [])
+    today_totals  = _day_totals(today_entries)
+    today_grouped: dict = {}
+    for e in today_entries:
+        meal = (e.get("meal_time") or "lainnya").capitalize()
+        today_grouped.setdefault(meal, []).append(e)
+
+    # ── 14-day weekly ──────────────────────────────────────────────────────────
+    weekly = []
+    for i in range(13, -1, -1):
+        d       = (today - _td(days=i)).strftime("%Y-%m-%d")
+        entries = raw.get(d, [])
+        t       = _day_totals(entries) if entries else {"calories":0,"protein_g":0,"carbs_g":0,"fiber_g":0,"fat_g":0}
+        t["date"]        = d
+        t["has_data"]    = bool(entries)
+        t["entry_count"] = len(entries)
+        weekly.append(t)
+
+    days_with_data = [w for w in weekly if w["has_data"]]
+    if days_with_data:
+        n = len(days_with_data)
+        weekly_avg = {k: round(sum(d[k] for d in days_with_data) / n, 1)
+                      for k in ["calories","protein_g","carbs_g","fiber_g","fat_g"]}
+        weekly_avg["days_logged"] = n
+    else:
+        weekly_avg = {"calories":0,"protein_g":0,"carbs_g":0,"fiber_g":0,"fat_g":0,"days_logged":0}
+
+    # ── Food frequency (all-time) ───────────────────────────────────────────────
+    freq: dict = {}
+    for d, entries in raw.items():
+        for e in entries:
+            name = e["food"]
+            if name not in freq:
+                freq[name] = {"food":name,"count":0,"last_eaten":"","total_cal":0}
+            freq[name]["count"]     += 1
+            freq[name]["total_cal"] += e.get("calories", 0)
+            if d > freq[name]["last_eaten"]:
+                freq[name]["last_eaten"] = d
+    food_frequency = sorted(freq.values(), key=lambda x: x["count"], reverse=True)[:25]
+    for f in food_frequency:
+        f["avg_cal"] = round(f["total_cal"] / f["count"]) if f["count"] else 0
+
+    return {
+        "today":           today_str,
+        "today_label":     today.strftime("%A, %d %B %Y"),
+        "today_entries":   today_entries,
+        "today_grouped":   today_grouped,
+        "today_totals":    today_totals,
+        "weekly":          weekly,
+        "weekly_avg":      weekly_avg,
+        "food_frequency":  food_frequency,
+        "total_days":      len([d for d in raw if raw[d]]),
+        "total_entries":   sum(len(v) for v in raw.values()),
+    }
+
+
+@app.post("/api/fitness/recommend")
+async def fitness_recommend(body: FitnessRecommendRequest):
+    ingredients = body.ingredients.strip()
+    try:
+        raw: dict = json.loads((_DATA_DIR / "food_log.json").read_text(encoding="utf-8"))
+    except Exception:
+        raw = {}
+
+    freq: dict = {}
+    cal_total, entry_count = 0.0, 0
+    for entries in raw.values():
+        for e in entries:
+            n = e["food"]
+            freq[n] = freq.get(n, 0) + 1
+            cal_total   += e.get("calories", 0)
+            entry_count += 1
+
+    top_foods    = sorted(freq.items(), key=lambda x: x[1], reverse=True)[:12]
+    top_food_str = ", ".join(f"{n} ({c}x)" for n, c in top_foods) or "belum ada data"
+    avg_cal      = round(cal_total / max(len([d for d in raw if raw[d]]), 1))
+
+    prompt = f"""Kamu adalah Lavoisier, AI nutrition coach personal.
+
+DATA POLA MAKAN PENGGUNA:
+- Makanan paling sering dikonsumsi: {top_food_str}
+- Rata-rata kalori per hari: {avg_cal} kkal
+- Bahan / makanan yang tersedia: {ingredients if ingredients else "bebas, gunakan bahan umum"}
+
+TUGAS: Buat TEPAT 3 rekomendasi menu sehat yang praktis. Balas HANYA dengan JSON array valid (tanpa teks lain):
+[
+  {{
+    "name": "Nama Menu",
+    "description": "Deskripsi singkat menggugah selera",
+    "meal_type": "sarapan",
+    "ingredients": ["100g dada ayam", "2 butir telur", "1 sdt minyak zaitun"],
+    "steps": ["Panaskan wajan…", "Masukkan ayam…", "Sajikan dengan…"],
+    "macros": {{"calories": 420, "protein_g": 35, "carbs_g": 40, "fat_g": 10, "fiber_g": 4}},
+    "why": "Alasan singkat kenapa menu ini cocok untuk pola makanmu"
+  }}
+]"""
+
+    api_key = os.getenv("MISTRAL_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="MISTRAL_API_KEY not set")
+    try:
+        from mistralai import Mistral
+        client = Mistral(api_key=api_key)
+        resp = client.chat.complete(
+            model="mistral-large-latest",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+        )
+        content = resp.choices[0].message.content.strip()
+        match   = re.search(r"\[.*\]", content, re.DOTALL)
+        if not match:
+            raise ValueError("No JSON array in response")
+        menus = json.loads(match.group())
+        return {"menus": menus, "context": {"top_foods": top_food_str, "avg_cal": avg_cal}}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI error: {e}")
+
+
+@app.get("/api/monthly-wrap")
+async def get_monthly_wrap(month: str = None):
+    """Spotify Wrapped-style monthly recap for all agents."""
+    from datetime import timedelta as _td
+    loop = asyncio.get_running_loop()
+
+    today = datetime.now()
+    if not month:
+        month = today.strftime("%Y-%m")
+    try:
+        _yr, _mo = month.split("-")
+        yr, mo = int(_yr), int(_mo)
+    except Exception:
+        yr, mo = today.year, today.month
+        month = f"{yr:04d}-{mo:02d}"
+    import calendar as _cal
+    month_label = f"{_cal.month_name[mo]} {yr}"
+
+    # ── 1. Lavoisier (food_log.json) ──────────────────────────────────────────
+    def _food_stats():
+        try:
+            raw: dict = json.loads((_DATA_DIR / "food_log.json").read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+        entries, freq, cal_sum, pro_sum, car_sum, fat_sum = [], {}, 0, 0, 0, 0
+        meal_dist: dict = {}
+        for day, day_entries in raw.items():
+            if not day.startswith(month):
+                continue
+            for e in day_entries:
+                entries.append(e)
+                n = e.get("food", "?")
+                freq[n] = freq.get(n, 0) + 1
+                cal_sum += e.get("calories", 0)
+                pro_sum += e.get("protein_g", 0)
+                car_sum += e.get("carbs_g", 0)
+                fat_sum += e.get("fat_g", 0)
+                m = (e.get("meal_time") or "other").lower()
+                meal_dist[m] = meal_dist.get(m, 0) + 1
+        days_logged = len({d for d in raw if d.startswith(month) and raw[d]})
+        top_foods = sorted(freq.items(), key=lambda x: x[1], reverse=True)[:6]
+        return {
+            "total_entries": len(entries),
+            "days_logged": days_logged,
+            "unique_foods": len(freq),
+            "total_calories": round(cal_sum),
+            "avg_daily_cal": round(cal_sum / max(days_logged, 1)),
+            "total_protein": round(pro_sum),
+            "total_carbs":   round(car_sum),
+            "total_fat":     round(fat_sum),
+            "top_foods": [{"name": n, "count": c} for n, c in top_foods],
+            "meal_distribution": meal_dist,
+            "top_food": top_foods[0][0] if top_foods else "—",
+        }
+
+    # ── 2. Mansa (budget.json) ────────────────────────────────────────────────
+    def _mansa_stats():
+        try:
+            raw = json.loads((_DATA_DIR / "budget.json").read_text(encoding="utf-8"))
+            txns = raw.get("transactions", []) if isinstance(raw, dict) else raw
+        except Exception:
+            return {}
+        month_txns = [t for t in txns if str(t.get("date", "")).startswith(month)]
+        income  = sum(t["amount"] for t in month_txns if t.get("type") == "income")
+        expense = sum(t["amount"] for t in month_txns if t.get("type") == "expense")
+        cat_spend: dict = {}
+        for t in month_txns:
+            if t.get("type") == "expense":
+                c = t.get("category", "other")
+                cat_spend[c] = cat_spend.get(c, 0) + t["amount"]
+        top_cats = sorted(cat_spend.items(), key=lambda x: x[1], reverse=True)[:5]
+        biggest = max(month_txns, key=lambda t: t.get("amount", 0), default=None)
+        return {
+            "total_income":   round(income),
+            "total_expense":  round(expense),
+            "net":            round(income - expense),
+            "transaction_count": len(month_txns),
+            "top_categories": [{"name": c, "amount": round(a)} for c, a in top_cats],
+            "top_category":   top_cats[0][0] if top_cats else "—",
+            "biggest_expense": biggest.get("description", "—") if biggest else "—",
+            "biggest_amount":  round(biggest.get("amount", 0)) if biggest else 0,
+        }
+
+    # ── 3. Dostoyevsky (journal markdown files) ───────────────────────────────
+    def _dostoy_stats():
+        from dotenv import load_dotenv; load_dotenv()
+        vault = os.getenv("OBSIDIAN_VAULT_PATH", "").strip()
+        if vault:
+            base = Path(vault) / "Dostoyevsky Agent"
+        else:
+            base = Path("AI Data/My AI/Dostoyevsky Agent")
+        if not base.exists():
+            return {"entry_count": 0, "content_preview": ""}
+        files = sorted(base.glob(f"Journal_{yr:04d}-{mo:02d}-*.md"))
+        entry_count = len(files)
+        content = ""
+        for f in files[:5]:
+            try:
+                content += f.read_text(encoding="utf-8")[:1500] + "\n\n"
+            except Exception:
+                pass
+        return {"entry_count": entry_count, "content_preview": content[:6000]}
+
+    # ── 4. Miyamoto (Google Calendar) ────────────────────────────────────────
+    def _miyamoto_stats():
+        try:
+            from tools.schedule_tools import _get_calendar_service
+            service = _get_calendar_service()
+            import calendar as _cal2
+            last_day = _cal2.monthrange(yr, mo)[1]
+            t_min = f"{yr:04d}-{mo:02d}-01T00:00:00Z"
+            t_max = f"{yr:04d}-{mo:02d}-{last_day:02d}T23:59:59Z"
+            items = service.events().list(
+                calendarId="primary", timeMin=t_min, timeMax=t_max,
+                maxResults=250, singleEvents=True, orderBy="startTime",
+            ).execute().get("items", [])
+        except Exception:
+            return {"connected": False, "event_count": 0}
+        day_freq: dict = {}
+        total_min = 0
+        for e in items:
+            start = e["start"].get("dateTime", e["start"].get("date", ""))
+            end_v = e["end"].get("dateTime", e["end"].get("date", ""))
+            day   = start[:10]
+            day_freq[day] = day_freq.get(day, 0) + 1
+            if "T" in start and "T" in end_v:
+                try:
+                    sh, sm = int(start[11:13]), int(start[14:16])
+                    eh, em = int(end_v[11:13]),  int(end_v[14:16])
+                    total_min += max((eh*60+em) - (sh*60+sm), 0)
+                except Exception:
+                    pass
+        busiest = max(day_freq, key=day_freq.get) if day_freq else "—"
+        top_events = [e.get("summary", "Untitled") for e in items[:3]]
+        return {
+            "connected": True,
+            "event_count": len(items),
+            "total_hours": round(total_min / 60, 1),
+            "busiest_day": busiest,
+            "busiest_count": day_freq.get(busiest, 0),
+            "sample_events": top_events,
+        }
+
+    # ── 5. Najwa + Linus (chat_log.json) ─────────────────────────────────────
+    def _chat_stats(agent_key: str):
+        try:
+            log = json.loads(_WRAP_LOG_PATH.read_text(encoding="utf-8")) if _WRAP_LOG_PATH.exists() else []
+        except Exception:
+            log = []
+        entries = [e for e in log if e.get("month") == month and e.get("agent") == agent_key]
+        previews = [e.get("preview", "") for e in entries]
+        return {"session_count": len(entries), "previews": previews[:20]}
+
+    # ── Gather all in parallel ────────────────────────────────────────────────
+    food_d, mansa_d, dostoy_d, miyamoto_d, najwa_d, linus_d = await asyncio.gather(
+        loop.run_in_executor(None, _food_stats),
+        loop.run_in_executor(None, _mansa_stats),
+        loop.run_in_executor(None, _dostoy_stats),
+        loop.run_in_executor(None, _miyamoto_stats),
+        loop.run_in_executor(None, lambda: _chat_stats("news")),
+        loop.run_in_executor(None, lambda: _chat_stats("coding")),
+    )
+
+    # ── AI Narratives (Mistral) ───────────────────────────────────────────────
+    narratives: dict = {}
+    try:
+        from mistralai import Mistral
+        _client = Mistral(api_key=os.getenv("MISTRAL_API_KEY", ""))
+
+        def _narrative(system: str, user: str) -> str:
+            r = _client.chat.complete(
+                model="mistral-large-latest",
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user",   "content": user},
+                ],
+                max_tokens=180, temperature=0.85,
+            )
+            return r.choices[0].message.content.strip()
+
+        sys_base = (
+            "Kamu adalah narrator CassanovaL Monthly Wrap. "
+            "Tulis 2 kalimat yang personal, hangat, sedikit puitis dalam Bahasa Indonesia. "
+            "Gunakan data yang diberikan. Jangan bullet point, cukup prosa pendek."
+        )
+
+        # Run narratives concurrently
+        def _lavoisier_narr():
+            if not food_d.get("total_entries"):
+                return "Belum ada log makanan bulan ini. Mulai catat makanmu!"
+            return _narrative(sys_base,
+                f"Lavoisier bulan {month_label}: {food_d['total_entries']} kali makan, "
+                f"makanan terfavorit: {food_d.get('top_food','—')}, "
+                f"total kalori: {food_d.get('total_calories',0)} kkal, "
+                f"{food_d.get('days_logged',0)} hari tercatat.")
+
+        def _mansa_narr():
+            if not mansa_d.get("transaction_count"):
+                return "Belum ada transaksi bulan ini. Mulai catat keuanganmu!"
+            return _narrative(sys_base,
+                f"Mansa bulan {month_label}: pengeluaran Rp{mansa_d.get('total_expense',0):,}, "
+                f"pemasukan Rp{mansa_d.get('total_income',0):,}, "
+                f"kategori terbesar: {mansa_d.get('top_category','—')}, "
+                f"{mansa_d.get('transaction_count',0)} transaksi.")
+
+        def _dostoy_narr():
+            if not dostoy_d.get("entry_count"):
+                return "Belum ada jurnal bulan ini. Tulis sesuatu untuk Dostoyevsky!"
+            preview = dostoy_d.get("content_preview", "")[:3000]
+            return _narrative(
+                sys_base + " Analisis mood dan emosi dari potongan jurnal berikut.",
+                f"Jurnal Dostoyevsky bulan {month_label} ({dostoy_d['entry_count']} entri):\n\n{preview}")
+
+        def _miyamoto_narr():
+            if not miyamoto_d.get("connected") or not miyamoto_d.get("event_count"):
+                return "Kalender belum tersambung atau belum ada event bulan ini."
+            return _narrative(sys_base,
+                f"Miyamoto bulan {month_label}: {miyamoto_d['event_count']} event, "
+                f"total {miyamoto_d.get('total_hours',0)} jam, "
+                f"hari tersibuk: {miyamoto_d.get('busiest_day','—')} "
+                f"dengan {miyamoto_d.get('busiest_count',0)} event.")
+
+        def _najwa_narr():
+            if not najwa_d.get("session_count"):
+                return "Belum ada sesi berita tercatat. Mulai chat dengan Najwa!"
+            return _narrative(sys_base,
+                f"Najwa bulan {month_label}: {najwa_d['session_count']} sesi berita. "
+                f"Topik yang dibahas: {'; '.join(najwa_d.get('previews',[])[:5])}")
+
+        def _linus_narr():
+            if not linus_d.get("session_count"):
+                return "Belum ada sesi coding tercatat. Mulai belajar kode dengan Linus!"
+            return _narrative(sys_base,
+                f"Linus bulan {month_label}: {linus_d['session_count']} sesi coding. "
+                f"Yang dipelajari: {'; '.join(linus_d.get('previews',[])[:5])}")
+
+        narr_results = await asyncio.gather(
+            loop.run_in_executor(None, _lavoisier_narr),
+            loop.run_in_executor(None, _mansa_narr),
+            loop.run_in_executor(None, _dostoy_narr),
+            loop.run_in_executor(None, _miyamoto_narr),
+            loop.run_in_executor(None, _najwa_narr),
+            loop.run_in_executor(None, _linus_narr),
+        )
+        keys = ["lavoisier", "mansa", "dostoyevsky", "miyamoto", "najwa", "linus"]
+        narratives = dict(zip(keys, narr_results))
+    except Exception as _narr_err:
+        pass  # narratives stay empty, frontend shows raw stats
+
+    return {
+        "month": month,
+        "month_label": month_label,
+        "lavoisier":   {**food_d,    "narrative": narratives.get("lavoisier", "")},
+        "mansa":       {**mansa_d,   "narrative": narratives.get("mansa", "")},
+        "dostoyevsky": {**dostoy_d,  "narrative": narratives.get("dostoyevsky", "")},
+        "miyamoto":    {**miyamoto_d,"narrative": narratives.get("miyamoto", "")},
+        "najwa":       {**najwa_d,   "narrative": narratives.get("najwa", "")},
+        "linus":       {**linus_d,   "narrative": narratives.get("linus", "")},
+    }
+
+
 @app.get("/api/budget/summary")
 async def get_budget_summary():
     try:
-        raw = json.loads(Path("data/budget.json").read_text(encoding="utf-8"))
+        raw = json.loads((_DATA_DIR / "budget.json").read_text(encoding="utf-8"))
         data = raw if isinstance(raw, list) else raw.get("transactions", [])
         total_income = sum(t["amount"] for t in data if t["type"] == "income")
         total_expense = sum(t["amount"] for t in data if t["type"] == "expense")
@@ -377,7 +1083,7 @@ async def get_budget_summary():
 async def get_finance_dashboard():
     from dateutil.relativedelta import relativedelta
     try:
-        raw = json.loads(Path("data/budget.json").read_text(encoding="utf-8"))
+        raw = json.loads((_DATA_DIR / "budget.json").read_text(encoding="utf-8"))
     except Exception:
         raw = {}
     if isinstance(raw, list):
@@ -487,11 +1193,8 @@ async def _run_agent(loop, fn, *args):
 
 
 def _normalize_ticker(raw: str) -> str:
-    """Auto-append .JK for IDX tickers (≤4 chars, no exchange suffix already)."""
-    t = raw.upper().strip()
-    if "." not in t and len(t) <= 4:
-        return t + ".JK"
-    return t
+    """Normalize ticker: uppercase + strip. Tools handle .JK fallback internally."""
+    return raw.upper().strip()
 
 
 @app.get("/api/stock/analyze")
@@ -533,12 +1236,13 @@ async def stock_analyze(ticker: str):
                 al = sum(losses[-14:]) / 14
                 rsi_val = round(100 - 100 / (1 + ag / (al or 1e-10)), 1)
             yield _sse({
-                "event": "market",
-                "price": float(price) if isinstance(price, (int, float)) else 0,
-                "chg":   round(float(chg_1y), 2),
-                "pe":    f"{float(pe_raw):.1f}x" if pe_raw else "N/A",
-                "roe":   f"{float(roe_raw) * 100:.1f}%" if roe_raw else "N/A",
-                "rsi":   rsi_val,
+                "event":    "market",
+                "price":    float(price) if isinstance(price, (int, float)) else 0,
+                "chg":      round(float(chg_1y), 2),
+                "pe":       f"{float(pe_raw):.1f}x" if pe_raw else "N/A",
+                "roe":      f"{float(roe_raw) * 100:.1f}%" if roe_raw else "N/A",
+                "rsi":      rsi_val,
+                "currency": "IDR" if ticker.endswith(".JK") else "USD",
             })
 
             await asyncio.sleep(5)
@@ -618,6 +1322,43 @@ async def stock_analyze(ticker: str):
     )
 
 
+# ─── Najwa News Feed ──────────────────────────────────────────────────────────
+
+_news_cache: dict = {"data": None, "ts": 0.0}
+
+@app.get("/api/news/feed")
+async def get_news_feed():
+    """Return live news for all categories, cached for 3 minutes."""
+    import time as _t
+    now = _t.time()
+    if _news_cache["data"] and now - _news_cache["ts"] < 180:
+        return _news_cache["data"]
+
+    from tools.news_tools import _search_news
+    loop = asyncio.get_running_loop()
+
+    categories = {
+        "breaking":   "breaking news urgent today",
+        "world":      "world news today international",
+        "technology": "technology AI software news today",
+        "business":   "business economy markets finance today",
+        "indonesia":  "Indonesia news berita hari ini",
+    }
+
+    async def _fetch(cat: str, query: str):
+        try:
+            items = await loop.run_in_executor(None, _search_news, query, 8)
+            return cat, items
+        except Exception:
+            return cat, []
+
+    results = await asyncio.gather(*[_fetch(c, q) for c, q in categories.items()])
+    data = {cat: articles for cat, articles in results}
+    _news_cache["data"] = data
+    _news_cache["ts"] = now
+    return data
+
+
 # ─── CrewAI Multi-Agent Endpoints ────────────────────────────────────────────
 
 _crew_jobs: dict = {}  # job_id → job state dict
@@ -670,39 +1411,43 @@ def _run_crew_background(job_id: str, topic: str,
 
             active_platforms = platforms or ["youtube", "tiktok", "facebook", "instagram"]
 
-            _log(f"[Scraper] Starting xcrawl harvest for: {', '.join(active_platforms)}")
+            _log(f"[Scraper] Firecrawl pipeline — platforms: {', '.join(active_platforms)}")
             if keywords:
                 _log(f"[Scraper] Keywords: {', '.join(keywords)}")
+            _log("[Scraper] Agents: Discover → Scrape → Extract (parallel across platforms)")
 
-            from agents.xcrawl_harvester import XcrawlHarvester
-            harvester = XcrawlHarvester()
+            from social_scraper.agents.firecrawl_harvester import FirecrawlHarvester
+            harvester = FirecrawlHarvester()
 
-            saved_files = {}
+            # Run all platforms in parallel (harvester handles ThreadPoolExecutor internally)
+            saved_files = harvester.run(platforms=active_platforms, keywords=keywords)
+
+            for plat, path in saved_files.items():
+                items = json.loads(path.read_text(encoding="utf-8"))
+                total_chars = sum(i.get("raw_length", 0) for i in items)
+                n_topics = sum(len(i.get("topics", [])) for i in items)
+                _log(f"[{plat.upper()}] {n_topics} topics, {total_chars:,} chars → {path.name}")
+
             for plat in active_platforms:
-                _log(f"[{plat.upper()}] Scraping...")
-                plat_saved = harvester.run(platforms=[plat], keywords=keywords)
-                if plat_saved:
-                    path = plat_saved[plat]
-                    items = json.loads(path.read_text(encoding="utf-8"))
-                    total_chars = sum(i.get("raw_length", 0) for i in items)
-                    _log(f"[{plat.upper()}] Done — {len(items)} pages, {total_chars:,} chars")
-                    saved_files[plat] = path
-                else:
+                if plat not in saved_files:
                     _log(f"[{plat.upper()}] No data collected")
 
             # Build summary report
             lines = [
                 "# Social Scraper Report\n\n",
+                f"**Engine:** Firecrawl-pattern (Discover → Scrape → Extract)\n",
                 f"**Platforms:** {', '.join(saved_files.keys()) or 'none'}\n",
                 f"**Keywords:** {', '.join(keywords) if keywords else 'trending (default)'}\n\n",
                 "## Per-Platform Results\n\n",
-                "| Platform | Pages | Total Chars | File |\n",
-                "|----------|-------|-------------|------|\n",
+                "| Platform | Topics | Sources | Chars | File |\n",
+                "|----------|--------|---------|-------|------|\n",
             ]
             for plat, path in saved_files.items():
                 items = json.loads(path.read_text(encoding="utf-8"))
+                n_topics = sum(len(i.get("topics", [])) for i in items)
+                n_sources = sum(len(i.get("sources", [])) for i in items)
                 total_chars = sum(i.get("raw_length", 0) for i in items)
-                lines.append(f"| {plat} | {len(items)} | {total_chars:,} | {path.name} |\n")
+                lines.append(f"| {plat} | {n_topics} | {n_sources} | {total_chars:,} | {path.name} |\n")
             outputs["scraper_report.md"] = "".join(lines)
 
             # Attach per-platform content previews (first item, first 3000 chars)
@@ -722,10 +1467,10 @@ def _run_crew_background(job_id: str, topic: str,
                 except Exception:
                     pass
 
-            # AI summaries per platform
+            # AI summaries per platform (parallel, each with 90s timeout)
             if saved_files:
-                _log("[Summarizer] Generating AI insights per platform...")
-                from agents.summarizer_agent import SummarizerAgent
+                _log("[Summarizer] Generating AI insights per platform (parallel)...")
+                from social_scraper.agents.summarizer_agent import SummarizerAgent
                 summaries = SummarizerAgent().run(saved_files)
                 for plat, summary in summaries.items():
                     _log(f"[Summarizer] {plat} summary ready ({len(summary)} chars)")
@@ -904,6 +1649,42 @@ app.mount("/stock", StaticFiles(directory="static/stock", html=True), name="stoc
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
+@app.get("/fitness", include_in_schema=False)
+@app.get("/fitness/", include_in_schema=False)
+async def serve_fitness():
+    p = Path("static/fitness/index.html")
+    if p.exists():
+        return FileResponse(str(p), headers={"Cache-Control": "no-cache"})
+    return JSONResponse({"error": "Fitness page not found"}, status_code=404)
+
+
+@app.get("/coding", include_in_schema=False)
+@app.get("/coding/", include_in_schema=False)
+async def serve_coding():
+    p = Path("static/coding/index.html")
+    if p.exists():
+        return FileResponse(str(p), headers={"Cache-Control": "no-cache"})
+    return JSONResponse({"error": "Coding page not found"}, status_code=404)
+
+
+@app.get("/productivity", include_in_schema=False)
+@app.get("/productivity/", include_in_schema=False)
+async def serve_productivity():
+    p = Path("static/productivity/index.html")
+    if p.exists():
+        return FileResponse(str(p), headers={"Cache-Control": "no-cache"})
+    return JSONResponse({"error": "Productivity page not found"}, status_code=404)
+
+
+@app.get("/news", include_in_schema=False)
+@app.get("/news/", include_in_schema=False)
+async def serve_news():
+    p = Path("static/news/index.html")
+    if p.exists():
+        return FileResponse(str(p), headers={"Cache-Control": "no-cache"})
+    return JSONResponse({"error": "News page not found"}, status_code=404)
+
+
 @app.get("/journal", include_in_schema=False)
 @app.get("/journal/", include_in_schema=False)
 async def serve_journal():
@@ -911,6 +1692,150 @@ async def serve_journal():
     if p.exists():
         return FileResponse(str(p), headers={"Cache-Control": "no-cache"})
     return JSONResponse({"error": "Journal page not found"}, status_code=404)
+
+
+@app.get("/wrap", include_in_schema=False)
+@app.get("/wrap/", include_in_schema=False)
+async def serve_wrap():
+    p = Path("static/wrap/index.html")
+    if p.exists():
+        return FileResponse(str(p), headers={"Cache-Control": "no-cache"})
+    return JSONResponse({"error": "Wrap page not found"}, status_code=404)
+
+
+@app.get("/alfred", include_in_schema=False)
+@app.get("/alfred/", include_in_schema=False)
+async def serve_alfred():
+    p = Path("static/alfred/index.html")
+    if p.exists():
+        return FileResponse(str(p), headers={"Cache-Control": "no-cache"})
+    return JSONResponse({"error": "Alfred page not found"}, status_code=404)
+
+
+@app.get("/api/alfred/dashboard")
+async def get_alfred_dashboard():
+    from datetime import timedelta as _td
+    loop  = asyncio.get_running_loop()
+    today = datetime.now()
+    today_str = today.strftime("%Y-%m-%d")
+
+    # ── Tasks ──────────────────────────────────────────────────────────────────
+    try:
+        tasks_raw = json.loads((_DATA_DIR / "tasks.json").read_text(encoding="utf-8"))
+    except Exception:
+        tasks_raw = []
+
+    priority_order = {"high": 0, "medium": 1, "low": 2}
+    all_tasks   = tasks_raw
+    pending     = [t for t in all_tasks if t.get("status", "pending") != "done"]
+    done        = [t for t in all_tasks if t.get("status") == "done"]
+    overdue     = [t for t in pending if t.get("due_date") and t["due_date"] < today_str]
+    due_soon    = [t for t in pending if t.get("due_date") and today_str <= t["due_date"] <= (today + _td(days=7)).strftime("%Y-%m-%d")]
+    pending.sort(key=lambda t: (priority_order.get(t.get("priority","medium"),1), t.get("due_date") or "9999"))
+
+    stats = {
+        "total":   len(all_tasks),
+        "pending": len(pending),
+        "done":    len(done),
+        "overdue": len(overdue),
+        "due_soon": len(due_soon),
+        "high":    sum(1 for t in pending if t.get("priority") == "high"),
+        "medium":  sum(1 for t in pending if t.get("priority") == "medium"),
+        "low":     sum(1 for t in pending if t.get("priority") == "low"),
+    }
+
+    # ── Google Calendar — future 90 days ───────────────────────────────────────
+    def _fetch_future():
+        from tools.schedule_tools import _get_calendar_service
+        service = _get_calendar_service()
+        t_min = datetime(today.year, today.month, today.day).isoformat() + "Z"
+        t_max = (datetime(today.year, today.month, today.day) + _td(days=90)).isoformat() + "Z"
+        return service.events().list(
+            calendarId="primary", timeMin=t_min, timeMax=t_max,
+            maxResults=200, singleEvents=True, orderBy="startTime",
+        ).execute().get("items", [])
+
+    def _fetch_past():
+        from tools.schedule_tools import _get_calendar_service
+        service = _get_calendar_service()
+        t_min = (datetime(today.year, today.month, today.day) - _td(days=30)).isoformat() + "Z"
+        t_max = datetime(today.year, today.month, today.day).isoformat() + "Z"
+        return service.events().list(
+            calendarId="primary", timeMin=t_min, timeMax=t_max,
+            maxResults=200, singleEvents=True, orderBy="startTime",
+        ).execute().get("items", [])
+
+    cal_connected = False
+    raw_future, raw_past = [], []
+    try:
+        raw_future, raw_past = await asyncio.gather(
+            loop.run_in_executor(None, _fetch_future),
+            loop.run_in_executor(None, _fetch_past),
+        )
+        cal_connected = True
+    except Exception:
+        pass
+
+    def _parse(e):
+        start   = e["start"].get("dateTime", e["start"].get("date", ""))
+        end_val = e["end"].get("dateTime",   e["end"].get("date",   ""))
+        all_day = "T" not in start
+        if all_day:
+            day = start; st = "All day"; et = ""; hour = 0; minute = 0; dur = 1440
+        else:
+            day = start[:10]; st = start[11:16]; et = end_val[11:16] if end_val else ""
+            try:
+                hour, minute = int(start[11:13]), int(start[14:16])
+                eh, em = int(end_val[11:13]), int(end_val[14:16])
+                dur = max((eh * 60 + em) - (hour * 60 + minute), 15)
+            except Exception:
+                hour, minute, dur = 0, 0, 60
+        return {
+            "id":           e["id"][:12],
+            "title":        e.get("summary", "Untitled"),
+            "day":          day,
+            "start_time":   st,
+            "end_time":     et,
+            "is_all_day":   all_day,
+            "hour":         hour,
+            "minute":       minute,
+            "duration_min": dur,
+            "description":  e.get("description") or "",
+            "location":     e.get("location")    or "",
+            "color_id":     e.get("colorId",     ""),
+        }
+
+    future_events = [_parse(e) for e in raw_future]
+    past_events   = list(reversed([_parse(e) for e in raw_past]))  # newest first
+
+    # Group by day
+    def _group_by_day(evs):
+        grouped: dict = {}
+        for ev in evs:
+            grouped.setdefault(ev["day"], []).append(ev)
+        return grouped
+
+    today_events   = [ev for ev in future_events if ev["day"] == today_str]
+    future_grouped = _group_by_day([ev for ev in future_events if ev["day"] != today_str])
+    past_grouped   = _group_by_day(past_events)
+    future_days    = sorted(future_grouped.keys())
+    past_days      = sorted(past_grouped.keys(), reverse=True)
+
+    return {
+        "calendar_connected": cal_connected,
+        "today":              today_str,
+        "today_label":        today.strftime("%A, %d %B %Y"),
+        "tasks":              all_tasks,
+        "pending":            pending,
+        "done_tasks":         done,
+        "stats":              stats,
+        "today_events":       today_events,
+        "future_grouped":     future_grouped,
+        "future_days":        future_days,
+        "past_grouped":       past_grouped,
+        "past_days":          past_days,
+        "due_soon":           due_soon,
+    }
 
 
 @app.get("/finance", include_in_schema=False)
@@ -929,6 +1854,15 @@ async def serve_pixel():
     if p.exists():
         return FileResponse(str(p), headers={"Cache-Control": "no-cache"})
     return JSONResponse({"error": "Pixel page not found"}, status_code=404)
+
+
+@app.get("/hub", include_in_schema=False)
+@app.get("/hub/", include_in_schema=False)
+async def serve_hub():
+    p = Path("static/hub.html")
+    if p.exists():
+        return FileResponse(str(p), headers={"Cache-Control": "no-cache"})
+    return JSONResponse({"error": "Hub page not found"}, status_code=404)
 
 
 @app.get("/{full_path:path}")

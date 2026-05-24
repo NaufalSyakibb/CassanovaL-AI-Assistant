@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lavoisier — Food Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* ── Design tokens — Paper & Ink ──────────────────────────── */
+:root,[data-theme="light"]{
+  --paper:#F3EEE5;--paper-2:#ECE6DA;--paper-3:#E4DDCD;
+  --surface:#FAF6EE;--surface-2:#FFFFFF;
+  --ink:#17171A;--ink-2:#3B3B3F;--ink-3:#6B6A6E;--ink-4:#9B9A9E;
+  --rule:rgba(23,23,26,.12);--rule-soft:rgba(23,23,26,.06);
+  --hover:rgba(23,23,26,.04);
+  --clay:#CC785C;
+  --hue:#A65046;  /* Lavoisier clay-red */
+  --hue-soft:rgba(166,80,70,.10);--hue-line:rgba(166,80,70,.28);
+  --green:#4E7A56;--green-soft:rgba(78,122,86,.10);
+  --blue:#4472C7; --blue-soft:rgba(68,114,199,.10);
+  --gold:#B07030; --gold-soft:rgba(176,112,48,.10);
+  --shadow-2:0 4px 24px rgba(23,23,26,.06);
+  --shadow-3:0 24px 64px rgba(23,23,26,.14);
+}
+[data-theme="dark"]{
+  --paper:#17171A;--paper-2:#1E1E22;--paper-3:#24242A;
+  --surface:#1A1A1E;--surface-2:#222227;
+  --ink:#F2EDE3;--ink-2:#CEC9BE;--ink-3:#9B9890;--ink-4:#6D6B67;
+  --rule:rgba(242,237,227,.14);--rule-soft:rgba(242,237,227,.07);
+  --hover:rgba(242,237,227,.05);
+  --clay:#E59A7F;
+  --hue:#D48278;
+  --hue-soft:rgba(212,130,120,.10);--hue-line:rgba(212,130,120,.30);
+  --green:#8FBDAF;--green-soft:rgba(143,189,175,.10);
+  --blue:#8FAEBE; --blue-soft:rgba(143,174,190,.10);
+  --gold:#D4B86A; --gold-soft:rgba(212,184,106,.10);
+  --shadow-2:0 4px 24px rgba(0,0,0,.4);
+  --shadow-3:0 24px 64px rgba(0,0,0,.6);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--paper);color:var(--ink);
+  font-family:'Inter',ui-sans-serif,system-ui,sans-serif;
+  font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;
+  font-feature-settings:'ss01','cv11';transition:background .35s,color .35s;
+}
+::selection{background:rgba(166,80,70,.15)}
+.serif{font-family:'Instrument Serif','Times New Roman',serif;font-weight:400}
+.mono {font-family:'JetBrains Mono',ui-monospace,monospace}
+.small-caps{font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.14em;font-size:10.5px;font-weight:500}
+.scroll::-webkit-scrollbar{width:6px}
+.scroll::-webkit-scrollbar-track{background:transparent}
+.scroll::-webkit-scrollbar-thumb{background:var(--rule);border-radius:6px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes inkPulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+
+/* ── Layout ───────────────────────────────────────────────── */
+.app{display:grid;grid-template-columns:220px 1fr 300px;height:100vh;overflow:hidden}
+
+/* ── Sidebar ──────────────────────────────────────────────── */
+.sidebar{
+  background:var(--paper-2);border-right:1px solid var(--rule);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.sidebar-top{padding:22px 18px 18px;border-bottom:1px solid var(--rule);flex-shrink:0}
+.back-link{
+  display:inline-flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;
+  font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-3);
+  text-decoration:none;padding:6px 10px;border:1px solid var(--rule);border-radius:8px;transition:all .15s;
+}
+.back-link:hover{color:var(--ink);border-color:var(--ink-4)}
+.agent-name{font-family:'Instrument Serif',serif;font-size:30px;line-height:1;letter-spacing:-.02em;color:var(--ink);margin-top:16px}
+.agent-name em{font-style:italic;color:var(--hue)}
+.agent-role{font-size:11px;color:var(--ink-3);margin-top:4px;font-family:'JetBrains Mono',monospace;letter-spacing:.04em}
+
+.sidebar-scroll{flex:1;overflow-y:auto}
+.sidebar-scroll::-webkit-scrollbar{width:0}
+.s-section{padding:16px 18px;border-bottom:1px solid var(--rule)}
+.s-label{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;font-weight:500;color:var(--ink-4);margin-bottom:12px}
+
+/* Macro bars in sidebar */
+.macro-row{margin-bottom:10px}
+.macro-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.macro-name{font-size:12px;color:var(--ink-2)}
+.macro-val{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-3)}
+.macro-track{height:5px;background:var(--rule);border-radius:3px;overflow:hidden}
+.macro-fill{height:100%;border-radius:3px;transition:width .6s ease;min-width:2px}
+.macro-fill.cal {background:var(--hue)}
+.macro-fill.pro {background:var(--blue)}
+.macro-fill.carb{background:var(--gold)}
+.macro-fill.fat {background:var(--green)}
+.macro-fill.fib {background:#7A5C9A}
+.macro-fill.over{background:#B85450}
+
+/* Stat pairs */
+.stat-pairs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat-pair-val{font-family:'Instrument Serif',serif;font-size:28px;line-height:1;letter-spacing:-.02em;color:var(--ink)}
+.stat-pair-val em{font-style:italic;color:var(--hue)}
+.stat-pair-lbl{font-size:11px;color:var(--ink-3);margin-top:2px}
+
+/* Food frequency in sidebar */
+.freq-item{
+  display:flex;align-items:center;gap:8px;padding:6px 0;
+  border-bottom:1px solid var(--rule-soft);
+}
+.freq-item:last-child{border-bottom:none}
+.freq-bar-wrap{flex:1;height:4px;background:var(--rule);border-radius:2px;overflow:hidden}
+.freq-bar{height:100%;background:var(--hue);border-radius:2px;opacity:.6}
+.freq-name{font-size:11.5px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px}
+.freq-count{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--hue);min-width:24px;text-align:right}
+
+.sidebar-footer{padding:12px 18px;border-top:1px solid var(--rule);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.theme-btn{width:30px;height:30px;border-radius:8px;border:1px solid var(--rule);background:transparent;color:var(--ink-3);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .15s}
+.theme-btn:hover{color:var(--ink);background:var(--hover)}
+.sidebar-meta{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-4)}
+
+/* ── Main ─────────────────────────────────────────────────── */
+.main{display:flex;flex-direction:column;overflow:hidden;background:var(--paper);min-width:0}
+.masthead{padding:20px 36px 16px;border-bottom:1px solid var(--rule);flex-shrink:0}
+.mast-eyebrow{display:flex;align-items:center;gap:10px;color:var(--ink-3);margin-bottom:5px}
+.mast-sep{width:20px;height:1px;background:var(--rule);display:inline-block}
+.mast-title{font-family:'Instrument Serif',serif;font-size:42px;line-height:1;letter-spacing:-.025em;color:var(--ink);font-weight:400}
+.mast-title em{font-style:italic;color:var(--hue)}
+.mast-sub{font-family:'Instrument Serif',serif;font-style:italic;font-size:16px;color:var(--ink-2);margin-top:5px}
+
+.date-strip{padding:8px 36px;border-bottom:1px solid var(--rule);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.date-label{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-4);letter-spacing:.04em}
+.status-dot{width:5px;height:5px;border-radius:50%;background:var(--hue);display:inline-block;margin-right:7px;animation:inkPulse 2s infinite;vertical-align:middle}
+
+/* Tab rail */
+.tab-rail{padding:0 36px;border-bottom:1px solid var(--rule);display:flex;gap:24px;flex-shrink:0}
+.tab{padding:10px 0;border:none;background:transparent;color:var(--ink-3);cursor:pointer;font:inherit;font-size:13px;letter-spacing:.02em;position:relative;transition:color .15s}
+.tab.active{color:var(--ink)}
+.tab.active::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:1px;background:var(--hue)}
+.tab:hover{color:var(--ink-2)}
+
+/* Main scroll */
+.main-scroll{flex:1;overflow-y:auto;padding:24px 36px 48px}
+.main-scroll::-webkit-scrollbar{width:6px}
+.main-scroll::-webkit-scrollbar-thumb{background:var(--rule);border-radius:4px}
+
+/* ── Macro progress section ───────────────────────────────── */
+.macro-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);margin-bottom:28px}
+.macro-cell{padding:16px 0 14px;position:relative}
+.macro-cell+.macro-cell{padding-left:20px;border-left:1px solid var(--rule)}
+.mc-label{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-4);margin-bottom:8px;display:flex;align-items:center;gap:5px}
+.mc-dot{width:6px;height:6px;border-radius:50%}
+.mc-val{font-family:'Instrument Serif',serif;font-size:32px;line-height:1;letter-spacing:-.02em;color:var(--ink);font-weight:400}
+.mc-val em{font-style:italic;color:var(--hue)}
+.mc-unit{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-3)}
+.mc-target{font-size:11px;color:var(--ink-4);margin-top:4px}
+.mc-bar{height:3px;background:var(--rule);border-radius:2px;margin-top:8px;overflow:hidden}
+.mc-bar-fill{height:100%;border-radius:2px;transition:width .7s ease}
+
+/* ── Food log sections ────────────────────────────────────── */
+.meal-section{margin-bottom:24px;animation:fadeUp .2s ease-out}
+.meal-head{
+  display:flex;align-items:baseline;justify-content:space-between;
+  padding-bottom:8px;border-bottom:1px solid var(--rule);margin-bottom:0;
+}
+.meal-title{font-family:'Instrument Serif',serif;font-size:22px;letter-spacing:-.01em;color:var(--ink)}
+.meal-title em{font-style:italic;color:var(--hue)}
+.meal-kcal{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-4)}
+
+.food-row{
+  display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;
+  padding:10px 0;border-bottom:1px solid var(--rule-soft);
+}
+.food-row:last-child{border-bottom:none}
+.food-name{font-family:'Instrument Serif',serif;font-size:16px;color:var(--ink);letter-spacing:-.01em}
+.food-amount{font-size:11px;color:var(--ink-3);margin-top:2px;font-family:'JetBrains Mono',monospace}
+.food-macros{display:flex;gap:6px;align-items:center}
+.mpill{
+  font-family:'JetBrains Mono',monospace;font-size:9.5px;
+  padding:2px 6px;border-radius:4px;white-space:nowrap;
+}
+.mpill.p{background:var(--blue-soft);color:var(--blue)}
+.mpill.c{background:var(--gold-soft);color:var(--gold)}
+.mpill.f{background:var(--green-soft);color:var(--green)}
+.mpill.k{background:var(--hue-soft);color:var(--hue)}
+.food-kcal{font-family:'Instrument Serif',serif;font-size:16px;color:var(--ink);min-width:52px;text-align:right}
+
+/* Empty state */
+.empty-today{
+  padding:48px 0;text-align:center;
+  font-family:'Instrument Serif',serif;font-style:italic;font-size:20px;color:var(--ink-3);
+}
+.empty-sub{font-size:13px;color:var(--ink-4);margin-top:6px;font-family:'Inter',sans-serif;font-style:normal}
+
+/* ── Weekly tab ───────────────────────────────────────────── */
+.chart-wrap{margin-bottom:24px;background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:20px}
+.chart-title{font-family:'Instrument Serif',serif;font-size:20px;color:var(--ink);margin-bottom:16px}
+.weekly-table{border-top:1px solid var(--rule);width:100%}
+.wt-row{display:grid;grid-template-columns:90px 1fr 72px 72px 60px 60px;gap:12px;padding:10px 0;border-bottom:1px solid var(--rule-soft);align-items:center}
+.wt-head{color:var(--ink-3);font-size:11px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em}
+.wt-date{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-4)}
+.wt-date.today{color:var(--hue);font-weight:600}
+.wt-bar-wrap{height:5px;background:var(--rule);border-radius:3px;overflow:hidden}
+.wt-bar{height:100%;background:var(--hue);border-radius:3px;opacity:.7}
+.wt-val{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-3);text-align:right}
+.wt-val.kcal{color:var(--ink-2);font-size:12px}
+.wt-empty{color:var(--ink-4);font-size:11px;font-family:'JetBrains Mono',monospace}
+
+/* ── Frequency tab ────────────────────────────────────────── */
+.freq-table{border-top:1px solid var(--rule)}
+.ft-row{display:grid;grid-template-columns:28px 1fr 80px 56px 68px;gap:14px;padding:11px 0;border-bottom:1px solid var(--rule-soft);align-items:center}
+.ft-head{color:var(--ink-3);font-size:10.5px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em}
+.ft-num{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-4)}
+.ft-name{font-family:'Instrument Serif',serif;font-size:16px;color:var(--ink);letter-spacing:-.01em}
+.ft-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  background:var(--hue-soft);color:var(--hue);
+  border-radius:100px;padding:2px 8px;white-space:nowrap;
+}
+.ft-last{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-4)}
+.ft-cal{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-3);text-align:right}
+
+/* ── Right panel ──────────────────────────────────────────── */
+.panel{background:var(--paper-2);border-left:1px solid var(--rule);display:flex;flex-direction:column;overflow:hidden}
+.panel-head{padding:20px 22px 14px;border-bottom:1px solid var(--rule);flex-shrink:0}
+.panel-title{font-family:'Instrument Serif',serif;font-size:24px;color:var(--ink);letter-spacing:-.02em;font-weight:400;line-height:1.1}
+.panel-title em{font-style:italic;color:var(--hue)}
+.panel-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-4);margin-top:4px}
+
+.panel-scroll{flex:1;overflow-y:auto;padding:0 0 40px}
+.panel-scroll::-webkit-scrollbar{width:0}
+
+/* Ingredient input */
+.ing-section{padding:14px 20px;border-bottom:1px solid var(--rule)}
+.ing-label{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-4);margin-bottom:8px}
+.ing-textarea{
+  width:100%;padding:10px 12px;border:1px solid var(--rule);border-radius:8px;
+  background:var(--surface);color:var(--ink);font:inherit;font-size:13px;
+  outline:none;resize:none;min-height:90px;line-height:1.5;transition:border-color .15s;
+}
+.ing-textarea::placeholder{color:var(--ink-4);font-style:italic;font-family:'Instrument Serif',serif;font-size:14px}
+.ing-textarea:focus{border-color:var(--hue-line)}
+.generate-btn{
+  width:100%;margin-top:8px;padding:12px;border-radius:8px;border:none;
+  background:var(--ink);color:var(--paper);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;font:inherit;
+  font-family:'Instrument Serif',serif;font-style:italic;font-size:16px;
+  transition:background .15s;
+}
+.generate-btn:hover:not(:disabled){background:var(--hue)}
+.generate-btn:disabled{opacity:.45;cursor:not-allowed}
+.spinner{width:13px;height:13px;border:1.5px solid transparent;border-top-color:currentColor;border-right-color:currentColor;border-radius:50%;animation:spin .7s linear infinite;display:none}
+.spinner.active{display:inline-block}
+
+/* Context chips */
+.context-strip{padding:10px 20px;border-bottom:1px solid var(--rule)}
+.ctx-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 8px;border-radius:100px;
+  background:var(--hue-soft);border:1px solid var(--hue-line);
+  font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--hue);
+  margin-right:4px;margin-bottom:4px;
+}
+
+/* Menu recommendation cards */
+.menu-card{
+  margin:12px 20px 0;padding:14px;
+  background:var(--surface);border:1px solid var(--rule);border-radius:10px;
+  animation:fadeUp .25s ease-out;
+}
+.menu-card:first-child{margin-top:16px}
+.menu-meal-badge{
+  display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9px;
+  text-transform:uppercase;letter-spacing:.12em;
+  padding:2px 7px;border-radius:100px;
+  background:var(--hue-soft);color:var(--hue);border:1px solid var(--hue-line);
+  margin-bottom:8px;
+}
+.menu-name{font-family:'Instrument Serif',serif;font-size:18px;color:var(--ink);letter-spacing:-.01em;line-height:1.2}
+.menu-desc{font-size:12px;color:var(--ink-3);margin-top:4px;line-height:1.5}
+
+.menu-section-lbl{font-family:'JetBrains Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-4);margin-top:12px;margin-bottom:5px}
+.menu-ing-list{list-style:none;padding:0}
+.menu-ing-list li{
+  font-size:12.5px;color:var(--ink-2);padding:3px 0;
+  border-bottom:1px dotted var(--rule);
+  display:flex;align-items:baseline;gap:6px;
+}
+.menu-ing-list li::before{content:'·';color:var(--hue);font-size:14px;line-height:1}
+.menu-ing-list li:last-child{border-bottom:none}
+
+.menu-steps-list{list-style:none;counter-reset:step;padding:0}
+.menu-steps-list li{
+  counter-increment:step;font-size:12px;color:var(--ink-2);padding:4px 0;
+  padding-left:20px;position:relative;line-height:1.5;
+}
+.menu-steps-list li::before{
+  content:counter(step);position:absolute;left:0;
+  font-family:'JetBrains Mono',monospace;font-size:9px;
+  color:var(--hue);background:var(--hue-soft);
+  width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  top:5px;
+}
+
+.menu-macros{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.mm{font-family:'JetBrains Mono',monospace;font-size:9.5px;padding:2px 7px;border-radius:4px}
+.mm.k{background:var(--hue-soft);color:var(--hue)}
+.mm.p{background:var(--blue-soft);color:var(--blue)}
+.mm.c{background:var(--gold-soft);color:var(--gold)}
+.mm.f{background:var(--green-soft);color:var(--green)}
+
+.menu-why{
+  margin-top:10px;padding:8px 10px;
+  background:var(--paper-3);border-left:2px solid var(--hue);border-radius:0 6px 6px 0;
+  font-size:12px;color:var(--ink-3);line-height:1.5;
+  font-family:'Instrument Serif',serif;font-style:italic;
+}
+
+/* AI error / empty */
+.ai-empty{padding:24px 20px;text-align:center;font-family:'Instrument Serif',serif;font-style:italic;font-size:16px;color:var(--ink-3)}
+.ai-error{padding:14px 20px;font-size:12px;color:#B85450;font-family:'JetBrains Mono',monospace;background:rgba(184,84,80,.08);border-top:1px solid rgba(184,84,80,.2)}
+
+/* Skeletons */
+.skel{background:linear-gradient(90deg,var(--paper-3),var(--paper-2),var(--paper-3));background-size:200% 100%;animation:shimmer 1.6s infinite;border-radius:4px}
+
+/* ── Chat panel (Mansa-style) ───────────────────────────────── */
+.chat-panel{background:var(--paper-2);border-left:1px solid var(--rule);display:flex;flex-direction:column;overflow:hidden}
+.chat-head{padding:22px 24px 16px;border-bottom:1px solid var(--rule);flex-shrink:0}
+.chat-head-eyebrow{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--hue);margin-bottom:4px}
+.chat-head-title{font-family:'Instrument Serif',serif;font-size:26px;letter-spacing:-.02em;color:var(--ink);line-height:1.1}
+.chat-head-title em{color:var(--hue);font-style:italic}
+.chat-head-sub{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-3);margin-top:4px}
+.chat-messages{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:16px}
+.chat-messages::-webkit-scrollbar{width:4px}
+.chat-messages::-webkit-scrollbar-thumb{background:var(--rule);border-radius:3px}
+.chat-msg{animation:fadeUp .2s ease-out}
+.chat-msg+.chat-msg{border-top:1px solid var(--rule-soft);padding-top:16px}
+.chat-msg-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.chat-msg-author{font-family:'Instrument Serif',serif;font-size:15px;color:var(--ink)}
+.chat-msg-author em{color:var(--hue);font-style:italic}
+.chat-msg-time{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-4)}
+.chat-msg-body{font-size:14px;line-height:1.65;color:var(--ink);white-space:pre-wrap}
+.chat-msg.agent .chat-msg-body{border-left:2px solid var(--hue);padding-left:14px;margin-left:2px;color:var(--ink-2)}
+.chat-msg-body code{font-family:'JetBrains Mono',monospace;font-size:.88em;background:var(--paper-3);padding:1px 5px;border-radius:3px;color:var(--hue)}
+.typing-row{display:flex;align-items:center;gap:8px;color:var(--ink-3);animation:fadeUp .2s;padding-top:16px;border-top:1px solid var(--rule-soft)}
+.typing-dots{display:flex;gap:3px}
+.typing-dot{width:5px;height:5px;border-radius:50%;background:var(--hue);animation:dotBounce 1.2s infinite}
+.typing-dot:nth-child(2){animation-delay:.15s}
+.typing-dot:nth-child(3){animation-delay:.3s}
+@keyframes dotBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+@keyframes refreshFlash{0%{box-shadow:0 0 0 0 rgba(166,80,70,.4)}70%{box-shadow:0 0 0 8px rgba(166,80,70,0)}100%{box-shadow:none}}
+.refreshed{animation:refreshFlash .6s ease-out}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 24px 10px;flex-shrink:0}
+.chip{padding:4px 12px;border:1px solid var(--rule);border-radius:100px;background:var(--surface);color:var(--ink-2);font-size:11px;cursor:pointer;transition:all .15s;font-family:inherit;white-space:nowrap}
+.chip:hover{border-color:var(--hue);color:var(--hue);background:var(--hue-soft)}
+.composer-wrap{padding:14px 24px 20px;border-top:1px solid var(--rule);background:var(--paper-2);flex-shrink:0}
+.composer-box{display:flex;align-items:flex-end;gap:6px;background:var(--surface-2);border:1px solid var(--rule);border-radius:14px;padding:6px 6px 6px 14px;box-shadow:var(--shadow-2);transition:border-color .2s,box-shadow .2s}
+.composer-box:focus-within{border-color:var(--hue-line);box-shadow:var(--shadow-2),0 0 0 4px var(--hue-soft)}
+.composer-ta{flex:1;border:none;outline:none;background:transparent;resize:none;font:inherit;font-size:14px;line-height:1.55;color:var(--ink);padding:8px 4px;max-height:120px}
+.composer-ta::placeholder{color:var(--ink-4);font-style:italic;font-family:'Instrument Serif',serif;font-size:16px}
+.composer-send{width:34px;height:34px;border-radius:10px;border:none;background:var(--ink);color:var(--paper);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,transform .1s}
+.composer-send:hover{background:var(--hue)}
+.composer-send:active{transform:scale(.94)}
+.composer-send:disabled{opacity:.3;cursor:not-allowed;background:var(--ink)}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ── Sidebar ─────────────────────────────────────────────── -->
+<aside class="sidebar">
+  <div class="sidebar-top">
+    <a href="/" class="back-link">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Agents
+    </a>
+    <div style="display:flex;justify-content:center;padding:10px 0 4px;">
+      <canvas id="agent-sprite" style="image-rendering:pixelated;image-rendering:crisp-edges;display:block;"></canvas>
+    </div>
+    <div class="agent-name">La<em>voisier</em></div>
+    <div class="agent-role">Fitness &amp; Nutrition Coach</div>
+  </div>
+
+  <div class="sidebar-scroll">
+
+    <!-- Today macros -->
+    <div class="s-section">
+      <div class="s-label">Today's Macros</div>
+      <div id="sb-macros">
+        <div class="macro-row"><div class="macro-head"><span class="macro-name">Calories</span><span class="macro-val" id="sb-cal">—</span></div><div class="macro-track"><div class="macro-fill cal" id="sb-cal-bar" style="width:0%"></div></div></div>
+        <div class="macro-row"><div class="macro-head"><span class="macro-name">Protein</span><span class="macro-val" id="sb-pro">—</span></div><div class="macro-track"><div class="macro-fill pro" id="sb-pro-bar" style="width:0%"></div></div></div>
+        <div class="macro-row"><div class="macro-head"><span class="macro-name">Carbs</span><span class="macro-val" id="sb-carb">—</span></div><div class="macro-track"><div class="macro-fill carb" id="sb-carb-bar" style="width:0%"></div></div></div>
+        <div class="macro-row"><div class="macro-head"><span class="macro-name">Fat</span><span class="macro-val" id="sb-fat">—</span></div><div class="macro-track"><div class="macro-fill fat" id="sb-fat-bar" style="width:0%"></div></div></div>
+        <div class="macro-row"><div class="macro-head"><span class="macro-name">Fiber</span><span class="macro-val" id="sb-fib">—</span></div><div class="macro-track"><div class="macro-fill fib" id="sb-fib-bar" style="width:0%"></div></div></div>
+      </div>
+    </div>
+
+    <!-- Weekly avg stats -->
+    <div class="s-section">
+      <div class="s-label">14-Day Average</div>
+      <div class="stat-pairs">
+        <div class="stat-pair">
+          <div class="stat-pair-val" id="sb-avg-cal"><em>—</em></div>
+          <div class="stat-pair-lbl">Avg kcal/day</div>
+        </div>
+        <div class="stat-pair">
+          <div class="stat-pair-val" id="sb-avg-pro"><em>—</em></div>
+          <div class="stat-pair-lbl">Avg protein g</div>
+        </div>
+        <div class="stat-pair">
+          <div class="stat-pair-val" id="sb-days"><em>—</em></div>
+          <div class="stat-pair-lbl">Days logged</div>
+        </div>
+        <div class="stat-pair">
+          <div class="stat-pair-val" id="sb-total"><em>—</em></div>
+          <div class="stat-pair-lbl">Total entries</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top foods frequency -->
+    <div class="s-section">
+      <div class="s-label">Most Eaten</div>
+      <div id="sb-freq"></div>
+    </div>
+
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="sidebar-meta" id="sb-meta">Loading…</div>
+    <button class="theme-btn" onclick="toggleTheme()">
+      <svg id="ico-sun" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      <svg id="ico-moon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
+    </button>
+  </div>
+</aside>
+
+<!-- ── Main ────────────────────────────────────────────────── -->
+<main class="main">
+  <div class="masthead">
+    <div class="mast-eyebrow">
+      <span class="small-caps">CassanovaL</span>
+      <span class="mast-sep"></span>
+      <span class="small-caps">Food Tracker</span>
+    </div>
+    <div class="mast-title">Nutrition <em>Dashboard</em></div>
+    <div class="mast-sub" id="mast-sub">Loading your food data…</div>
+  </div>
+
+  <div class="date-strip">
+    <div class="date-label"><span class="status-dot"></span><span id="today-label">—</span></div>
+    <div class="date-label" id="entry-count">—</div>
+  </div>
+
+  <div class="tab-rail">
+    <button class="tab active" onclick="showTab('today')"   id="tab-today">Today</button>
+    <button class="tab"        onclick="showTab('weekly')"  id="tab-weekly">14 Days</button>
+    <button class="tab"        onclick="showTab('freq')"    id="tab-freq">Food Frequency</button>
+  </div>
+
+  <div class="main-scroll scroll">
+
+    <!-- Today tab -->
+    <div id="view-today">
+      <!-- Macro progress grid -->
+      <div class="macro-grid" id="macro-grid">
+        <div class="macro-cell"><div class="mc-label"><div class="mc-dot" style="background:var(--hue)"></div>Calories</div><div class="mc-val" id="mc-cal">—</div><div class="mc-target" id="mc-cal-t">of 2000 kcal</div><div class="mc-bar"><div class="mc-bar-fill" id="mc-cal-bar" style="width:0%;background:var(--hue)"></div></div></div>
+        <div class="macro-cell"><div class="mc-label"><div class="mc-dot" style="background:var(--blue)"></div>Protein</div><div class="mc-val" id="mc-pro">—</div><div class="mc-target" id="mc-pro-t">of 50 g</div><div class="mc-bar"><div class="mc-bar-fill" id="mc-pro-bar" style="width:0%;background:var(--blue)"></div></div></div>
+        <div class="macro-cell"><div class="mc-label"><div class="mc-dot" style="background:var(--gold)"></div>Carbs</div><div class="mc-val" id="mc-carb">—</div><div class="mc-target" id="mc-carb-t">of 275 g</div><div class="mc-bar"><div class="mc-bar-fill" id="mc-carb-bar" style="width:0%;background:var(--gold)"></div></div></div>
+        <div class="macro-cell"><div class="mc-label"><div class="mc-dot" style="background:var(--green)"></div>Fat</div><div class="mc-val" id="mc-fat">—</div><div class="mc-target" id="mc-fat-t">of 78 g</div><div class="mc-bar"><div class="mc-bar-fill" id="mc-fat-bar" style="width:0%;background:var(--green)"></div></div></div>
+        <div class="macro-cell"><div class="mc-label"><div class="mc-dot" style="background:#7A5C9A"></div>Fiber</div><div class="mc-val" id="mc-fib">—</div><div class="mc-target" id="mc-fib-t">of 28 g</div><div class="mc-bar"><div class="mc-bar-fill" id="mc-fib-bar" style="width:0%;background:#7A5C9A"></div></div></div>
+      </div>
+
+      <!-- Food log by meal -->
+      <div id="food-log"></div>
+    </div>
+
+    <!-- Weekly tab -->
+    <div id="view-weekly" style="display:none">
+      <div class="chart-wrap">
+        <div class="chart-title serif">Calories — <em>14 Day Overview</em></div>
+        <canvas id="weekly-chart" height="160"></canvas>
+      </div>
+      <div class="weekly-table">
+        <div class="wt-row wt-head">
+          <span>Date</span><span>Calories bar</span>
+          <span style="text-align:right">kcal</span>
+          <span style="text-align:right">Protein</span>
+          <span style="text-align:right">Carbs</span>
+          <span style="text-align:right">Fat</span>
+        </div>
+        <div id="weekly-rows"></div>
+      </div>
+    </div>
+
+    <!-- Frequency tab -->
+    <div id="view-freq" style="display:none">
+      <div style="margin-bottom:16px">
+        <div class="serif" style="font-size:22px;color:var(--ink)">Most <em>Consumed</em> Foods</div>
+        <div style="font-size:12px;color:var(--ink-3);margin-top:4px">All-time frequency across your entire food log</div>
+      </div>
+      <div class="freq-table">
+        <div class="ft-row ft-head">
+          <span>#</span><span>Food</span><span>Frequency</span>
+          <span>Last eaten</span><span style="text-align:right">Avg kcal</span>
+        </div>
+        <div id="freq-rows"></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- ── Right Panel — Lavoisier Chat ──────────────────────── -->
+<aside class="chat-panel">
+  <div class="chat-head">
+    <div class="chat-head-eyebrow">Fitness Coach Pribadi</div>
+    <div class="chat-head-title serif">La<em>voisier</em></div>
+    <div class="chat-head-sub">
+      <span style="color:var(--green)">●</span> Online · Mistral AI
+    </div>
+  </div>
+
+  <div class="chat-messages" id="chat-messages">
+    <div class="chat-msg agent">
+      <div class="chat-msg-head">
+        <span class="chat-msg-author serif">La<em>voisier</em></span>
+        <span class="chat-msg-time mono">now</span>
+      </div>
+      <div class="chat-msg-body">Halo! Saya Lavoisier — coach nutrisi pribadi kamu. Ceritakan apa yang kamu makan dan saya akan mencatatnya, atau tanya soal kalori, protein, dan rekomendasi makan.</div>
+    </div>
+  </div>
+
+  <div class="chips" id="chips">
+    <button class="chip" onclick="quickMsg('Tampilkan log makan hari ini')">Log hari ini</button>
+    <button class="chip" onclick="quickMsg('Berapa protein yang sudah aku makan hari ini?')">Protein</button>
+    <button class="chip" onclick="quickMsg('Ringkasan nutrisi minggu ini')">Mingguan</button>
+    <button class="chip" onclick="quickMsg('Rekomendasikan makan berdasarkan yang sudah aku catat')">Rekomendasi</button>
+    <button class="chip" onclick="quickMsg('Analisis pola makanku')">Analisis</button>
+  </div>
+
+  <div class="composer-wrap">
+    <div class="composer-box">
+      <textarea class="composer-ta" id="chat-ta" rows="1"
+        placeholder="Catat makanan atau tanya nutrisi…"
+        onkeydown="handleKey(event)"
+        oninput="autoResize(this)"></textarea>
+      <button class="composer-send" id="send-btn" onclick="sendMessage()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+</aside>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// Targets
+const TARGETS = { calories: 2000, protein_g: 50, carbs_g: 275, fat_g: 78, fiber_g: 28 };
+
+// Declared early to avoid TDZ errors in applyTheme / sendMessage
+let weeklyChart = null;
+let _chatBusy   = false;
+let _afterChat  = false;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Theme
+let theme = localStorage.getItem('theme') || 'light';
+function applyTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('ico-sun').style.display  = t==='dark'  ? 'block':'none';
+  document.getElementById('ico-moon').style.display = t==='light' ? 'block':'none';
+  localStorage.setItem('theme', t);
+  if (weeklyChart) updateChartTheme();
+}
+function toggleTheme() { theme = theme==='light'?'dark':'light'; applyTheme(theme); }
+applyTheme(theme);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tabs
+let curTab = 'today';
+function showTab(name) {
+  curTab = name;
+  ['today','weekly','freq'].forEach(t => {
+    document.getElementById('view-'+t).style.display = t===name ? '' : 'none';
+    document.getElementById('tab-'+t).classList.toggle('active', t===name);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sidebar macro bars
+function pct(val, target) { return Math.min(val / target * 100, 100); }
+
+function setSidebarMacros(t) {
+  const d = [
+    ['cal',  t.calories,  TARGETS.calories,  '🔥', 'kcal'],
+    ['pro',  t.protein_g, TARGETS.protein_g, '',   'g'],
+    ['carb', t.carbs_g,   TARGETS.carbs_g,   '',   'g'],
+    ['fat',  t.fat_g,     TARGETS.fat_g,     '',   'g'],
+    ['fib',  t.fiber_g,   TARGETS.fiber_g,   '',   'g'],
+  ];
+  d.forEach(([k, val, tgt, icon, unit]) => {
+    const el = document.getElementById('sb-'+k);
+    const bar = document.getElementById('sb-'+k+'-bar');
+    if (el)  el.textContent  = (icon?icon+' ':'')+val+unit;
+    if (bar) bar.style.width = pct(val, tgt)+'%';
+  });
+}
+
+// Main macro grid
+function setMainMacros(t) {
+  const conf = [
+    {k:'cal',  v:t.calories,  tgt:TARGETS.calories,  unit:'kcal', label:'of 2000 kcal'},
+    {k:'pro',  v:t.protein_g, tgt:TARGETS.protein_g, unit:'g',    label:'of 50 g'},
+    {k:'carb', v:t.carbs_g,   tgt:TARGETS.carbs_g,   unit:'g',    label:'of 275 g'},
+    {k:'fat',  v:t.fat_g,     tgt:TARGETS.fat_g,     unit:'g',    label:'of 78 g'},
+    {k:'fib',  v:t.fiber_g,   tgt:TARGETS.fiber_g,   unit:'g',    label:'of 28 g'},
+  ];
+  conf.forEach(({k, v, tgt, unit, label}) => {
+    const valEl  = document.getElementById('mc-'+k);
+    const tgtEl  = document.getElementById('mc-'+k+'-t');
+    const barEl  = document.getElementById('mc-'+k+'-bar');
+    if (valEl) valEl.innerHTML = `${v}<span class="mc-unit"> ${unit}</span>`;
+    if (tgtEl) tgtEl.textContent = label;
+    if (barEl) {
+      const p = pct(v, tgt);
+      barEl.style.width = p+'%';
+      if (v > tgt) barEl.style.opacity = '1';
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Food log
+const MEAL_ORDER = ['Sarapan','Makan siang','Makan malam','Snack','Pre-workout','Post-workout','Lainnya'];
+
+function buildFoodLog(grouped) {
+  const el = document.getElementById('food-log');
+  const meals = Object.keys(grouped).sort((a,b) => {
+    const ia = MEAL_ORDER.indexOf(a), ib = MEAL_ORDER.indexOf(b);
+    return (ia===-1?99:ia) - (ib===-1?99:ib);
+  });
+
+  if (!meals.length) {
+    el.innerHTML = `<div class="empty-today">No food logged today</div>
+      <div class="empty-sub" style="text-align:center;padding-bottom:32px">Ask Lavoisier to log your meals — just tell her what you ate!</div>`;
+    return;
+  }
+
+  let html = '';
+  meals.forEach(meal => {
+    const items = grouped[meal];
+    const mealKcal = items.reduce((a,e) => a + (e.calories||0), 0);
+    html += `<div class="meal-section">
+      <div class="meal-head">
+        <div class="meal-title">${meal.includes('siang')||meal.includes('malam')?'Makan <em>'+meal.split(' ')[1]+'</em>':meal}</div>
+        <div class="meal-kcal">${Math.round(mealKcal)} kcal</div>
+      </div>`;
+    items.forEach(e => {
+      html += `<div class="food-row">
+        <div>
+          <div class="food-name">${esc(e.food)}</div>
+          <div class="food-amount">${esc(e.amount||'')}${e.logged_at?' · '+e.logged_at:''}</div>
+        </div>
+        <div class="food-macros">
+          <span class="mpill p">P ${e.protein_g}g</span>
+          <span class="mpill c">C ${e.carbs_g}g</span>
+          <span class="mpill f">F ${e.fiber_g}g</span>
+        </div>
+        <div class="food-kcal">${Math.round(e.calories)}</div>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  el.innerHTML = html;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Weekly chart + table
+
+function buildWeekly(weekly) {
+  const labels = weekly.map(w => {
+    const d = new Date(w.date+'T00:00:00');
+    return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]+' '+d.getDate();
+  });
+  const cals   = weekly.map(w => w.calories);
+  const isDark = theme === 'dark';
+
+  if (weeklyChart) weeklyChart.destroy();
+  const ctx = document.getElementById('weekly-chart').getContext('2d');
+  weeklyChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: cals,
+        backgroundColor: weekly.map(w =>
+          w.date === new Date().toISOString().split('T')[0]
+            ? 'rgba(166,80,70,.85)' : 'rgba(166,80,70,.35)'),
+        borderColor:     'rgba(166,80,70,.8)',
+        borderWidth: 1, borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor: isDark?'#222227':'#FAF6EE',
+          borderColor:'rgba(166,80,70,.3)',borderWidth:1,
+          titleColor:isDark?'#F2EDE3':'#17171A',
+          bodyColor: isDark?'#9B9890':'#6B6A6E',
+          titleFont:{family:'Instrument Serif',size:14},
+          bodyFont: {family:'JetBrains Mono',size:11},
+          callbacks:{label: ctx => ctx.parsed.y + ' kcal'}
+        }
+      },
+      scales:{
+        x:{grid:{display:false},ticks:{font:{family:'JetBrains Mono',size:10},color:isDark?'#6D6B67':'#9B9A9E'}},
+        y:{grid:{color:isDark?'rgba(242,237,227,.07)':'rgba(23,23,26,.06)'},ticks:{font:{family:'JetBrains Mono',size:10},color:isDark?'#6D6B67':'#9B9A9E'},min:0},
+      }
+    }
+  });
+
+  // Table
+  const maxCal = Math.max(...cals, 1);
+  const today  = new Date().toISOString().split('T')[0];
+  let html = '';
+  weekly.forEach(w => {
+    const isToday = w.date === today;
+    html += `<div class="wt-row">
+      <span class="wt-date${isToday?' today':''}">${w.date.slice(5)}</span>
+      <div class="wt-bar-wrap"><div class="wt-bar" style="width:${(w.calories/maxCal*100).toFixed(1)}%"></div></div>
+      ${w.has_data
+        ? `<span class="wt-val kcal">${Math.round(w.calories)}</span>
+           <span class="wt-val">${w.protein_g}g</span>
+           <span class="wt-val">${w.carbs_g}g</span>
+           <span class="wt-val">${w.fat_g}g</span>`
+        : `<span class="wt-empty" style="grid-column:3/-1">—</span>`}
+    </div>`;
+  });
+  document.getElementById('weekly-rows').innerHTML = html;
+}
+
+function updateChartTheme() {
+  if (weeklyChart) {
+    const isDark = theme==='dark';
+    weeklyChart.options.plugins.tooltip.backgroundColor = isDark?'#222227':'#FAF6EE';
+    weeklyChart.options.plugins.tooltip.titleColor = isDark?'#F2EDE3':'#17171A';
+    weeklyChart.options.plugins.tooltip.bodyColor  = isDark?'#9B9890':'#6B6A6E';
+    weeklyChart.options.scales.x.ticks.color = isDark?'#6D6B67':'#9B9A9E';
+    weeklyChart.options.scales.y.ticks.color = isDark?'#6D6B67':'#9B9A9E';
+    weeklyChart.options.scales.y.grid.color  = isDark?'rgba(242,237,227,.07)':'rgba(23,23,26,.06)';
+    weeklyChart.update();
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Frequency tab
+function buildFrequency(freq) {
+  // Sidebar top 6
+  const sb = document.getElementById('sb-freq');
+  const maxC = freq[0]?.count || 1;
+  sb.innerHTML = freq.slice(0,6).map(f => `
+    <div class="freq-item">
+      <div class="freq-name" title="${esc(f.food)}">${esc(f.food)}</div>
+      <div class="freq-bar-wrap"><div class="freq-bar" style="width:${(f.count/maxC*100).toFixed(0)}%"></div></div>
+      <div class="freq-count">${f.count}×</div>
+    </div>`).join('');
+
+  // Full frequency table
+  let html = '';
+  freq.forEach((f, i) => {
+    html += `<div class="ft-row">
+      <span class="ft-num">${String(i+1).padStart(2,'0')}</span>
+      <span class="ft-name">${esc(f.food)}</span>
+      <span class="ft-badge">${f.count}× eaten</span>
+      <span class="ft-last">${f.last_eaten.slice(5)||'—'}</span>
+      <span class="ft-cal" style="text-align:right">${f.avg_cal} kcal</span>
+    </div>`;
+  });
+  document.getElementById('freq-rows').innerHTML = html || '<div class="ft-row"><span style="grid-column:1/-1;color:var(--ink-4);font-size:12px;font-family:\'JetBrains Mono\',monospace">No food logged yet</span></div>';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AI Recommendation
+async function generateRecommend() {
+  const btn     = document.getElementById('gen-btn');
+  const spinner = document.getElementById('gen-spinner');
+  const label   = document.getElementById('gen-label');
+  const area    = document.getElementById('recommend-area');
+  const ing     = document.getElementById('ing-input').value.trim();
+
+  btn.disabled     = true;
+  spinner.classList.add('active');
+  label.textContent = 'Generating…';
+  area.innerHTML   = '<div class="ai-empty">Lavoisier is analysing your eating patterns…</div>';
+
+  try {
+    const res = await fetch('/api/fitness/recommend', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ingredients: ing}),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+
+    // Context strip
+    const ctxEl = document.getElementById('ctx-strip');
+    if (data.context?.top_foods) {
+      ctxEl.style.display = 'block';
+      ctxEl.innerHTML = `<div class="ing-label" style="margin-bottom:6px">Based on your patterns</div>`+
+        data.context.top_foods.split(', ').slice(0,6).map(f =>
+          `<div class="ctx-chip">${esc(f)}</div>`).join('');
+    }
+
+    if (!data.menus?.length) {
+      area.innerHTML = '<div class="ai-empty">No recommendations returned. Try again.</div>';
+      return;
+    }
+
+    area.innerHTML = data.menus.map(m => buildMenuCard(m)).join('');
+
+  } catch(e) {
+    area.innerHTML = `<div class="ai-error">Error: ${esc(String(e.message||e))}</div>`;
+  } finally {
+    btn.disabled = false;
+    spinner.classList.remove('active');
+    label.textContent = 'Generate Menu Recommendations';
+  }
+}
+
+function buildMenuCard(m) {
+  const ingHtml = (m.ingredients||[]).map(i => `<li>${esc(i)}</li>`).join('');
+  const stepsHtml = (m.steps||[]).map(s => `<li>${esc(s)}</li>`).join('');
+  const mac = m.macros || {};
+  return `<div class="menu-card">
+    <div class="menu-meal-badge">${esc(m.meal_type||'Meal')}</div>
+    <div class="menu-name">${esc(m.name||'')}</div>
+    <div class="menu-desc">${esc(m.description||'')}</div>
+    ${ingHtml ? `<div class="menu-section-lbl">Ingredients</div><ul class="menu-ing-list">${ingHtml}</ul>` : ''}
+    ${stepsHtml ? `<div class="menu-section-lbl">Steps</div><ol class="menu-steps-list">${stepsHtml}</ol>` : ''}
+    <div class="menu-macros">
+      ${mac.calories  ? `<span class="mm k">🔥 ${mac.calories} kcal</span>` : ''}
+      ${mac.protein_g ? `<span class="mm p">P ${mac.protein_g}g</span>` : ''}
+      ${mac.carbs_g   ? `<span class="mm c">C ${mac.carbs_g}g</span>` : ''}
+      ${mac.fat_g     ? `<span class="mm f">F ${mac.fat_g}g</span>` : ''}
+    </div>
+    ${m.why ? `<div class="menu-why">"${esc(m.why)}"</div>` : ''}
+  </div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Load
+async function load() {
+  try {
+    const res  = await fetch('/api/fitness/dashboard');
+    const data = await res.json();
+
+    // Header
+    document.getElementById('mast-sub').textContent = 'Personalised nutrition tracking for ' + (data.today_label||'today');
+    document.getElementById('today-label').textContent = data.today_label || data.today;
+    const ec = data.today_entries?.length || 0;
+    document.getElementById('entry-count').textContent = ec + ' entr' + (ec===1?'y':'ies') + ' logged today';
+
+    // Sidebar macros + stats
+    const t = data.today_totals || {};
+    setSidebarMacros(t);
+    setMainMacros(t);
+
+    const avg = data.weekly_avg || {};
+    document.getElementById('sb-avg-cal').innerHTML = `<em>${Math.round(avg.calories||0)}</em>`;
+    document.getElementById('sb-avg-pro').innerHTML = `<em>${avg.protein_g||0}</em>`;
+    document.getElementById('sb-days').innerHTML    = `<em>${avg.days_logged||0}</em>`;
+    document.getElementById('sb-total').innerHTML   = `<em>${data.total_entries||0}</em>`;
+    document.getElementById('sb-meta').textContent  = `${data.total_days||0} days · ${data.total_entries||0} meals`;
+
+    // Food log
+    buildFoodLog(data.today_grouped || {});
+
+    // Weekly
+    buildWeekly(data.weekly || []);
+
+    // Frequency
+    buildFrequency(data.food_frequency || []);
+
+    // Flash macro grid to signal data was refreshed
+    if (_afterChat) {
+      const mg = document.getElementById('macro-grid');
+      mg.classList.remove('refreshed');
+      void mg.offsetWidth; // force reflow
+      mg.classList.add('refreshed');
+      _afterChat = false;
+    }
+
+  } catch(e) {
+    document.getElementById('mast-sub').textContent = 'Could not load data';
+    console.error(e);
+  }
+}
+
+// Auto-refresh every 30 s (consistent with finance page)
+setInterval(load, 30_000);
+
+// ─────────────────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+load();
+
+// ── Lavoisier Chat Panel ──────────────────────────────────────────────────
+
+// Cross-tab sync via BroadcastChannel
+const _syncBC = typeof BroadcastChannel !== 'undefined'
+  ? new BroadcastChannel('cassanoval-sync') : null;
+if (_syncBC) {
+  _syncBC.onmessage = (e) => {
+    if (e.data?.agent === 'fitness') { _afterChat = true; load(); }
+  };
+}
+
+function nowTime() {
+  const n = new Date();
+  return String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
+}
+
+function appendMsg(role, text) {
+  const wrap = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = `chat-msg ${role}`;
+  const authorHtml = role === 'agent'
+    ? `La<em>voisier</em>`
+    : `<span style="color:var(--clay)">Kamu</span>`;
+  const bodyHtml = text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+  div.innerHTML = `<div class="chat-msg-head">
+    <span class="chat-msg-author serif">${authorHtml}</span>
+    <span class="chat-msg-time mono">${nowTime()}</span>
+  </div>
+  <div class="chat-msg-body">${bodyHtml}</div>`;
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+  return div;
+}
+
+function showTyping() {
+  const wrap = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.id = 'typing';
+  div.className = 'typing-row';
+  div.innerHTML = `<div class="typing-dots">
+    <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+  </div>
+  <span class="small-caps" style="color:var(--ink-3)">Lavoisier is thinking…</span>`;
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+async function sendMessage() {
+  if (_chatBusy) return;
+  const ta = document.getElementById('chat-ta');
+  const text = ta.value.trim();
+  if (!text) return;
+  ta.value = '';
+  ta.style.height = '';
+  document.getElementById('send-btn').disabled = true;
+  document.getElementById('chips').style.display = 'none';
+
+  appendMsg('user', text);
+  showTyping();
+  _chatBusy = true;
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({message: text, agent: 'fitness'}),
+    });
+    const data = await res.json();
+    document.getElementById('typing')?.remove();
+    appendMsg('agent', data.response || data.detail || 'Error');
+    // Tool already ran before response was returned — refresh immediately
+    _afterChat = true;
+    load();
+    if (_syncBC) _syncBC.postMessage({ agent: 'fitness', ts: Date.now() });
+    // Safety second-load in case tool write was async
+    setTimeout(() => { _afterChat = true; load(); }, 2000);
+  } catch(e) {
+    document.getElementById('typing')?.remove();
+    appendMsg('agent', '⚠ Koneksi error: ' + e.message);
+  } finally {
+    _chatBusy = false;
+    document.getElementById('send-btn').disabled = false;
+    document.getElementById('chat-ta').focus();
+  }
+}
+
+function quickMsg(text) {
+  document.getElementById('chat-ta').value = text;
+  sendMessage();
+}
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+function autoResize(ta) {
+  ta.style.height = 'auto';
+  ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+}
+</script>
+<script src="/static/pixel/sprites.js"></script>
+<script>
+(function() {
+  var cv = document.getElementById('agent-sprite');
+  if (cv && window.PixelSprites) PixelSprites.render(cv, 'lavoisier', 4);
+})();
+</script>
+</body>
+</html>

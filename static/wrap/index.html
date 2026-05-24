@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Monthly Wrap — CassanovaL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#0D0D0F;color:#F3EEE5}
+:root{
+  --paper:#F3EEE5;
+  --ink:#17171A;
+  --c-najwa:#B6774C;
+  --c-linus:#8A5E7E;
+  --c-miyamoto:#5E8A7D;
+  --c-lavoisier:#A65046;
+  --c-dostoy:#6B5E8A;
+  --c-mansa:#A68A3E;
+}
+
+/* ── Deck ─────────────────────────────────────────────────── */
+.deck{
+  width:100vw; height:100vh;
+  display:flex; flex-direction:column;
+  transition:transform .55s cubic-bezier(.77,0,.175,1);
+}
+.slide{
+  width:100vw; height:100vh; flex-shrink:0;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  position:relative; overflow:hidden;
+  padding:40px 32px;
+}
+
+/* ── Progress bar ─────────────────────────────────────────── */
+.progress-bar{
+  position:fixed; top:0; left:0; right:0;
+  display:flex; gap:4px; padding:14px 20px;
+  z-index:100; pointer-events:none;
+}
+.progress-seg{
+  flex:1; height:3px; border-radius:2px;
+  background:rgba(255,255,255,.2);
+  transition:background .3s;
+}
+.progress-seg.done{background:rgba(255,255,255,.85);}
+.progress-seg.active{background:white;}
+
+/* ── Nav hint ─────────────────────────────────────────────── */
+.nav-hint{
+  position:fixed; bottom:18px; left:50%; transform:translateX(-50%);
+  font-size:.68em; letter-spacing:.12em; font-variant:small-caps;
+  color:rgba(255,255,255,.35); z-index:100; pointer-events:none;
+  font-family:'JetBrains Mono',monospace;
+}
+.arrow-nav{
+  position:fixed; z-index:100;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:50%; width:40px; height:40px;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; color:rgba(255,255,255,.6);
+  transition:all .2s; font-size:16px;
+}
+.arrow-nav:hover{background:rgba(255,255,255,.18); color:white;}
+.arrow-prev{left:20px; top:50%; transform:translateY(-50%);}
+.arrow-next{right:20px; top:50%; transform:translateY(-50%);}
+
+/* ── Shared slide typography ──────────────────────────────── */
+.slide-eyebrow{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.7em; letter-spacing:.18em;
+  text-transform:uppercase; opacity:.55;
+  margin-bottom:14px;
+}
+.slide-headline{
+  font-family:'Instrument Serif',serif;
+  font-size:clamp(2.6em,6vw,4.2em);
+  line-height:1.1; text-align:center;
+  margin-bottom:20px;
+}
+.slide-headline em{font-style:italic; opacity:.85;}
+.slide-sub{
+  font-size:.88em; text-align:center; line-height:1.6;
+  opacity:.7; max-width:440px; margin-bottom:28px;
+}
+.narrative{
+  font-family:'Instrument Serif',serif;
+  font-size:1.05em; font-style:italic;
+  text-align:center; max-width:480px;
+  opacity:.8; line-height:1.65;
+  border-left:2px solid rgba(255,255,255,.25);
+  padding-left:16px; margin-top:8px;
+}
+
+/* ── Stats grid ───────────────────────────────────────────── */
+.stats-grid{
+  display:grid; gap:10px; margin-bottom:22px; width:100%;
+  max-width:520px;
+}
+.stats-grid.cols2{grid-template-columns:1fr 1fr;}
+.stats-grid.cols3{grid-template-columns:1fr 1fr 1fr;}
+.stat-box{
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:12px; padding:14px 16px;
+  text-align:center;
+}
+.stat-box .big{
+  font-family:'Instrument Serif',serif;
+  font-size:2em; line-height:1; margin-bottom:4px;
+}
+.stat-box .lbl{font-size:.68em; opacity:.55; letter-spacing:.05em; text-transform:uppercase;}
+
+/* ── Top list ─────────────────────────────────────────────── */
+.top-list{
+  width:100%; max-width:420px; margin-bottom:20px;
+}
+.top-row{
+  display:flex; align-items:center; gap:10px;
+  padding:8px 0; border-bottom:1px solid rgba(255,255,255,.08);
+}
+.top-row:last-child{border-bottom:none;}
+.top-rank{font-family:'JetBrains Mono',monospace; font-size:.75em; opacity:.4; width:22px;}
+.top-name{flex:1; font-size:.88em;}
+.top-bar-wrap{width:80px; height:4px; background:rgba(255,255,255,.12); border-radius:2px; overflow:hidden;}
+.top-bar-fill{height:100%; border-radius:2px; transition:width .8s .3s ease;}
+.top-count{font-family:'JetBrains Mono',monospace; font-size:.72em; opacity:.5; width:28px; text-align:right;}
+
+/* ── Mood dots ────────────────────────────────────────────── */
+.mood-palette{display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; justify-content:center;}
+.mood-dot{
+  width:44px; height:44px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.3em;
+}
+
+/* ── Gradient backgrounds ─────────────────────────────────── */
+.bg-intro{background:radial-gradient(ellipse 80% 60% at 50% 30%, #1E1E2E 0%, #0D0D0F 100%);}
+.bg-najwa{background:radial-gradient(ellipse 80% 60% at 30% 40%, #4A2A10 0%, #0D0D0F 80%);}
+.bg-linus{background:radial-gradient(ellipse 80% 60% at 60% 40%, #2E1A2E 0%, #0D0D0F 80%);}
+.bg-miyamoto{background:radial-gradient(ellipse 80% 60% at 40% 40%, #0E2A26 0%, #0D0D0F 80%);}
+.bg-lavoisier{background:radial-gradient(ellipse 80% 60% at 60% 40%, #3A150E 0%, #0D0D0F 80%);}
+.bg-dostoy{background:radial-gradient(ellipse 80% 60% at 40% 40%, #1A1430 0%, #0D0D0F 80%);}
+.bg-mansa{background:radial-gradient(ellipse 80% 60% at 50% 40%, #2E2300 0%, #0D0D0F 80%);}
+.bg-outro{background:radial-gradient(ellipse 80% 80% at 50% 50%, #1a1a2e 0%, #0D0D0F 100%);}
+
+/* ── Noise texture overlay ────────────────────────────────── */
+.slide::before{
+  content:''; position:absolute; inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  background-size:200px; opacity:.4; pointer-events:none;
+}
+
+/* ── Accent color blobs ───────────────────────────────────── */
+.blob{
+  position:absolute; border-radius:50%;
+  filter:blur(80px); opacity:.18; pointer-events:none;
+}
+
+/* ── Intro slide ──────────────────────────────────────────── */
+.intro-logo{
+  font-family:'Instrument Serif',serif; font-size:1em;
+  letter-spacing:.18em; text-transform:uppercase; opacity:.4;
+  margin-bottom:32px;
+}
+.intro-year{
+  font-family:'JetBrains Mono',monospace; font-size:.75em;
+  letter-spacing:.2em; opacity:.4; margin-top:6px;
+}
+.intro-agents{
+  display:flex; gap:10px; margin-top:36px; flex-wrap:wrap; justify-content:center;
+}
+.agent-pip{
+  padding:4px 12px; border-radius:20px;
+  font-size:.7em; letter-spacing:.06em;
+  border:1px solid rgba(255,255,255,.15);
+  font-family:'JetBrains Mono',monospace;
+}
+
+/* ── Outro grid ───────────────────────────────────────────── */
+.outro-grid{
+  display:grid; grid-template-columns:repeat(3,1fr);
+  gap:10px; width:100%; max-width:540px; margin-bottom:28px;
+}
+.outro-card{
+  border-radius:10px; padding:12px;
+  border:1px solid rgba(255,255,255,.1);
+  text-align:center;
+}
+.outro-agent{font-size:.66em; opacity:.5; letter-spacing:.06em; margin-bottom:4px; font-family:'JetBrains Mono',monospace;}
+.outro-val{font-family:'Instrument Serif',serif; font-size:1.5em;}
+
+/* ── Month picker ─────────────────────────────────────────── */
+.month-picker{
+  position:fixed; top:14px; right:20px; z-index:200;
+  display:flex; align-items:center; gap:6px;
+}
+.month-picker input{
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:8px; color:white; padding:4px 8px;
+  font-family:'JetBrains Mono',monospace; font-size:.72em;
+  outline:none;
+}
+.month-picker button{
+  background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.15);
+  border-radius:8px; color:white; padding:4px 10px; cursor:pointer;
+  font-size:.72em; transition:background .15s;
+}
+.month-picker button:hover{background:rgba(255,255,255,.2);}
+
+/* ── Loading overlay ──────────────────────────────────────── */
+.loader{
+  position:fixed; inset:0; background:#0D0D0F;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:16px; z-index:999; transition:opacity .4s;
+}
+.loader.out{opacity:0; pointer-events:none;}
+.loader-title{font-family:'Instrument Serif',serif; font-size:1.8em;}
+.loader-sub{font-family:'JetBrains Mono',monospace; font-size:.72em; opacity:.4; letter-spacing:.1em;}
+.spinner{width:32px; height:32px; border:2px solid rgba(255,255,255,.1); border-top-color:white; border-radius:50%; animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Entry animations ─────────────────────────────────────── */
+.slide-content{
+  display:flex; flex-direction:column; align-items:center;
+  position:relative; z-index:1;
+  opacity:0; transform:translateY(24px);
+  transition:opacity .5s .1s ease, transform .5s .1s ease;
+}
+.slide.current .slide-content{opacity:1; transform:translateY(0);}
+
+/* ── Scrollbar (desktop) ──────────────────────────────────── */
+::-webkit-scrollbar{display:none}
+
+/* ── Home link ────────────────────────────────────────────── */
+.home-link{
+  position:fixed; bottom:18px; right:20px; z-index:100;
+  font-family:'JetBrains Mono',monospace; font-size:.68em;
+  color:rgba(255,255,255,.3); letter-spacing:.08em;
+  text-decoration:none; transition:color .2s;
+}
+.home-link:hover{color:rgba(255,255,255,.7);}
+</style>
+</head>
+<body>
+
+<div class="loader" id="loader">
+  <div class="spinner"></div>
+  <div class="loader-title">Monthly Wrap</div>
+  <div class="loader-sub" id="loaderSub">Generating your recap…</div>
+</div>
+
+<!-- Month picker -->
+<div class="month-picker">
+  <input type="month" id="monthPicker"/>
+  <button onclick="loadMonth()">Go</button>
+</div>
+
+<!-- Progress -->
+<div class="progress-bar" id="progressBar"></div>
+
+<!-- Nav arrows -->
+<button class="arrow-nav arrow-prev" id="btnPrev" onclick="navigate(-1)">‹</button>
+<button class="arrow-nav arrow-next" id="btnNext" onclick="navigate(1)">›</button>
+<div class="nav-hint">click · swipe · ← →</div>
+<a href="/" class="home-link">← CassanovaL</a>
+
+<!-- Slides deck -->
+<div class="deck" id="deck"></div>
+
+<script>
+const AGENTS = [
+  { key:'intro' },
+  { key:'najwa',      label:'Najwa',      color:'#B6774C' },
+  { key:'linus',      label:'Linus',      color:'#8A5E7E' },
+  { key:'miyamoto',   label:'Miyamoto',   color:'#5E8A7D' },
+  { key:'lavoisier',  label:'Lavoisier',  color:'#A65046' },
+  { key:'dostoyevsky',label:'Dostoyevsky',color:'#6B5E8A' },
+  { key:'mansa',      label:'Mansa',      color:'#A68A3E' },
+  { key:'outro' },
+];
+const N = AGENTS.length;
+let current = 0;
+let DATA = null;
+
+// ── Helpers ─────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+function fmt(n){ if(n==null||isNaN(n)) return '—'; n=Number(n); if(n>=1e9) return (n/1e9).toFixed(1)+'B'; if(n>=1e6) return (n/1e6).toFixed(1)+'M'; if(n>=1e3) return (n/1e3).toFixed(0)+'K'; return String(Math.round(n)); }
+function fmtRp(n){ return 'Rp'+fmt(n); }
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function blob(color, x, y, size){
+  return `<div class="blob" style="width:${size}px;height:${size}px;background:${color};top:${y}%;left:${x}%;transform:translate(-50%,-50%)"></div>`;
+}
+
+// ── Slide builders ───────────────────────────────────────────────────
+function buildIntro(d){
+  const m = d?.month_label || '—';
+  return `
+  <div class="slide bg-intro" data-idx="0">
+    ${blob('#3A3A6A',20,25,500)}${blob('#4A2A20',80,70,400)}
+    <div class="slide-content">
+      <div class="intro-logo">CassanovaL</div>
+      <div class="slide-headline">${esc(m)}<br/><em>Wrapped</em></div>
+      <div class="slide-sub">Semua yang kamu lakukan bulan ini — dalam satu rangkuman personal.</div>
+      <div class="intro-agents">
+        ${['Najwa','Linus','Miyamoto','Lavoisier','Dostoyevsky','Mansa'].map(a=>`<span class="agent-pip">${a}</span>`).join('')}
+      </div>
+      <div class="intro-year" style="margin-top:24px;">Tap atau tekan → untuk mulai</div>
+    </div>
+  </div>`;
+}
+
+function buildNajwa(d){
+  const n = d?.najwa || {};
+  const sc = n.session_count || 0;
+  const previews = (n.previews || []).slice(0,4);
+  return `
+  <div class="slide bg-najwa" data-idx="1">
+    ${blob('#B6774C',70,30,500)}${blob('#7A4A20',20,70,300)}
+    <div class="slide-content">
+      <div class="slide-eyebrow" style="color:#D9A278">Najwa · News Feed</div>
+      <div class="slide-headline">${sc ? `<em>${sc}</em> sesi berita` : 'Belum ada sesi'}</div>
+      ${sc ? `
+      <div class="stats-grid cols2" style="max-width:340px">
+        <div class="stat-box"><div class="big" style="color:#D9A278">${sc}</div><div class="lbl">Total Sesi</div></div>
+        <div class="stat-box"><div class="big" style="color:#D9A278">${previews.length}</div><div class="lbl">Topik Tercatat</div></div>
+      </div>
+      ${previews.length ? `<div class="top-list">${previews.map((p,i)=>`
+        <div class="top-row">
+          <div class="top-rank">${i+1}</div>
+          <div class="top-name">${esc(p.length>60?p.slice(0,60)+'…':p)}</div>
+        </div>`).join('')}</div>` : ''}` : `<div class="slide-sub">Mulai chat dengan Najwa untuk mencatat topik beritamu.</div>`}
+      ${n.narrative ? `<div class="narrative">${esc(n.narrative)}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function buildLinus(d){
+  const n = d?.linus || {};
+  const sc = n.session_count || 0;
+  const previews = (n.previews || []).slice(0,4);
+  return `
+  <div class="slide bg-linus" data-idx="2">
+    ${blob('#8A5E7E',30,30,500)}${blob('#4A2A4A',70,70,350)}
+    <div class="slide-content">
+      <div class="slide-eyebrow" style="color:#B88FAC">Linus · Code Assistant</div>
+      <div class="slide-headline">${sc ? `<em>${sc}</em> sesi coding` : 'Belum ada sesi'}</div>
+      ${sc ? `
+      <div class="stats-grid cols2" style="max-width:340px">
+        <div class="stat-box"><div class="big" style="color:#B88FAC">${sc}</div><div class="lbl">Total Sesi</div></div>
+        <div class="stat-box"><div class="big" style="color:#B88FAC">${previews.length}</div><div class="lbl">Topik</div></div>
+      </div>
+      ${previews.length ? `<div class="top-list">${previews.map((p,i)=>`
+        <div class="top-row">
+          <div class="top-rank">${i+1}</div>
+          <div class="top-name">${esc(p.length>60?p.slice(0,60)+'…':p)}</div>
+        </div>`).join('')}</div>` : ''}` : `<div class="slide-sub">Mulai chat dengan Linus untuk mencatat perjalanan codingmu.</div>`}
+      ${n.narrative ? `<div class="narrative">${esc(n.narrative)}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function buildMiyamoto(d){
+  const n = d?.miyamoto || {};
+  const ec = n.event_count || 0;
+  return `
+  <div class="slide bg-miyamoto" data-idx="3">
+    ${blob('#5E8A7D',65,30,500)}${blob('#2A4A40',30,75,350)}
+    <div class="slide-content">
+      <div class="slide-eyebrow" style="color:#8FBDAF">Miyamoto · Schedule</div>
+      <div class="slide-headline">${!n.connected ? 'Kalender belum tersambung' : ec ? `<em>${ec}</em> event` : 'Bulan yang tenang'}</div>
+      ${n.connected && ec ? `
+      <div class="stats-grid cols3">
+        <div class="stat-box"><div class="big" style="color:#8FBDAF">${ec}</div><div class="lbl">Total Event</div></div>
+        <div class="stat-box"><div class="big" style="color:#8FBDAF">${n.total_hours||0}<span style="font-size:.5em">h</span></div><div class="lbl">Total Jam</div></div>
+        <div class="stat-box"><div class="big" style="color:#8FBDAF; font-size:1em">${n.busiest_count||0}x</div><div class="lbl">Hari Tersibuk</div></div>
+      </div>
+      ${n.busiest_day ? `<div class="slide-sub">Hari tersibukmu: <strong>${esc(n.busiest_day)}</strong> dengan ${n.busiest_count} event</div>` : ''}
+      ${(n.sample_events||[]).length ? `<div class="top-list">${n.sample_events.slice(0,3).map((e,i)=>`
+        <div class="top-row"><div class="top-rank">${i+1}</div><div class="top-name">${esc(e)}</div></div>`).join('')}</div>` : ''}
+      ` : `<div class="slide-sub">${n.connected ? 'Tidak ada event tercatat bulan ini.' : 'Hubungkan Google Calendar untuk melihat ringkasan jadwalmu.'}</div>`}
+      ${n.narrative ? `<div class="narrative">${esc(n.narrative)}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function buildLavoisier(d){
+  const n = d?.lavoisier || {};
+  const te = n.total_entries || 0;
+  const top = n.top_foods || [];
+  const maxCount = top[0]?.count || 1;
+  return `
+  <div class="slide bg-lavoisier" data-idx="4">
+    ${blob('#A65046',35,30,500)}${blob('#7A2A20',70,75,350)}
+    <div class="slide-content">
+      <div class="slide-eyebrow" style="color:#D48278">Lavoisier · Fitness & Nutrition</div>
+      <div class="slide-headline">${te ? `<em>${te}</em> kali makan` : 'Belum ada log'}</div>
+      ${te ? `
+      <div class="stats-grid cols3">
+        <div class="stat-box"><div class="big" style="color:#D48278">${fmt(n.total_calories)}</div><div class="lbl">Total Kalori</div></div>
+        <div class="stat-box"><div class="big" style="color:#D48278">${n.days_logged||0}</div><div class="lbl">Hari Log</div></div>
+        <div class="stat-box"><div class="big" style="color:#D48278">${fmt(n.avg_daily_cal)}</div><div class="lbl">Avg / Hari</div></div>
+      </div>
+      ${top.length ? `<div class="top-list">${top.slice(0,5).map((f,i)=>`
+        <div class="top-row">
+          <div class="top-rank">${i+1}</div>
+          <div class="top-name">${esc(f.name)}</div>
+          <div class="top-bar-wrap"><div class="top-bar-fill" style="width:${Math.round(f.count/maxCount*100)}%;background:#D48278"></div></div>
+          <div class="top-count">${f.count}x</div>
+        </div>`).join('')}</div>` : ''}
+      <div class="stats-grid cols3" style="max-width:380px">
+        <div class="stat-box"><div class="big" style="color:#D48278;font-size:1.2em">${fmt(n.total_protein)}<span style="font-size:.45em">g</span></div><div class="lbl">Protein</div></div>
+        <div class="stat-box"><div class="big" style="color:#D48278;font-size:1.2em">${fmt(n.total_carbs)}<span style="font-size:.45em">g</span></div><div class="lbl">Karbo</div></div>
+        <div class="stat-box"><div class="big" style="color:#D48278;font-size:1.2em">${fmt(n.total_fat)}<span style="font-size:.45em">g</span></div><div class="lbl">Lemak</div></div>
+      </div>` : `<div class="slide-sub">Belum ada log makanan. Mulai catat makanmu ke Lavoisier!</div>`}
+      ${n.narrative ? `<div class="narrative">${esc(n.narrative)}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function buildDostoy(d){
+  const n = d?.dostoyevsky || {};
+  const ec = n.entry_count || 0;
+  const moodEmojis = ['🌿','🌊','🌅','🌙','⛅','🔥','🌧️','🌸'];
+  return `
+  <div class="slide bg-dostoy" data-idx="5">
+    ${blob('#6B5E8A',40,30,500)}${blob('#3A2A5A',70,75,350)}
+    <div class="slide-content">
+      <div class="slide-eyebrow" style="color:#9C8FBE">Dostoyevsky · Journal</div>
+      <div class="slide-headline">${ec ? `<em>${ec}</em> entri jurnal` : 'Halaman yang kosong'}</div>
+      ${ec ? `
+      <div class="stats-grid cols2" style="max-width:340px">
+        <div class="stat-box"><div class="big" style="color:#9C8FBE">${ec}</div><div class="lbl">Entri Jurnal</div></div>
+        <div class="stat-box"><div class="big" style="font-size:1.5em">📓</div><div class="lbl">Bulan ini</div></div>
+      </div>
+      <div class="mood-palette">
+        ${moodEmojis.map(e=>`<div class="mood-dot" style="background:rgba(107,94,138,.25)">${e}</div>`).join('')}
+      </div>` : `<div class="slide-sub">Belum ada entri jurnal bulan ini. Tulis sesuatu untuk Dostoyevsky!</div>`}
+      ${n.narrative ? `<div class="narrative">${esc(n.narrative)}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function buildMansa(d){
+  const n = d?.mansa || {};
+  const tc = n.transaction_count || 0;
+  const cats = n.top_categories || [];
+  const maxAmt = cats[0]?.amount || 1;
+  return `
+  <div class="slide bg-mansa" data-idx="6">
+    ${blob('#A68A3E',60,30,500)}${blob('#5A4A10',25,75,350)}
+    <div class="slide-content">
+      <div class="slide-eyebrow" style="color:#D4B86A">Mansa · Finance</div>
+      <div class="slide-headline">${tc ? `<em>${fmtRp(n.total_expense)}</em> keluar` : 'Belum ada transaksi'}</div>
+      ${tc ? `
+      <div class="stats-grid cols3">
+        <div class="stat-box"><div class="big" style="color:#D4B86A;font-size:1.1em">${fmtRp(n.total_income)}</div><div class="lbl">Pemasukan</div></div>
+        <div class="stat-box"><div class="big" style="color:#D48278;font-size:1.1em">${fmtRp(n.total_expense)}</div><div class="lbl">Pengeluaran</div></div>
+        <div class="stat-box"><div class="big" style="color:${(n.net||0)>=0?'#8FBDAF':'#D48278'};font-size:1.1em">${fmtRp(Math.abs(n.net||0))}</div><div class="lbl">${(n.net||0)>=0?'Surplus':'Defisit'}</div></div>
+      </div>
+      ${cats.length ? `<div class="top-list">${cats.slice(0,5).map((c,i)=>`
+        <div class="top-row">
+          <div class="top-rank">${i+1}</div>
+          <div class="top-name">${esc(c.name)}</div>
+          <div class="top-bar-wrap"><div class="top-bar-fill" style="width:${Math.round(c.amount/maxAmt*100)}%;background:#D4B86A"></div></div>
+          <div class="top-count" style="width:60px;font-size:.65em">${fmtRp(c.amount)}</div>
+        </div>`).join('')}</div>` : ''}
+      ${n.biggest_expense && n.biggest_expense!=='—' ? `<div class="slide-sub">Pengeluaran terbesar: <strong>${esc(n.biggest_expense)}</strong> — ${fmtRp(n.biggest_amount)}</div>` : ''}` :
+      `<div class="slide-sub">Belum ada transaksi. Mulai catat keuanganmu ke Mansa!</div>`}
+      ${n.narrative ? `<div class="narrative">${esc(n.narrative)}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function buildOutro(d){
+  const lav = d?.lavoisier || {};
+  const man = d?.mansa || {};
+  const miy = d?.miyamoto || {};
+  const dos = d?.dostoyevsky || {};
+  const naj = d?.najwa || {};
+  const lin = d?.linus || {};
+  const m = d?.month_label || '—';
+  const cards = [
+    { agent:'Najwa',       color:'#B6774C', val: naj.session_count||0, unit:'sesi' },
+    { agent:'Linus',       color:'#8A5E7E', val: lin.session_count||0, unit:'sesi' },
+    { agent:'Miyamoto',    color:'#5E8A7D', val: miy.event_count||0,   unit:'event' },
+    { agent:'Lavoisier',   color:'#A65046', val: lav.total_entries||0, unit:'makan' },
+    { agent:'Dostoyevsky', color:'#6B5E8A', val: dos.entry_count||0,   unit:'entri' },
+    { agent:'Mansa',       color:'#A68A3E', val: fmtRp(man.total_expense||0), unit:'' },
+  ];
+  return `
+  <div class="slide bg-outro" data-idx="7">
+    ${blob('#3A3A6A',20,30,400)}${blob('#4A2020',80,70,300)}${blob('#204A30',50,50,350)}
+    <div class="slide-content">
+      <div class="slide-eyebrow" style="opacity:.4">Sampai jumpa</div>
+      <div class="slide-headline" style="font-size:clamp(2em,4vw,3em)">${esc(m)}<br/><em>is a wrap.</em></div>
+      <div class="outro-grid">
+        ${cards.map(c=>`<div class="outro-card" style="border-color:${c.color}33">
+          <div class="outro-agent">${c.agent}</div>
+          <div class="outro-val" style="color:${c.color}">${typeof c.val==='number'?c.val:c.val}</div>
+          ${c.unit?`<div style="font-size:.62em;opacity:.4;margin-top:2px">${c.unit}</div>`:''}
+        </div>`).join('')}
+      </div>
+      <div class="slide-sub">Bulan depan, kita lakukan lagi. 🌙</div>
+      <a href="/" style="display:inline-block;margin-top:16px;padding:10px 24px;border:1px solid rgba(255,255,255,.2);border-radius:24px;font-size:.8em;color:rgba(255,255,255,.6);text-decoration:none;transition:all .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.5)';this.style.color='white'" onmouseout="this.style.borderColor='rgba(255,255,255,.2)';this.style.color='rgba(255,255,255,.6)'">Kembali ke CassanovaL →</a>
+    </div>
+  </div>`;
+}
+
+// ── Render deck ──────────────────────────────────────────────────────
+function renderDeck(d){
+  const deck = $('deck');
+  const slides = [
+    buildIntro(d), buildNajwa(d), buildLinus(d), buildMiyamoto(d),
+    buildLavoisier(d), buildDostoy(d), buildMansa(d), buildOutro(d),
+  ];
+  deck.innerHTML = slides.join('');
+  buildProgress();
+  goTo(0, false);
+}
+
+function buildProgress(){
+  const bar = $('progressBar');
+  bar.innerHTML = Array.from({length:N}, (_,i) =>
+    `<div class="progress-seg" id="pseg-${i}"></div>`).join('');
+}
+
+function goTo(idx, animate=true){
+  if(idx < 0 || idx >= N) return;
+  if(!animate) $('deck').style.transition = 'none';
+  $('deck').style.transform = `translateY(-${idx * 100}vh)`;
+  if(!animate) requestAnimationFrame(()=>{ $('deck').style.transition=''; });
+
+  document.querySelectorAll('.slide').forEach((s,i) => {
+    s.classList.toggle('current', i === idx);
+  });
+  for(let i=0;i<N;i++){
+    const s = $(`pseg-${i}`);
+    if(!s) continue;
+    s.classList.toggle('done', i < idx);
+    s.classList.toggle('active', i === idx);
+  }
+  $('btnPrev').style.opacity = idx === 0 ? '0' : '1';
+  $('btnPrev').style.pointerEvents = idx === 0 ? 'none' : '';
+  $('btnNext').style.opacity = idx === N-1 ? '0' : '1';
+  $('btnNext').style.pointerEvents = idx === N-1 ? 'none' : '';
+  current = idx;
+}
+
+function navigate(dir){ goTo(current + dir); }
+
+// ── Load data ────────────────────────────────────────────────────────
+async function loadMonth(){
+  const picker = $('monthPicker');
+  const month = picker.value || null;
+
+  $('loaderSub').textContent = 'Generating your recap…';
+  const ldr = $('loader');
+  ldr.classList.remove('out');
+  ldr.style.opacity = '1';
+  ldr.style.pointerEvents = '';
+
+  try {
+    const url = '/api/monthly-wrap' + (month ? `?month=${month}` : '');
+    const res  = await fetch(url);
+    DATA = await res.json();
+    renderDeck(DATA);
+    if(DATA.month) picker.value = DATA.month;
+  } catch(e) {
+    $('loaderSub').textContent = 'Failed to load. Is the server running?';
+    return;
+  }
+
+  ldr.style.opacity = '0';
+  setTimeout(()=>{ ldr.classList.add('out'); }, 400);
+}
+
+// ── Keyboard + touch ─────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if(e.key === 'ArrowDown' || e.key === 'ArrowRight') navigate(1);
+  if(e.key === 'ArrowUp'   || e.key === 'ArrowLeft')  navigate(-1);
+});
+
+let touchY = 0;
+document.addEventListener('touchstart', e => { touchY = e.touches[0].clientY; }, {passive:true});
+document.addEventListener('touchend',   e => {
+  const dy = touchY - e.changedTouches[0].clientY;
+  if(Math.abs(dy) > 40) navigate(dy > 0 ? 1 : -1);
+}, {passive:true});
+
+document.addEventListener('click', e => {
+  if(e.target.closest('button, a, input')) return;
+  navigate(1);
+});
+
+// ── Boot ─────────────────────────────────────────────────────────────
+const today = new Date();
+$('monthPicker').value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
+loadMonth();
+</script>
+</body>
+</html>

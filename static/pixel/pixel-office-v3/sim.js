@@ -4,16 +4,24 @@ window.OfficeSim = (function () {
   const M = window.OfficeMap;
   const COLS = M.COLS, ROWS = M.ROWS;
 
-  // 8 distinctive agents (each with hairstyle matching reference vibes)
+  // 8 agents — visual design based on reference pixel art photo
   const AGENT_DEFS = [
-    { name: 'Ferry',       role: 'Researcher', shirt: '#c84a3a', hair: '#1a1410', skin: '#8e6a4a', pants: '#2a2730', hairStyle: 'afro' },
-    { name: 'Linus',       role: 'Coder',      shirt: '#ededed', hair: '#6b3f1f', skin: '#e6b890', pants: '#2a2730', hairStyle: 'short', tie: '#1a3a6e' },
-    { name: 'Dostoyevsky', role: 'Writer',     shirt: '#ededed', hair: '#a06030', skin: '#d8a878', pants: '#3a2418', hairStyle: 'short' },
-    { name: 'Cicero',      role: 'Reviewer',   shirt: '#e69040', hair: '#c87a30', skin: '#e6b890', pants: '#3a1f0e', hairStyle: 'curly' },
-    { name: 'Najwa',       role: 'Researcher', shirt: '#dfd2c2', hair: '#dadfe4', skin: '#d8a878', pants: '#2a2730', hairStyle: 'long' },
-    { name: 'Alfred',      role: 'Coder',      shirt: '#d04a4a', hair: '#3a2820', skin: '#f0c8a0', pants: '#2a2730', hairStyle: 'bun' },
-    { name: 'Da Vinci',    role: 'Writer',     shirt: '#e6c050', hair: '#a07020', skin: '#c89070', pants: '#3a1f0e', hairStyle: 'long' },
-    { name: 'Mansa',       role: 'Reviewer',   shirt: '#3a78c8', hair: '#1a1a1f', skin: '#e6b890', pants: '#2a2730', hairStyle: 'spiky' },
+    // Ferry: afro, deep dark-brown skin, orange-red jacket  (ref char 3)
+    { name: 'Ferry',       role: 'Researcher', shirt: '#c85428', hair: '#181010', skin: '#543020', pants: '#2a2730', hairStyle: 'afro' },
+    // Linus: short brown hair, warm tan skin, white tee + dark-blue tie  (ref char 6)
+    { name: 'Linus',       role: 'Coder',      shirt: '#ece8e0', hair: '#7a4a2a', skin: '#d0a070', pants: '#2a2f4a', hairStyle: 'short', tie: '#1a3a6e' },
+    // Dostoyevsky: silver-white short hair, very pale skin, cream outfit  (ref char 5)
+    { name: 'Dostoyevsky', role: 'Writer',     shirt: '#e4e0d8', hair: '#ccc8be', skin: '#f2ece4', pants: '#3a3a44', hairStyle: 'short' },
+    // Cicero: black short hair, light-olive skin, crimson outfit  (ref char 4)
+    { name: 'Cicero',      role: 'Reviewer',   shirt: '#c03838', hair: '#181010', skin: '#e8be98', pants: '#3a1f0e', hairStyle: 'short' },
+    // Najwa: honey-gold bun, warm brown skin, caramel layered outfit  (ref char 2)
+    { name: 'Najwa',       role: 'Researcher', shirt: '#b07840', hair: '#c08a28', skin: '#b87848', pants: '#7a4a20', hairStyle: 'bun' },
+    // Alfred: short warm-brown hair, medium tan skin, deep-blue shirt  (ref char 1)
+    { name: 'Alfred',      role: 'Coder',      shirt: '#3a5a8a', hair: '#8a5a3a', skin: '#d4a878', pants: '#2a2f4a', hairStyle: 'short' },
+    // Da Vinci: curly amber hair, golden-olive skin, ochre shirt  (unique, artistic)
+    { name: 'Da Vinci',    role: 'Writer',     shirt: '#d4a038', hair: '#a07018', skin: '#c89068', pants: '#3a1f0e', hairStyle: 'curly' },
+    // Mansa: spiky black hair, warm-tan skin, cobalt blue shirt  (unique, distinguished)
+    { name: 'Mansa',       role: 'Reviewer',   shirt: '#2858a0', hair: '#181010', skin: '#dcaa78', pants: '#1e1e28', hairStyle: 'spiky' },
   ];
 
   const ACTIVITY_LABELS = {

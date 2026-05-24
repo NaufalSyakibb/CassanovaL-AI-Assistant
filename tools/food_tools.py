@@ -7,11 +7,13 @@ Each entry records one food item with macro breakdown (protein, carbs, fiber, fa
 import json
 import uuid
 import os
+from pathlib import Path
 from datetime import datetime, date, timedelta
 from langchain.tools import tool
 from tools.obsidian_tools import mirror_to_obsidian
 
-FOOD_LOG_FILE = "data/food_log.json"
+_BASE = Path(__file__).resolve().parent.parent
+FOOD_LOG_FILE = str(_BASE / "data" / "food_log.json")
 
 
 # ── Internal helpers ──────────────────────────────────────────────────────────

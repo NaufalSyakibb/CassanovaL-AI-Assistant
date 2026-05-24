@@ -4,7 +4,7 @@
 const AGENTS = {
   task: {
     name: 'Alfred', sub: 'Task Manager', hue: 'var(--hue-alfred)',
-    issue: 'I.', cluster: 'personal',
+    issue: 'I.', cluster: 'personal', url: '/alfred',
     tagline: "An unflappable steward of the day's obligations, counted and kept.",
     greeting: 'Good morning. I have your tasks in hand. Shall we bring order to the day, or is there something specific I may see to first?',
     Ico: () => { const {IcoCheck} = window.Icons; return <IcoCheck/>; },
@@ -18,21 +18,21 @@ const AGENTS = {
   },
   news: {
     name: 'Najwa', sub: 'News Feed', hue: 'var(--hue-najwa)',
-    issue: 'III.', cluster: 'research',
+    issue: 'III.', cluster: 'research', url: '/news',
     tagline: 'The morning read, digested. Reportage without the noise.',
     greeting: 'The wires are open. Tell me the subject, the region, or the question — I will bring back a briefing.',
     Ico: () => { const {IcoNewspaper} = window.Icons; return <IcoNewspaper/>; },
   },
   coding: {
     name: 'Linus', sub: 'Code Assistant', hue: 'var(--hue-linus)',
-    issue: 'IV.', cluster: 'academic',
+    issue: 'IV.', cluster: 'academic', url: '/coding',
     tagline: 'Pragmatic, occasionally blunt. Debugs the problem, then the assumptions.',
     greeting: 'Show me the code — or describe the failure. I will tell you what it wants.',
     Ico: () => { const {IcoCode} = window.Icons; return <IcoCode/>; },
   },
   schedule: {
     name: 'Miyamoto', sub: 'Schedule', hue: 'var(--hue-miyamoto)',
-    issue: 'V.', cluster: 'personal',
+    issue: 'V.', cluster: 'personal', url: '/productivity',
     tagline: 'A discipline of time — each commitment placed with deliberation.',
     greeting: 'Time is the only estate you cannot reclaim. Tell me how to spend it.',
     Ico: () => { const {IcoCalendar} = window.Icons; return <IcoCalendar/>; },
@@ -47,7 +47,7 @@ const AGENTS = {
   },
   fitness: {
     name: 'Lavoisier', sub: 'Fitness & Health', hue: 'var(--hue-lavoiser)',
-    issue: 'VII.', cluster: 'personal',
+    issue: 'VII.', cluster: 'personal', url: '/fitness',
     tagline: 'Chemistry of the body — calories, loads, recovery, in balance.',
     greeting: 'The body is a system of inputs and work. What shall we measure today?',
     Ico: () => { const {IcoHeart} = window.Icons; return <IcoHeart/>; },
@@ -153,6 +153,11 @@ const uploadDAAPI= f => { const fd = new FormData(); fd.append('file', f); retur
 const receiptAPI = f => { const fd = new FormData(); fd.append('file', f); return apiFetch('/api/budget/scan-receipt', { method:'POST', body: fd }); };
 const crewKick   = (topic, crew_type, filename, cv_text, platforms, translate, target_lang) => apiFetch('/api/crew/kickoff', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ topic, crew_type, filename, cv_text, platforms, translate, target_lang }) });
 const crewPoll   = id => apiFetch(`/api/crew/status/${id}`);
+const patternsAPI       = () => apiFetch('/api/alfred/patterns');
+const contradictionsAPI = () => apiFetch('/api/alfred/contradictions');
+const fitnessDashAPI    = () => apiFetch('/api/fitness/dashboard');
+const newsFeedAPI       = () => apiFetch('/api/news/feed');
+const journalDashAPI    = () => apiFetch('/api/journal/dashboard');
 
 const SCRAPER_PLATFORMS = [
   { key: 'youtube',    label: 'YouTube' },
@@ -208,4 +213,5 @@ window.CLData = {
   renderMd,
   chatAPI, tasksAPI, notesAPI, budgetAPI, daFilesAPI,
   uploadDAAPI, receiptAPI, crewKick, crewPoll,
+  patternsAPI, contradictionsAPI, fitnessDashAPI, newsFeedAPI, journalDashAPI,
 };

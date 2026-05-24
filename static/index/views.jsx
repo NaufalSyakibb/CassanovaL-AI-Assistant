@@ -91,6 +91,12 @@ function Sidebar({ active, setActive, onCmd, onCrew, theme, toggleTheme }) {
         <span className="pixel-nav-arrow">→</span>
       </a>
 
+      <a className="pixel-nav-btn" href="/wrap" style={{background:'linear-gradient(90deg,rgba(107,94,138,.15),rgba(166,138,62,.15))'}}>
+        <span style={{fontSize:'13px'}}>✦</span>
+        <span className="pixel-nav-label">Monthly Wrap</span>
+        <span className="pixel-nav-arrow">→</span>
+      </a>
+
       <div className="sidebar-footer">
         <button className="side-btn" onClick={onCmd} title="Command Palette (⌘K)"><IcoCmd/></button>
         <button className="side-btn" onClick={onCrew} title="Crew Mode"><IcoUsers/></button>
@@ -104,9 +110,9 @@ function Sidebar({ active, setActive, onCmd, onCrew, theme, toggleTheme }) {
 }
 
 /* ── Masthead ─────────────────────────────────────────────── */
-function Masthead({ agKey, tab, setTab, panelOpen, setPanelOpen }) {
+function Masthead({ agKey, tab, setTab, panelOpen, setPanelOpen, notifCount = 0, onBellClick }) {
   const { AGENTS, fmtIssue, fmtLongDate } = window.CLData;
-  const { IcoPanelClose, IcoPanelOpen } = window.Icons;
+  const { IcoPanelClose, IcoPanelOpen, IcoBell } = window.Icons;
   const ag = AGENTS[agKey];
   const [first, ...rest] = ag.name.split(' ');
   return (
@@ -126,9 +132,15 @@ function Masthead({ agKey, tab, setTab, panelOpen, setPanelOpen }) {
           <nav className="tab-rail">
             <button className={`tab ${tab==='chat'?'active':''}`} onClick={()=>setTab('chat')}>Dialogue</button>
             <button className={`tab ${tab==='overview'?'active':''}`} onClick={()=>setTab('overview')}>Overview</button>
+            <button className={`tab ${tab==='ledger'?'active':''}`} onClick={()=>setTab('ledger')}>Ledger</button>
           </nav>
         </div>
         <div className="masthead-right">
+          <button className="mast-btn mast-bell" onClick={onBellClick}
+            title={notifCount > 0 ? `${notifCount} unread brief` : 'Morning Brief'}>
+            <IcoBell/>
+            {notifCount > 0 && <span className="notif-badge">{notifCount}</span>}
+          </button>
           <button className="mast-btn" onClick={()=>setPanelOpen(p=>!p)}
             title={panelOpen ? 'Close panel' : 'Open panel'}>
             {panelOpen ? <IcoPanelClose/> : <IcoPanelOpen/>}
@@ -152,12 +164,15 @@ function Masthead({ agKey, tab, setTab, panelOpen, setPanelOpen }) {
 /* ── Chat View ────────────────────────────────────────────── */
 function ChatView({ agKey, messages, loading, onSend }) {
   const { AGENTS, CHIPS, renderMd, fmtTime, fmtIssue, MOCK } = window.CLData;
-  const { IcoSend, IcoClip, IcoPlus, IcoReceipt } = window.Icons;
+  const { IcoSend, IcoClip, IcoPlus, IcoReceipt, IcoMic, IcoMicOff } = window.Icons;
   const ag = AGENTS[agKey];
   const [val, setVal] = _useState('');
+  const [listening, setListening] = _useState(false);
+  const [voiceSupported] = _useState(() => !!(window.SpeechRecognition || window.webkitSpeechRecognition));
   const endRef = _useRef(null);
   const taRef = _useRef(null);
   const recRef = _useRef(null);
+  const srRef = _useRef(null);
 
   _useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, loading]);
 
@@ -173,6 +188,26 @@ function ChatView({ agKey, messages, loading, onSend }) {
     e.target.style.height = 'auto';
     e.target.style.height = Math.min(e.target.scrollHeight, 180) + 'px';
   };
+
+  const startVoice = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const r = new SR();
+    r.lang = 'id-ID';
+    r.interimResults = false;
+    r.maxAlternatives = 1;
+    r.onresult = e => {
+      const transcript = e.results[0][0].transcript;
+      setListening(false);
+      if (transcript.trim()) onSend(transcript);
+    };
+    r.onerror = () => setListening(false);
+    r.onend   = () => setListening(false);
+    r.start();
+    srRef.current = r;
+    setListening(true);
+  };
+
+  const stopVoice = () => { srRef.current?.stop(); setListening(false); };
 
   const firstName = ag.name.split(' ')[0];
   const lastName  = ag.name.split(' ').slice(1).join(' ');
@@ -273,6 +308,14 @@ function ChatView({ agKey, messages, loading, onSend }) {
             <textarea ref={taRef} className="composer-input" rows="1"
               placeholder={`Write to ${firstName}…`}
               value={val} onChange={onInput} onKeyDown={onKey}/>
+            {voiceSupported && (
+              <button className={`composer-btn mic-btn${listening ? ' listening' : ''}`}
+                onClick={listening ? stopVoice : startVoice}
+                title={listening ? 'Stop listening' : 'Voice input (id-ID)'}
+                type="button">
+                {listening ? <IcoMicOff size={15}/> : <IcoMic size={15}/>}
+              </button>
+            )}
             <button className="composer-btn composer-send"
               onClick={send} disabled={!val.trim() || loading}>
               {loading ? <span className="spinner"/> : <IcoSend size={15}/>}
@@ -288,12 +331,61 @@ function ChatView({ agKey, messages, loading, onSend }) {
 }
 
 /* ── Dashboard View ───────────────────────────────────────── */
-function DashboardView({ dash, setAgent }) {
-  const { AGENTS, AGENT_ORDER, fmtMoney, fmtDate, fmtIssue, fmtLongDate } = window.CLData;
+function DashboardView({ dash, setAgent, loading }) {
+  const { AGENTS, AGENT_ORDER, fmtMoney, fmtDate, fmtIssue, fmtLongDate, patternsAPI, contradictionsAPI } = window.CLData;
   const { tStats, budget, notesTotal, notes = [], recentTx = [] } = dash;
+  const [patterns, setPatterns] = _useState(null);
+  const [conflicts, setConflicts] = _useState(null);
+
+  _useEffect(() => {
+    Promise.all([
+      patternsAPI().catch(() => null),
+      contradictionsAPI().catch(() => null),
+    ]).then(([p, c]) => {
+      setPatterns(p);
+      setConflicts(Array.isArray(c) ? c : (c?.conflicts ?? c?.contradictions ?? []));
+    });
+  }, []);
 
   // Fake sparkline values
   const spark = (seed) => Array.from({length:12}, (_,i) => 0.3 + 0.7*Math.abs(Math.sin(i*1.3 + seed)));
+
+  if (loading) return (
+    <div className="dashboard scroll">
+      <div className="dash-container">
+        <div className="dash-hero">
+          <div>
+            <span className="skeleton skeleton-label"/>
+            <span className="skeleton skeleton-hero" style={{marginTop:12,width:320,height:48}}/>
+            <span className="skeleton skeleton-sub" style={{marginTop:14,width:'60%',height:13}}/>
+          </div>
+        </div>
+        <div className="stats-row">
+          {[1,2,3,4].map(i => (
+            <div key={i} className="stat">
+              <span className="skeleton skeleton-label"/>
+              <span className="skeleton skeleton-hero"/>
+              <span className="skeleton skeleton-sub"/>
+            </div>
+          ))}
+        </div>
+        <div className="dash-grid">
+          <div className="dash-col">
+            <div className="dash-section">
+              <span className="skeleton skeleton-label" style={{width:160,marginBottom:14}}/>
+              {[1,2,3,4].map(i => <span key={i} className="skeleton skeleton-card" style={{display:'block',marginBottom:8}}/>)}
+            </div>
+          </div>
+          <div className="dash-col">
+            <div className="dash-section">
+              <span className="skeleton skeleton-label" style={{width:120,marginBottom:14}}/>
+              {[1,2,3,4].map(i => <span key={i} className="skeleton" style={{display:'block',height:44,marginBottom:6}}/>)}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="dashboard scroll">
@@ -303,7 +395,7 @@ function DashboardView({ dash, setAgent }) {
             <div className="dash-eyebrow small-caps">The Daily Ledger · {fmtLongDate()}</div>
             <h1 className="dash-title">Welcome back,<br/><em>Cassanova.</em></h1>
             <p className="dash-subtitle">
-              Nine agents stand ready. The ledger balances. A quiet day, should you wish to keep it so.
+              {AGENT_ORDER.length} agents stand ready. The ledger balances. A quiet day, should you wish to keep it so.
             </p>
           </div>
           <div className="dash-meta">
@@ -409,7 +501,210 @@ function DashboardView({ dash, setAgent }) {
             </div>
           </div>
         </div>
+
+        {/* Life Insights — patterns + contradictions */}
+        {(conflicts !== null || patterns !== null) && (
+          (() => {
+            const conflictList = conflicts || [];
+            const patternInsights = patterns?.insights || [];
+            const hasContent = conflictList.length > 0 || (patternInsights.length > 0 && !patternInsights[0].toLowerCase().includes('not enough'));
+            const notEnough = patternInsights.length > 0 && patternInsights[0].toLowerCase().includes('not enough');
+            if (!hasContent && !notEnough) return null;
+            return (
+              <div className="insights-section">
+                <div className="dash-kicker small-caps insights-kicker">§ Life Insights</div>
+                <h3 style={{fontFamily:"'Instrument Serif', serif", fontSize:28, letterSpacing:'-0.02em', fontWeight:400, margin:'0 0 4px'}}>
+                  Patterns & <em>conflicts.</em>
+                </h3>
+                <div className="insights-grid">
+                  {conflictList.map((c, i) => (
+                    <div key={i} className="conflict-card">⚠ {c}</div>
+                  ))}
+                  {hasContent && patternInsights.map((p, i) => (
+                    <div key={i} className="insight-card">→ {p}</div>
+                  ))}
+                  {notEnough && conflictList.length === 0 && (
+                    <div className="insights-empty">{patternInsights[0]}</div>
+                  )}
+                </div>
+              </div>
+            );
+          })()
+        )}
       </div>
+    </div>
+  );
+}
+
+
+/* ── Agent Overview Tab ───────────────────────────────────── */
+function AgentOverview({ agKey }) {
+  const { AGENTS, fmtMoney, fmtDate, fitnessDashAPI, journalDashAPI, tasksAPI, patternsAPI } = window.CLData;
+  const ag = AGENTS[agKey];
+  const [data, setData] = _useState(null);
+  const [loading, setLoading] = _useState(true);
+
+  _useEffect(() => {
+    setData(null); setLoading(true);
+    const fetch = {
+      task:    () => tasksAPI(),
+      fitness: () => fitnessDashAPI(),
+      journal: () => journalDashAPI(),
+      budget:  () => window.CLData.budgetAPI ? window.CLData.budgetAPI() : Promise.resolve(null),
+    }[agKey] || (() => Promise.resolve(null));
+
+    fetch().then(d => { setData(d); setLoading(false); }).catch(() => setLoading(false));
+  }, [agKey]);
+
+  const [firstName, ...rest] = ag.name.split(' ');
+
+  return (
+    <div className="overview-wrap scroll">
+      <div className="overview-eyebrow small-caps">{ag.issue} · {ag.sub}</div>
+      <h1 className="overview-title" style={{'--agent-hue': ag.hue}}>
+        {firstName}<em>{rest.length ? ' ' + rest.join(' ') : ''}</em><br/>
+        <span style={{fontSize:'0.55em', color:'var(--ink-3)', fontStyle:'normal'}}>Overview</span>
+      </h1>
+
+      {loading && (
+        <div className="overview-grid">
+          {[1,2,3].map(i => (
+            <div key={i} className="overview-card">
+              <span className="skeleton skeleton-label"/>
+              <span className="skeleton skeleton-hero" style={{marginTop:8}}/>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!loading && agKey === 'task' && data && (
+        <>
+          <div className="overview-grid">
+            <div className="overview-card">
+              <div className="overview-card-label">Pending</div>
+              <div className="overview-card-value" style={{color:'var(--hue-alfred)'}}>{data.stats?.pending ?? 0}</div>
+              <div className="overview-card-sub">tasks in queue</div>
+            </div>
+            <div className="overview-card">
+              <div className="overview-card-label">High Priority</div>
+              <div className="overview-card-value" style={{color:'var(--hue-lavoiser)'}}>{data.stats?.high_priority ?? 0}</div>
+              <div className="overview-card-sub">need attention</div>
+            </div>
+            <div className="overview-card">
+              <div className="overview-card-label">Done Today</div>
+              <div className="overview-card-value" style={{color:'var(--hue-miyamoto)'}}>{data.stats?.completed_today ?? 0}</div>
+              <div className="overview-card-sub">completed</div>
+            </div>
+          </div>
+          <div className="overview-bar-section">
+            <div className="overview-bar-section-title">Next up</div>
+            <div className="overview-items">
+              {(data.tasks || []).filter(t => t.status === 'pending').slice(0, 5).map((t, i) => (
+                <div key={i} className="overview-item">
+                  <div className="overview-item-title">{t.title}</div>
+                  <div className="overview-item-meta" style={{
+                    color: t.priority === 'high' ? 'var(--hue-lavoiser)' :
+                           t.priority === 'medium' ? 'var(--hue-mansa)' : 'var(--ink-4)'
+                  }}>{t.priority || 'normal'}</div>
+                </div>
+              ))}
+              {!(data.tasks || []).some(t => t.status === 'pending') && (
+                <div className="overview-empty">Nothing pending. A rare and welcome moment.</div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {!loading && agKey === 'fitness' && data && (
+        <>
+          <div className="overview-grid">
+            {[
+              { label: "Today's Calories", val: data.today_calories ?? '—', sub: `target: ${data.calorie_target ?? 2000} kcal` },
+              { label: 'Protein Today',    val: data.today_protein ? `${data.today_protein}g` : '—', sub: `target: ${data.protein_target ?? 150}g` },
+              { label: 'Log Streak',       val: data.streak_days ?? 0, sub: 'consecutive days logged' },
+            ].map((c, i) => (
+              <div key={i} className="overview-card">
+                <div className="overview-card-label">{c.label}</div>
+                <div className="overview-card-value" style={{color: ag.hue}}>{c.val}</div>
+                <div className="overview-card-sub">{c.sub}</div>
+              </div>
+            ))}
+          </div>
+          {data.today_calories != null && data.calorie_target != null && (
+            <div className="overview-bar-section">
+              <div className="overview-bar-section-title">Today's progress</div>
+              {[
+                { label: 'Calories', cur: data.today_calories, max: data.calorie_target },
+                { label: 'Protein',  cur: data.today_protein,  max: data.protein_target ?? 150 },
+              ].map((b, i) => (
+                <div key={i} className="panel-bar-row" style={{marginBottom:20}}>
+                  <div className="panel-bar-label">
+                    <span>{b.label}</span>
+                    <span>{b.cur ?? 0} / {b.max}</span>
+                  </div>
+                  <div className="panel-bar-wrap">
+                    <div className="panel-bar-fill" style={{width: `${Math.min(100, ((b.cur ?? 0)/b.max)*100)}%`, '--agent-hue': ag.hue}}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {(data.recent_logs || []).length > 0 && (
+            <div className="overview-bar-section">
+              <div className="overview-bar-section-title">Recent food logs</div>
+              <div className="overview-items">
+                {data.recent_logs.slice(0, 5).map((l, i) => (
+                  <div key={i} className="overview-item">
+                    <div className="overview-item-title">{l.food}</div>
+                    <div className="overview-item-meta">{l.calories} kcal · {l.date}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {!loading && agKey === 'journal' && data && (
+        <>
+          <div className="overview-grid">
+            <div className="overview-card">
+              <div className="overview-card-label">Entries</div>
+              <div className="overview-card-value" style={{color: ag.hue}}>{data.total ?? 0}</div>
+              <div className="overview-card-sub">in the journal</div>
+            </div>
+            <div className="overview-card">
+              <div className="overview-card-label">This Month</div>
+              <div className="overview-card-value" style={{color: ag.hue}}>{data.this_month ?? 0}</div>
+              <div className="overview-card-sub">entries written</div>
+            </div>
+          </div>
+          {(data.recent || []).length > 0 && (
+            <div className="overview-bar-section">
+              <div className="overview-bar-section-title">Recent entries</div>
+              <div className="overview-items">
+                {data.recent.slice(0, 5).map((e, i) => (
+                  <div key={i} className="overview-item">
+                    <div>
+                      <div className="overview-item-title">{e.title || fmtDate(e.date)}</div>
+                      {e.preview && <div className="overview-item-meta" style={{marginTop:3,maxWidth:440,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.preview}</div>}
+                    </div>
+                    <div className="overview-item-meta">{fmtDate(e.date)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {!loading && !['task','fitness','journal'].includes(agKey) && (
+        <div className="overview-empty">
+          <p>{ag.tagline}</p>
+          <p style={{marginTop:16, fontSize:14, color:'var(--ink-4)'}}>Switch to Dialogue to chat with {firstName}.</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -567,6 +862,48 @@ function RightPanel({ agKey, dash, panelOpen }) {
     </aside>
   );
 
+  /* Fitness panel */
+  if (agKey === 'fitness') return (
+    <aside className="panel" style={{'--agent-hue': ag.hue}}>
+      <div className="panel-head">
+        <div className="small-caps" style={{color:ag.hue, marginBottom:4}}>Fitness · Today</div>
+        <div className="panel-title">The <em>Body</em></div>
+        <div className="panel-sub small-caps">Kept by Lavoisier</div>
+      </div>
+      <div className="panel-body scroll">
+        <FitnessPanel agHue={ag.hue}/>
+      </div>
+    </aside>
+  );
+
+  /* Journal panel */
+  if (agKey === 'journal') return (
+    <aside className="panel" style={{'--agent-hue': ag.hue}}>
+      <div className="panel-head">
+        <div className="small-caps" style={{color:ag.hue, marginBottom:4}}>Journal · Recent</div>
+        <div className="panel-title">The <em>Page</em></div>
+        <div className="panel-sub small-caps">Kept by Dostoyevsky</div>
+      </div>
+      <div className="panel-body scroll">
+        <JournalPanel agHue={ag.hue}/>
+      </div>
+    </aside>
+  );
+
+  /* News panel */
+  if (agKey === 'news') return (
+    <aside className="panel" style={{'--agent-hue': ag.hue}}>
+      <div className="panel-head">
+        <div className="small-caps" style={{color:ag.hue, marginBottom:4}}>News · Live</div>
+        <div className="panel-title">The <em>Wire</em></div>
+        <div className="panel-sub small-caps">Via Najwa</div>
+      </div>
+      <div className="panel-body scroll">
+        <NewsPanel agHue={ag.hue}/>
+      </div>
+    </aside>
+  );
+
   /* Default — tasks / notes */
   const pendingTasks = (dash.tasks || []).filter(t => t.status === 'pending').slice(0, 6);
   const recentNotes  = (dash.notes || []).slice(0, 6);
@@ -637,4 +974,138 @@ function RightPanel({ agKey, dash, panelOpen }) {
   );
 }
 
-window.CLViews = { Sidebar, Masthead, ChatView, DashboardView, RightPanel };
+/* ── Fitness Right Panel sub-component ───────────────────── */
+function FitnessPanel({ agHue }) {
+  const { fitnessDashAPI, fmtDate } = window.CLData;
+  const [data, setData] = _useState(null);
+  _useEffect(() => { fitnessDashAPI().then(setData).catch(() => {}); }, []);
+
+  if (!data) return (
+    <div className="panel-section">
+      {[1,2].map(i => (
+        <div key={i} className="panel-bar-row">
+          <span className="skeleton skeleton-label" style={{marginBottom:10,display:'block'}}/>
+          <span className="skeleton" style={{display:'block',height:6,borderRadius:3}}/>
+        </div>
+      ))}
+    </div>
+  );
+
+  const kcal = data.today_calories ?? 0;
+  const kcalTarget = data.calorie_target ?? 2000;
+  const prot = data.today_protein ?? 0;
+  const protTarget = data.protein_target ?? 150;
+
+  return (
+    <div className="panel-section">
+      <div className="panel-section-head">
+        <span className="small-caps">Today's Targets</span>
+        <span className="panel-count">{data.streak_days ?? 0}d streak</span>
+      </div>
+      {[
+        { label:'Calories', cur: kcal, max: kcalTarget, unit:'kcal' },
+        { label:'Protein',  cur: prot, max: protTarget,  unit:'g' },
+      ].map((b, i) => (
+        <div key={i} className="panel-bar-row">
+          <div className="panel-bar-label">
+            <span>{b.label}</span>
+            <span>{b.cur} / {b.max}{b.unit}</span>
+          </div>
+          <div className="panel-bar-wrap">
+            <div className="panel-bar-fill" style={{width:`${Math.min(100,(b.cur/b.max)*100)}%`,'--agent-hue':agHue}}/>
+          </div>
+        </div>
+      ))}
+      {(data.recent_logs || []).length > 0 && (
+        <div className="panel-section" style={{marginTop:18}}>
+          <div className="panel-section-head"><span className="small-caps">Recent Logs</span></div>
+          {data.recent_logs.slice(0, 4).map((l, i) => (
+            <div key={i} className="panel-entry">
+              <div className="panel-entry-title">{l.food}</div>
+              <div className="panel-entry-meta">{l.calories} kcal · {fmtDate(l.date)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Journal Right Panel sub-component ───────────────────── */
+function JournalPanel({ agHue }) {
+  const { journalDashAPI, fmtDate } = window.CLData;
+  const [data, setData] = _useState(null);
+  _useEffect(() => { journalDashAPI().then(setData).catch(() => {}); }, []);
+
+  if (!data) return (
+    <div className="panel-section">
+      {[1,2,3].map(i => (
+        <div key={i} style={{padding:'12px 0', borderBottom:'1px solid var(--rule-soft)'}}>
+          <span className="skeleton skeleton-line" style={{display:'block'}}/>
+          <span className="skeleton skeleton-line-sm" style={{display:'block',marginTop:6}}/>
+        </div>
+      ))}
+    </div>
+  );
+
+  const entries = data.recent || [];
+  return (
+    <div className="panel-section">
+      <div className="panel-section-head">
+        <span className="small-caps">Recent Entries</span>
+        <span className="panel-count">{data.total ?? 0} total</span>
+      </div>
+      {entries.length === 0 ? (
+        <div style={{padding:'14px 0', color:'var(--ink-3)', fontStyle:'italic', fontFamily:"'Instrument Serif', serif", fontSize:17}}>
+          The page is empty. Begin anywhere.
+        </div>
+      ) : entries.slice(0, 5).map((e, i) => (
+        <div key={i} className="panel-entry">
+          <div className="panel-entry-title">{e.title || fmtDate(e.date)}</div>
+          <div className="panel-entry-meta">{fmtDate(e.date)}{e.mood ? ' · ' + e.mood : ''}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── News Right Panel sub-component ──────────────────────── */
+function NewsPanel({ agHue }) {
+  const { newsFeedAPI } = window.CLData;
+  const [items, setItems] = _useState(null);
+  _useEffect(() => { newsFeedAPI().then(d => setItems(d.articles || d.items || d || [])).catch(() => setItems([])); }, []);
+
+  if (!items) return (
+    <div className="panel-section">
+      {[1,2,3,4,5].map(i => (
+        <div key={i} style={{padding:'11px 0', borderBottom:'1px solid var(--rule-soft)'}}>
+          <span className="skeleton skeleton-line" style={{display:'block'}}/>
+          <span className="skeleton skeleton-label" style={{display:'block',marginTop:6}}/>
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="panel-section">
+      <div className="panel-section-head">
+        <span className="small-caps">Latest</span>
+        <span className="panel-count">{items.length}</span>
+      </div>
+      {items.length === 0 ? (
+        <div style={{padding:'14px 0', color:'var(--ink-3)', fontStyle:'italic', fontFamily:"'Instrument Serif', serif", fontSize:17}}>
+          The wires are quiet.
+        </div>
+      ) : items.slice(0, 7).map((a, i) => (
+        <div key={i} className="panel-headline">
+          <div className="panel-headline-title">{a.title || a.headline || a.text || ''}</div>
+          {(a.source || a.url) && (
+            <div className="panel-headline-source">{a.source || new URL(a.url).hostname}</div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+window.CLViews = { Sidebar, Masthead, ChatView, DashboardView, AgentOverview, RightPanel };

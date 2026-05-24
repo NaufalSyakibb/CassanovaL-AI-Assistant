@@ -135,18 +135,39 @@ body::before {
 }
 .card:hover .card-arrow { color: var(--card-color, var(--accent)); transform: translate(2px, -2px); }
 
-/* ── Agent cluster rows ── */
-.agent-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
-.agent-chip {
-  display: flex; align-items: center; gap: 7px;
-  padding: 6px 12px; background: var(--panel); border: 1px solid var(--line);
-  font-size: 11px; text-decoration: none; color: var(--text);
-  transition: all 0.12s;
+/* ── Agent sprite grid ── */
+.agent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px; margin-top: 20px;
 }
-.agent-chip:hover { border-color: var(--chip-color, var(--accent)); background: var(--panel2); }
-.agent-chip-dot { width: 6px; height: 6px; background: var(--chip-color, var(--accent)); flex-shrink: 0; }
-.agent-chip-name { font-weight: 600; }
-.agent-chip-role { font-size: 10px; color: var(--dim); margin-left: 2px; }
+.agent-sc {
+  background: var(--panel); border: 1px solid var(--line);
+  text-decoration: none; color: inherit;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 14px 8px 10px; gap: 7px;
+  position: relative; overflow: hidden;
+  transition: border-color 0.12s, transform 0.12s;
+}
+.agent-sc::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--sc-color, var(--accent)); opacity: 0.35; transition: opacity 0.15s;
+}
+.agent-sc:hover { border-color: var(--sc-color, var(--accent)); transform: translateY(-3px); }
+.agent-sc:hover::before { opacity: 1; }
+.agent-sc canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+.agent-sc-ph {
+  width: 48px; height: 72px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--panel2); border: 1px solid var(--line);
+}
+.agent-sc-ph-dot { width: 12px; height: 12px; background: var(--sc-color, var(--accent)); border-radius: 50%; }
+.agent-sc-name {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--sc-color, var(--text));
+  text-align: center;
+}
+.agent-sc-role { font-size: 9px; color: var(--dim2); text-align: center; }
 
 /* ── Footer ── */
 .hub-footer {
@@ -226,37 +247,68 @@ body::before {
 <!-- Chat Agents -->
 <div class="grid-section">
   <div class="section-label">Chat Agents — 10 Specialists</div>
-  <div class="agent-list">
-    <a class="agent-chip" href="/?agent=task"     style="--chip-color:#4ac86a">
-      <div class="agent-chip-dot"></div><span class="agent-chip-name">Alfred</span><span class="agent-chip-role">Tasks</span>
+  <div class="agent-grid">
+
+    <a class="agent-sc" href="/?agent=task" style="--sc-color:#4ac86a">
+      <canvas data-sprite="alfred" data-scale="3"></canvas>
+      <div class="agent-sc-name">Alfred</div>
+      <div class="agent-sc-role">Tasks</div>
     </a>
-    <a class="agent-chip" href="/?agent=notes"    style="--chip-color:#5bc8f5">
-      <div class="agent-chip-dot"></div><span class="agent-chip-name">Cicero</span><span class="agent-chip-role">Notes</span>
+
+    <a class="agent-sc" href="/?agent=notes" style="--sc-color:#5bc8f5">
+      <canvas data-sprite="cicero" data-scale="3"></canvas>
+      <div class="agent-sc-name">Cicero</div>
+      <div class="agent-sc-role">Notes</div>
     </a>
-    <a class="agent-chip" href="/?agent=news"     style="--chip-color:#f5d048">
-      <div class="agent-chip-dot"></div><span class="agent-chip-name">Najwa</span><span class="agent-chip-role">News</span>
+
+    <a class="agent-sc" href="/?agent=news" style="--sc-color:#f5d048">
+      <canvas data-sprite="najwa" data-scale="3"></canvas>
+      <div class="agent-sc-name">Najwa</div>
+      <div class="agent-sc-role">News</div>
     </a>
-    <a class="agent-chip" href="/?agent=coding"   style="--chip-color:#c180ff">
-      <div class="agent-chip-dot"></div><span class="agent-chip-name">Linus</span><span class="agent-chip-role">Coding</span>
+
+    <a class="agent-sc" href="/?agent=coding" style="--sc-color:#c180ff">
+      <canvas data-sprite="linus" data-scale="3"></canvas>
+      <div class="agent-sc-name">Linus</div>
+      <div class="agent-sc-role">Coding</div>
     </a>
-    <a class="agent-chip" href="/?agent=schedule" style="--chip-color:#4ac8c0">
-      <div class="agent-chip-dot"></div><span class="agent-chip-name">CalCore</span><span class="agent-chip-role">Schedule</span>
+
+    <a class="agent-sc" href="/?agent=schedule" style="--sc-color:#4ac8c0">
+      <canvas data-sprite="miyamoto" data-scale="3"></canvas>
+      <div class="agent-sc-name">Miyamoto</div>
+      <div class="agent-sc-role">Schedule</div>
     </a>
-    <a class="agent-chip" href="/finance"          style="--chip-color:#f5d048">
-      <div class="agent-chip-dot"></div><span class="agent-chip-name">Mansa</span><span class="agent-chip-role">Finance ↗</span>
+
+    <a class="agent-sc" href="/finance" style="--sc-color:#f5d048">
+      <canvas data-sprite="musa" data-scale="3"></canvas>
+      <div class="agent-sc-name">Mansa</div>
+      <div class="agent-sc-role">Finance</div>
     </a>
-    <a class="agent-chip" href="/?agent=fitness"  style="--chip-color:#ff6b6b">
-      <div class="agent-chip-dot"></div><span class="agent-chip-name">Lavoisier</span><span class="agent-chip-role">Fitness</span>
+
+    <a class="agent-sc" href="/?agent=fitness" style="--sc-color:#ff6b6b">
+      <canvas data-sprite="lavoisier" data-scale="3"></canvas>
+      <div class="agent-sc-name">Lavoisier</div>
+      <div class="agent-sc-role">Fitness</div>
     </a>
-    <a class="agent-chip" href="/?agent=research" style="--chip-color:#5bc8f5">
-      <div class="agent-chip-dot"></div><span class="agent-chip-name">Ferry</span><span class="agent-chip-role">Research</span>
+
+    <a class="agent-sc" href="/?agent=research" style="--sc-color:#5bc8f5">
+      <div class="agent-sc-ph"><div class="agent-sc-ph-dot"></div></div>
+      <div class="agent-sc-name">Ferry</div>
+      <div class="agent-sc-role">Research</div>
     </a>
-    <a class="agent-chip" href="/?agent=davinci"  style="--chip-color:#f97316">
-      <div class="agent-chip-dot"></div><span class="agent-chip-name">Da Vinci</span><span class="agent-chip-role">Creative</span>
+
+    <a class="agent-sc" href="/?agent=davinci" style="--sc-color:#f97316">
+      <canvas data-sprite="davinci" data-scale="3"></canvas>
+      <div class="agent-sc-name">Da Vinci</div>
+      <div class="agent-sc-role">Creative</div>
     </a>
-    <a class="agent-chip" href="/?agent=journal"  style="--chip-color:#c084fc">
-      <div class="agent-chip-dot"></div><span class="agent-chip-name">Dostoyevsky</span><span class="agent-chip-role">Journal</span>
+
+    <a class="agent-sc" href="/?agent=journal" style="--sc-color:#c084fc">
+      <div class="agent-sc-ph"><div class="agent-sc-ph-dot"></div></div>
+      <div class="agent-sc-name">Dostoyevsky</div>
+      <div class="agent-sc-role">Journal</div>
     </a>
+
   </div>
 </div>
 
@@ -311,5 +363,13 @@ body::before {
   <span>CassanovaL</span> · Personal AI Multi-Agent System · Powered by Mistral AI + LangChain
 </footer>
 
+<script src="/static/pixel/sprites.js"></script>
+<script>
+document.querySelectorAll('[data-sprite]').forEach(function(cv) {
+  if (window.PixelSprites) {
+    PixelSprites.render(cv, cv.dataset.sprite, parseInt(cv.dataset.scale) || 3);
+  }
+});
+</script>
 </body>
 </html>

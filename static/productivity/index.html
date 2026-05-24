@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Miyamoto — Productivity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ── Design tokens — mirrors main CassanovaL page ─────────── */
+:root,[data-theme="light"]{
+  --paper:#F3EEE5;--paper-2:#ECE6DA;--paper-3:#E4DDCD;
+  --surface:#FAF6EE;--surface-2:#FFFFFF;
+  --ink:#17171A;--ink-2:#3B3B3F;--ink-3:#6B6A6E;--ink-4:#9B9A9E;
+  --rule:rgba(23,23,26,.12);--rule-soft:rgba(23,23,26,.06);
+  --hover:rgba(23,23,26,.04);
+  --clay:#CC785C;--clay-soft:rgba(204,120,92,.10);--clay-line:rgba(204,120,92,.35);
+  --hue:#5E8A7D;  /* Miyamoto teal-moss */
+  --hue-soft:rgba(94,138,125,.10);--hue-line:rgba(94,138,125,.35);
+  --shadow-2:0 4px 24px rgba(23,23,26,.06);
+  --shadow-3:0 24px 64px rgba(23,23,26,.14);
+}
+[data-theme="dark"]{
+  --paper:#17171A;--paper-2:#1E1E22;--paper-3:#24242A;
+  --surface:#1A1A1E;--surface-2:#222227;
+  --ink:#F2EDE3;--ink-2:#CEC9BE;--ink-3:#9B9890;--ink-4:#6D6B67;
+  --rule:rgba(242,237,227,.14);--rule-soft:rgba(242,237,227,.07);
+  --hover:rgba(242,237,227,.05);
+  --clay:#E59A7F;--clay-soft:rgba(229,154,127,.12);--clay-line:rgba(229,154,127,.4);
+  --hue:#8FBDAF;
+  --hue-soft:rgba(143,189,175,.10);--hue-line:rgba(143,189,175,.35);
+  --shadow-2:0 4px 24px rgba(0,0,0,.4);
+  --shadow-3:0 24px 64px rgba(0,0,0,.6);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--paper);color:var(--ink);
+  font-family:'Inter',ui-sans-serif,system-ui,sans-serif;
+  font-size:15px;line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  font-feature-settings:'ss01','cv11';
+  transition:background .35s,color .35s;
+}
+::selection{background:rgba(94,138,125,.2)}
+
+/* ── Utility classes matching main page ───────────────────── */
+.serif    {font-family:'Instrument Serif','Times New Roman',serif;font-weight:400;letter-spacing:-.01em}
+.mono     {font-family:'JetBrains Mono',ui-monospace,monospace}
+.small-caps{font-family:'JetBrains Mono',ui-monospace,monospace;text-transform:uppercase;letter-spacing:.14em;font-size:10.5px;font-weight:500}
+
+/* Scrollbars */
+.scroll::-webkit-scrollbar{width:8px}
+.scroll::-webkit-scrollbar-track{background:transparent}
+.scroll::-webkit-scrollbar-thumb{background:var(--rule);border-radius:8px}
+.scroll::-webkit-scrollbar-thumb:hover{background:var(--ink-4)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes inkPulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── App shell ────────────────────────────────────────────── */
+.app{
+  display:grid;
+  grid-template-columns:220px 1fr 300px;
+  height:100vh;overflow:hidden;
+}
+
+/* ── Sidebar ──────────────────────────────────────────────── */
+.sidebar{
+  background:var(--paper-2);border-right:1px solid var(--rule);
+  display:flex;flex-direction:column;
+  overflow-y:auto;overflow-x:hidden;
+}
+.sidebar::-webkit-scrollbar{width:0}
+
+/* Brand / back area */
+.sidebar-top{padding:22px 18px 18px;border-bottom:1px solid var(--rule)}
+.back-link{
+  display:inline-flex;align-items:center;gap:7px;
+  font-family:'JetBrains Mono',monospace;font-size:10.5px;
+  text-transform:uppercase;letter-spacing:.1em;
+  color:var(--ink-3);text-decoration:none;
+  padding:6px 10px;border:1px solid var(--rule);border-radius:8px;
+  background:transparent;transition:all .15s;
+}
+.back-link:hover{color:var(--ink);border-color:var(--ink-4)}
+.agent-heading{margin-top:18px}
+.agent-name{
+  font-family:'Instrument Serif',serif;font-size:28px;line-height:1;
+  letter-spacing:-.02em;color:var(--ink);
+}
+.agent-name em{font-style:italic;color:var(--hue)}
+.agent-role{font-size:11px;color:var(--ink-3);margin-top:4px;font-family:'JetBrains Mono',monospace;letter-spacing:.04em}
+
+/* Sidebar section */
+.s-section{padding:18px 18px 16px;border-bottom:1px solid var(--rule)}
+.s-label{
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  text-transform:uppercase;letter-spacing:.14em;font-weight:500;
+  color:var(--ink-4);margin-bottom:14px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+
+/* ── Focus Timer ──────────────────────────────────────────── */
+.timer-block{display:flex;flex-direction:column;align-items:center;gap:14px}
+.timer-ring-wrap{position:relative;width:148px;height:148px;flex-shrink:0}
+.timer-ring-wrap svg{width:100%;height:100%}
+.timer-ring-center{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:3px;
+}
+#timer-display{
+  font-family:'Instrument Serif',serif;font-style:italic;
+  font-size:38px;line-height:1;color:var(--ink);letter-spacing:-.02em;
+}
+#timer-mode-lbl{
+  font-family:'JetBrains Mono',monospace;font-size:8.5px;
+  text-transform:uppercase;letter-spacing:.18em;color:var(--hue);
+}
+
+/* Mode pills */
+.timer-modes{display:flex;gap:4px;width:100%}
+.mode-pill{
+  flex:1;padding:5px 4px;text-align:center;cursor:pointer;
+  font-family:'JetBrains Mono',monospace;font-size:9.5px;
+  text-transform:uppercase;letter-spacing:.06em;
+  border:1px solid var(--rule);border-radius:100px;
+  background:transparent;color:var(--ink-4);transition:all .15s;
+}
+.mode-pill.active{border-color:var(--hue-line);color:var(--hue);background:var(--hue-soft)}
+.mode-pill:hover:not(.active){color:var(--ink-3)}
+
+/* Timer controls */
+.timer-controls{display:flex;gap:8px;width:100%}
+.t-btn{
+  flex:1;padding:8px 0;border-radius:8px;
+  border:1px solid var(--rule);background:transparent;
+  color:var(--ink-3);font-family:'JetBrains Mono',monospace;
+  font-size:10px;text-transform:uppercase;letter-spacing:.1em;
+  cursor:pointer;transition:all .15s;
+}
+.t-btn:hover{border-color:var(--ink-4);color:var(--ink)}
+.t-btn.primary{
+  background:var(--ink);border-color:var(--ink);color:var(--paper);
+  font-weight:600;
+}
+.t-btn.primary:hover{background:var(--hue);border-color:var(--hue)}
+
+/* Session dots */
+.sessions-row{display:flex;align-items:center;justify-content:space-between;width:100%}
+.s-dots{display:flex;gap:5px}
+.s-dot{
+  width:8px;height:8px;border-radius:50%;
+  border:1px solid var(--rule);background:transparent;transition:all .2s;
+}
+.s-dot.done{background:var(--hue);border-color:var(--hue)}
+.sessions-count{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-4)}
+
+/* ── Sidebar stats ────────────────────────────────────────── */
+.stat-pairs{display:grid;grid-template-columns:1fr 1fr;gap:16px 12px}
+.stat-pair{}
+.stat-pair-val{
+  font-family:'Instrument Serif',serif;font-size:32px;line-height:1;
+  letter-spacing:-.02em;color:var(--ink);font-weight:400;
+}
+.stat-pair-val em{font-style:italic;color:var(--hue)}
+.stat-pair-lbl{font-size:11px;color:var(--ink-3);margin-top:3px}
+
+/* ── Week strip in sidebar ────────────────────────────────── */
+.week-row{display:flex;gap:2px}
+.wday{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:6px 2px;border-radius:6px;cursor:default;
+}
+.wday.is-today{background:var(--hue-soft)}
+.wday-name{
+  font-family:'JetBrains Mono',monospace;font-size:8px;
+  text-transform:uppercase;letter-spacing:.06em;color:var(--ink-4);
+}
+.wday-num{
+  font-family:'Instrument Serif',serif;font-size:15px;
+  color:var(--ink-2);line-height:1;
+}
+.wday.is-today .wday-num{color:var(--hue)}
+.wday-dot{width:4px;height:4px;border-radius:50%;background:var(--hue);opacity:.7}
+
+/* ── Cal connected indicator ──────────────────────────────── */
+.cal-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  color:var(--ink-4);
+}
+.cal-badge .dot{
+  width:5px;height:5px;border-radius:50%;
+  background:var(--ink-4);animation:inkPulse 2.4s infinite;
+}
+.cal-badge.ok .dot{background:var(--hue)}
+.cal-badge.ok{color:var(--hue)}
+
+/* Sidebar footer */
+.sidebar-footer{
+  margin-top:auto;padding:14px 18px;
+  border-top:1px solid var(--rule);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.theme-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:30px;height:30px;border-radius:8px;
+  border:1px solid var(--rule);background:transparent;
+  color:var(--ink-3);cursor:pointer;transition:all .15s;
+}
+.theme-btn:hover{color:var(--ink);background:var(--hover)}
+#clock-small{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-4)}
+
+/* ── Main column ──────────────────────────────────────────── */
+.main{display:flex;flex-direction:column;overflow:hidden;background:var(--paper);min-width:0}
+
+/* Masthead */
+.masthead{
+  padding:22px 36px 18px;border-bottom:1px solid var(--rule);
+  background:var(--paper);flex-shrink:0;
+}
+.mast-eyebrow{
+  display:flex;align-items:center;gap:10px;
+  color:var(--ink-3);margin-bottom:6px;
+}
+.mast-sep{width:20px;height:1px;background:var(--rule);display:inline-block}
+.mast-title{
+  font-family:'Instrument Serif',serif;font-size:44px;
+  line-height:1;letter-spacing:-.025em;color:var(--ink);font-weight:400;
+}
+.mast-title em{font-style:italic;color:var(--hue)}
+.mast-sub{
+  font-family:'Instrument Serif',serif;font-style:italic;
+  font-size:17px;color:var(--ink-2);margin-top:6px;
+}
+
+/* Date strip */
+.date-strip{
+  padding:8px 36px;border-bottom:1px solid var(--rule);
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+}
+.date-strip-label{
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  color:var(--ink-4);letter-spacing:.04em;
+}
+.status-dot{
+  width:5px;height:5px;border-radius:50%;
+  background:var(--hue);display:inline-block;
+  margin-right:7px;vertical-align:middle;
+  animation:inkPulse 2s infinite;
+}
+
+/* All-day strip */
+.allday-bar{
+  padding:8px 36px;border-bottom:1px solid var(--rule);
+  min-height:34px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  flex-shrink:0;
+}
+.allday-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 10px;border-radius:100px;
+  border:1px solid var(--hue-line);background:var(--hue-soft);
+  font-size:12px;color:var(--hue);
+  font-family:'Instrument Serif',serif;font-style:italic;
+}
+.allday-empty{font-size:11px;color:var(--ink-4);font-family:'JetBrains Mono',monospace}
+
+/* Timeline scroll */
+.timeline-scroll{
+  flex:1;overflow-y:auto;padding:0 36px 40px;
+}
+.timeline-scroll::-webkit-scrollbar{width:6px}
+.timeline-scroll::-webkit-scrollbar-track{background:transparent}
+.timeline-scroll::-webkit-scrollbar-thumb{background:var(--rule);border-radius:4px}
+
+/* Timeline */
+#timeline{position:relative;padding-left:52px;margin-top:4px}
+
+.hr-row{
+  position:absolute;left:0;right:0;
+  border-top:1px solid var(--rule-soft);
+}
+.hr-row:first-child{border-top:none}
+.hr-label{
+  position:absolute;left:0;width:44px;text-align:right;
+  font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-4);
+  top:-7px;
+}
+.hr-half{
+  position:absolute;top:50%;left:0;right:0;
+  border-top:1px dashed var(--rule-soft);opacity:.5;
+}
+
+/* Current time */
+#now-line{
+  position:absolute;left:0;right:0;z-index:10;
+  display:flex;align-items:center;pointer-events:none;
+}
+.now-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--hue);flex-shrink:0;margin-left:38px;
+  box-shadow:0 0 6px var(--hue-line);
+}
+.now-rule{flex:1;height:1px;background:var(--hue);opacity:.6}
+
+/* Event block */
+.ev{
+  position:absolute;left:0;right:3px;
+  background:var(--hue-soft);border-left:2px solid var(--hue);
+  border-radius:0 6px 6px 0;
+  padding:4px 10px 4px 8px;overflow:hidden;
+  transition:background .1s;cursor:default;z-index:5;
+  animation:fadeUp .2s ease-out;
+}
+.ev:hover{background:rgba(94,138,125,.16)}
+.ev-title{
+  font-family:'Instrument Serif',serif;font-size:14px;
+  color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  line-height:1.3;
+}
+.ev-time{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--ink-4);margin-top:1px}
+.ev-loc{font-size:11px;color:var(--ink-3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Event colors by Google Calendar colorId */
+.ev.c1{border-color:#B85450;background:rgba(184,84,80,.08)}
+.ev.c2{border-color:#4E9A51;background:rgba(78,154,81,.08)}
+.ev.c3{border-color:#4472C7;background:rgba(68,114,199,.08)}
+.ev.c4{border-color:#C49A42;background:rgba(196,154,66,.08)}
+.ev.c6{border-color:#D07440;background:rgba(208,116,64,.08)}
+.ev.c7{border-color:#4BA3C3;background:rgba(75,163,195,.08)}
+.ev.c11{border-color:#B05C8A;background:rgba(176,92,138,.08)}
+
+/* No-cal state */
+.no-cal{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:320px;gap:16px;
+}
+.no-cal-title{
+  font-family:'Instrument Serif',serif;font-style:italic;
+  font-size:22px;color:var(--ink-2);
+}
+.no-cal-sub{font-size:13px;color:var(--ink-3);text-align:center;max-width:300px;line-height:1.6}
+
+/* ── Right panel ──────────────────────────────────────────── */
+.panel{
+  background:var(--paper-2);border-left:1px solid var(--rule);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.panel-head{padding:22px 24px 16px;border-bottom:1px solid var(--rule)}
+.panel-title-serif{
+  font-family:'Instrument Serif',serif;font-size:26px;
+  letter-spacing:-.02em;color:var(--ink);font-weight:400;line-height:1.1;
+}
+.panel-title-serif em{font-style:italic;color:var(--hue)}
+.panel-sub-mono{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-4);margin-top:4px}
+
+.panel-scroll{flex:1;overflow-y:auto;padding-bottom:40px}
+.panel-scroll::-webkit-scrollbar{width:6px}
+.panel-scroll::-webkit-scrollbar-thumb{background:var(--rule);border-radius:4px}
+
+/* Section divider */
+.p-section-head{
+  padding:14px 24px 10px;
+  border-bottom:1px solid var(--rule);
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  text-transform:uppercase;letter-spacing:.14em;color:var(--ink-4);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.p-count{color:var(--hue);font-size:10px}
+
+/* Day label in upcoming */
+.p-day-label{
+  padding:8px 24px 6px;
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  text-transform:uppercase;letter-spacing:.08em;color:var(--ink-4);
+  border-top:1px solid var(--rule-soft);margin-top:2px;
+}
+.p-day-label:first-child{border-top:none;margin-top:0}
+
+/* Event row in panel */
+.p-event{
+  display:grid;grid-template-columns:38px 1fr;gap:12px;
+  padding:10px 24px 10px 24px;
+  border-bottom:1px solid var(--rule-soft);
+  transition:background .1s;cursor:default;
+}
+.p-event:hover{background:var(--hover)}
+.p-ev-date{
+  display:flex;flex-direction:column;align-items:center;
+  background:var(--surface);border:1px solid var(--rule);
+  border-radius:6px;padding:4px 2px;
+  flex-shrink:0;height:fit-content;
+}
+.p-ev-day{
+  font-family:'Instrument Serif',serif;font-size:16px;font-style:italic;
+  color:var(--ink);line-height:1;
+}
+.p-ev-mon{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--ink-4);text-transform:uppercase;letter-spacing:.04em}
+.p-ev-info{}
+.p-ev-title{
+  font-family:'Instrument Serif',serif;font-size:15px;
+  color:var(--ink);letter-spacing:-.01em;line-height:1.2;
+}
+.p-ev-time{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-4);margin-top:3px}
+.p-ev-loc{font-size:11px;color:var(--ink-3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Task row */
+.p-task{
+  display:grid;grid-template-columns:16px 1fr auto;gap:10px;align-items:start;
+  padding:10px 24px;border-bottom:1px solid var(--rule-soft);
+  transition:background .1s;
+}
+.p-task:hover{background:var(--hover)}
+.p-task-check{
+  width:14px;height:14px;border:1px solid var(--ink-4);border-radius:3px;
+  flex-shrink:0;margin-top:3px;cursor:pointer;transition:all .15s;
+}
+.p-task-check:hover{border-color:var(--hue)}
+.p-task-check.done{background:var(--hue);border-color:var(--hue)}
+.p-task-check.done::after{content:'✓';font-size:9px;color:var(--paper);display:flex;justify-content:center;align-items:center;height:100%}
+.p-task-title{
+  font-family:'Instrument Serif',serif;font-size:15px;
+  color:var(--ink);letter-spacing:-.01em;line-height:1.3;
+}
+.p-task-meta{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-4);margin-top:3px}
+.p-task-prio{
+  width:4px;height:4px;border-radius:50%;
+  flex-shrink:0;margin-top:8px;
+}
+.p-task-prio.high{background:#B85450}
+.p-task-prio.medium{background:var(--clay)}
+.p-task-prio.low{background:#4E9A51}
+.p-task-due-over{color:#B85450}
+
+/* Empty states */
+.p-empty{
+  padding:20px 24px;font-family:'Instrument Serif',serif;
+  font-style:italic;font-size:16px;color:var(--ink-3);
+}
+
+/* Skeletons */
+.skel{
+  background:linear-gradient(90deg,var(--paper-3),var(--paper-2),var(--paper-3));
+  background-size:200% 100%;animation:shimmer 1.6s infinite;border-radius:4px;
+}
+
+/* ── Chat panel ──────────────────────────────────────────── */
+.cp-head{padding:22px 24px 16px;border-bottom:1px solid var(--rule);flex-shrink:0}
+.cp-title{font-family:'Instrument Serif',serif;font-size:26px;color:var(--ink);letter-spacing:-.02em;font-weight:400;line-height:1.1}
+.cp-title em{font-style:italic;color:var(--hue)}
+.cp-sub{font-size:.68em;font-family:'JetBrains Mono',monospace;color:var(--ink-4);margin-top:3px}
+.cp-msgs{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.cp-msgs::-webkit-scrollbar{width:4px}
+.cp-msgs::-webkit-scrollbar-thumb{background:var(--rule);border-radius:3px}
+.c-msg{animation:fadeUp .18s ease-out}
+.c-msg+.c-msg{border-top:1px solid var(--rule-soft);padding-top:12px}
+.c-msg-meta{font-size:.65em;font-family:'JetBrains Mono',monospace;color:var(--ink-4);margin-bottom:5px}
+.c-msg-body{font-size:.82em;line-height:1.55;color:var(--ink-2)}
+.c-msg.agent .c-msg-body{border-left:2px solid var(--hue);padding-left:10px}
+.c-dots{display:flex;gap:3px;padding:4px 0}
+.c-dot{width:4px;height:4px;border-radius:50%;background:var(--hue);animation:dotBounce 1.2s infinite}
+@keyframes dotBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
+.cp-chips{display:flex;flex-wrap:wrap;gap:5px;padding:0 16px 8px;flex-shrink:0}
+.cp-chip{padding:3px 9px;border:1px solid var(--rule);border-radius:100px;background:transparent;font-size:.70em;font-family:'JetBrains Mono',monospace;color:var(--ink-3);cursor:pointer;transition:all .12s}
+.cp-chip:hover{border-color:var(--hue);color:var(--hue)}
+.cp-compose{padding:8px 14px 14px;border-top:1px solid var(--rule);flex-shrink:0}
+.cp-box{display:flex;align-items:flex-end;gap:7px;border:1px solid var(--rule);border-radius:9px;background:var(--paper);padding:7px 10px;transition:border-color .15s}
+.cp-box:focus-within{border-color:var(--hue)}
+.cp-ta{flex:1;border:none;outline:none;background:transparent;font-family:'Inter',sans-serif;font-size:.80em;color:var(--ink);resize:none;min-height:22px;max-height:100px;line-height:1.5}
+.cp-ta::placeholder{color:var(--ink-4)}
+.cp-send{width:28px;height:28px;border-radius:7px;border:none;background:var(--hue);color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
+.cp-send:hover:not(:disabled){filter:brightness(1.15)}
+.cp-send:disabled{opacity:.45;cursor:default}
+@keyframes fadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── Sidebar ──────────────────────────────────────────── -->
+  <aside class="sidebar">
+
+    <div class="sidebar-top">
+      <a href="/" class="back-link">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+        Agents
+      </a>
+      <div style="display:flex;justify-content:center;padding:10px 0 4px;">
+        <canvas id="agent-sprite" style="image-rendering:pixelated;image-rendering:crisp-edges;display:block;"></canvas>
+      </div>
+      <div class="agent-heading">
+        <div class="agent-name">Mi<em>ya</em>moto</div>
+        <div class="agent-role">Productivity · Time Mastery</div>
+      </div>
+    </div>
+
+    <!-- Focus Timer -->
+    <div class="s-section">
+      <div class="s-label">
+        <span>Focus Timer</span>
+        <div class="cal-badge" id="cal-badge"><div class="dot"></div><span>Calendar</span></div>
+      </div>
+      <div class="timer-block">
+        <!-- SVG ring + centered text -->
+        <div class="timer-ring-wrap">
+          <svg viewBox="0 0 148 148" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Track -->
+            <circle cx="74" cy="74" r="66" stroke="var(--rule)" stroke-width="1.5"/>
+            <!-- Progress arc -->
+            <circle id="timer-arc" cx="74" cy="74" r="66"
+              stroke="var(--hue)" stroke-width="2" stroke-linecap="round"
+              stroke-dasharray="414.69" stroke-dashoffset="0"
+              transform="rotate(-90 74 74)"
+              style="transition:stroke-dashoffset .9s ease"/>
+          </svg>
+          <div class="timer-ring-center">
+            <div id="timer-display">25:00</div>
+            <div id="timer-mode-lbl">Focus</div>
+          </div>
+        </div>
+
+        <div class="timer-modes">
+          <button class="mode-pill active" onclick="setMode('focus')">Focus</button>
+          <button class="mode-pill" onclick="setMode('short')">Short</button>
+          <button class="mode-pill" onclick="setMode('long')">Long</button>
+        </div>
+
+        <div class="timer-controls">
+          <button class="t-btn primary" id="t-start" onclick="toggleTimer()">Start</button>
+          <button class="t-btn" onclick="resetTimer()">Reset</button>
+        </div>
+
+        <div class="sessions-row">
+          <div class="s-dots" id="s-dots"></div>
+          <div class="sessions-count" id="s-count">0 / 4</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Today stats -->
+    <div class="s-section">
+      <div class="s-label">Today</div>
+      <div class="stat-pairs">
+        <div class="stat-pair">
+          <div class="stat-pair-val" id="st-events"><em>—</em></div>
+          <div class="stat-pair-lbl">Events</div>
+        </div>
+        <div class="stat-pair">
+          <div class="stat-pair-val" id="st-tasks"><em>—</em></div>
+          <div class="stat-pair-lbl">Pending</div>
+        </div>
+        <div class="stat-pair">
+          <div class="stat-pair-val" id="st-sessions"><em>0</em></div>
+          <div class="stat-pair-lbl">Sessions</div>
+        </div>
+        <div class="stat-pair">
+          <div class="stat-pair-val" id="st-focus"><em>0</em><span style="font-size:14px;color:var(--ink-3)">m</span></div>
+          <div class="stat-pair-lbl">Focus</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Week mini strip -->
+    <div class="s-section">
+      <div class="s-label">This Week</div>
+      <div class="week-row" id="week-row"></div>
+    </div>
+
+    <!-- Footer: theme toggle + clock -->
+    <div class="sidebar-footer">
+      <span id="clock-small">00:00</span>
+      <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle theme">
+        <svg id="theme-icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        <svg id="theme-icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z"/></svg>
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- ── Main: Timeline ──────────────────────────────────── -->
+  <main class="main">
+
+    <!-- Masthead -->
+    <div class="masthead">
+      <div class="mast-eyebrow">
+        <span class="small-caps">CassanovaL</span>
+        <span class="mast-sep"></span>
+        <span class="small-caps">Schedule</span>
+      </div>
+      <div class="mast-title">Today's <em>Schedule</em></div>
+      <div class="mast-sub" id="mast-sub">Loading…</div>
+    </div>
+
+    <!-- Date strip -->
+    <div class="date-strip">
+      <div class="date-strip-label">
+        <span class="status-dot"></span>
+        <span id="today-label">—</span>
+      </div>
+      <div class="date-strip-label" id="ev-count-label">—</div>
+    </div>
+
+    <!-- All-day strip -->
+    <div class="allday-bar" id="allday-bar"></div>
+
+    <!-- Timeline -->
+    <div class="timeline-scroll scroll">
+      <div id="timeline"></div>
+    </div>
+
+  </main>
+
+  <!-- ── Right Panel — Miyamoto Chat ──────────────────────── -->
+  <aside class="panel">
+    <div class="cp-head">
+      <div class="cp-title">Ask <em>Miyamoto</em></div>
+      <div class="cp-sub">Calendar &amp; schedule · Mistral AI</div>
+    </div>
+    <div class="cp-msgs" id="cp-msgs">
+      <div class="c-msg agent">
+        <div class="c-msg-meta">Miyamoto</div>
+        <div class="c-msg-body">Hello! I can manage your Google Calendar — create events, check your schedule, or help you plan your week.</div>
+      </div>
+    </div>
+    <div class="cp-chips" id="cp-chips">
+      <button class="cp-chip" onclick="cpQuick('What\'s on my schedule today?')">Today's events</button>
+      <button class="cp-chip" onclick="cpQuick('Show my schedule this week')">This week</button>
+      <button class="cp-chip" onclick="cpQuick('Show pending tasks from Alfred')">Alfred tasks</button>
+      <button class="cp-chip" onclick="cpQuick('Create a new event')">Add event</button>
+    </div>
+    <div class="cp-compose">
+      <div class="cp-box">
+        <textarea class="cp-ta" id="cp-ta" rows="1" placeholder="Ask Miyamoto…" onkeydown="cpKey(event)" oninput="cpResize(this)"></textarea>
+        <button class="cp-send" id="cp-send" onclick="cpSend()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// Constants
+const HOUR_H   = 68;   // px per hour in timeline
+const TL_START = 6;    // 6 AM
+const TL_END   = 23;   // 11 PM
+const CIRC     = 414.69; // 2π×66
+
+const MODES = {
+  focus: { label:'Focus',       mins:25 },
+  short: { label:'Short Break', mins:5  },
+  long:  { label:'Long Break',  mins:15 },
+};
+
+const DAY_SHORT  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MON_SHORT  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Theme
+let theme = localStorage.getItem('theme') || 'light';
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('theme-icon-sun').style.display  = t==='dark'  ? 'block':'none';
+  document.getElementById('theme-icon-moon').style.display = t==='light' ? 'block':'none';
+  localStorage.setItem('theme', t);
+}
+function toggleTheme(){
+  theme = theme==='light' ? 'dark' : 'light';
+  applyTheme(theme);
+}
+applyTheme(theme);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Clock
+function updateClock(){
+  const now = new Date();
+  const hh  = String(now.getHours()).padStart(2,'0');
+  const mm  = String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('clock-small').textContent = hh+':'+mm;
+}
+setInterval(updateClock, 10000);
+updateClock();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pomodoro Timer
+let timerMode    = 'focus';
+let timerTotal   = 25*60;
+let timerLeft    = 25*60;
+let timerRunning = false;
+let timerIv      = null;
+let sessions     = 0;
+let focusMins    = 0;
+
+function setMode(mode){
+  if(timerRunning) resetTimer();
+  timerMode  = mode;
+  timerTotal = MODES[mode].mins*60;
+  timerLeft  = timerTotal;
+  document.querySelectorAll('.mode-pill').forEach((b,i)=>{
+    b.classList.toggle('active',['focus','short','long'][i]===mode);
+  });
+  renderTimer();
+}
+function toggleTimer(){
+  if(timerRunning){
+    clearInterval(timerIv); timerRunning=false;
+    document.getElementById('t-start').textContent='Resume';
+  } else {
+    timerRunning=true;
+    document.getElementById('t-start').textContent='Pause';
+    timerIv=setInterval(()=>{
+      timerLeft--;
+      if(timerMode==='focus') focusMins=Math.floor((timerTotal-timerLeft)/60);
+      renderTimer();
+      document.getElementById('st-focus').innerHTML=`<em>${sessions*25+focusMins}</em><span style="font-size:14px;color:var(--ink-3)">m</span>`;
+      if(timerLeft<=0){
+        clearInterval(timerIv); timerRunning=false;
+        document.getElementById('t-start').textContent='Start';
+        if(timerMode==='focus'){
+          sessions=Math.min(sessions+1,4);
+          document.getElementById('st-sessions').innerHTML=`<em>${sessions}</em>`;
+          renderDots();
+        }
+        timerLeft=timerTotal; renderTimer();
+      }
+    },1000);
+  }
+}
+function resetTimer(){
+  clearInterval(timerIv); timerRunning=false; timerLeft=timerTotal;
+  document.getElementById('t-start').textContent='Start';
+  renderTimer();
+}
+function renderTimer(){
+  const m=Math.floor(timerLeft/60), s=timerLeft%60;
+  document.getElementById('timer-display').textContent=
+    String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  document.getElementById('timer-mode-lbl').textContent=MODES[timerMode].label;
+  const offset=CIRC*(1-timerLeft/timerTotal);
+  document.getElementById('timer-arc').style.strokeDashoffset=offset;
+}
+function renderDots(){
+  const el=document.getElementById('s-dots'); el.innerHTML='';
+  for(let i=0;i<4;i++){
+    const d=document.createElement('div');
+    d.className='s-dot'+(i<sessions?' done':'');
+    el.appendChild(d);
+  }
+  document.getElementById('s-count').textContent=sessions+' / 4';
+}
+renderTimer(); renderDots();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Week strip
+function buildWeekStrip(weekDays, weekEvents){
+  const el=document.getElementById('week-row'); el.innerHTML='';
+  const today=new Date().toISOString().split('T')[0];
+  weekDays.forEach(d=>{
+    const dt=new Date(d+'T00:00:00');
+    const count=(weekEvents[d]||[]).length;
+    const isToday=d===today;
+    const cell=document.createElement('div');
+    cell.className='wday'+(isToday?' is-today':'');
+    cell.innerHTML=`<div class="wday-name">${DAY_SHORT[dt.getDay()]}</div>
+      <div class="wday-num">${dt.getDate()}</div>
+      ${count>0?'<div class="wday-dot"></div>':'<div style="width:4px;height:4px"></div>'}`;
+    el.appendChild(cell);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Timeline
+function buildTimeline(events, calConnected){
+  const tl=document.getElementById('timeline');
+  if(!calConnected){
+    tl.innerHTML=`<div class="no-cal">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--ink-4)" stroke-width="1.5">
+        <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+      </svg>
+      <div class="no-cal-title">Calendar not connected</div>
+      <div class="no-cal-sub">Place credentials.json in credentials/ and chat with Miyamoto once to authorise.</div>
+    </div>`;
+    return;
+  }
+
+  const totalH = TL_END - TL_START;
+  tl.style.position='relative';
+  tl.style.height=(totalH*HOUR_H+HOUR_H)+'px';
+  tl.innerHTML='';
+
+  // Hour rows
+  for(let h=TL_START;h<=TL_END;h++){
+    const row=document.createElement('div');
+    row.className='hr-row';
+    const top=(h-TL_START)*HOUR_H;
+    row.style.cssText=`top:${top}px;height:${HOUR_H}px`;
+
+    const lbl=document.createElement('div');
+    lbl.className='hr-label';
+    lbl.textContent=h===12?'12 PM':h>12?`${h-12} PM`:`${h} AM`;
+    row.appendChild(lbl);
+
+    if(h<TL_END){
+      const half=document.createElement('div');
+      half.className='hr-half'; row.appendChild(half);
+    }
+    tl.appendChild(row);
+  }
+
+  // Current time line
+  const now=new Date(), nh=now.getHours(), nm=now.getMinutes();
+  if(nh>=TL_START && nh<=TL_END){
+    const top=((nh-TL_START)+nm/60)*HOUR_H;
+    const line=document.createElement('div');
+    line.id='now-line'; line.style.top=top+'px';
+    line.innerHTML='<div class="now-dot"></div><div class="now-rule"></div>';
+    tl.appendChild(line);
+    // scroll
+    setTimeout(()=>{
+      document.querySelector('.timeline-scroll').scrollTop=Math.max(0,top-140);
+    },80);
+  }
+
+  // Place events
+  const CMAP={'1':'c1','2':'c2','3':'c3','4':'c4','6':'c6','7':'c7','11':'c11'};
+  const timed=events.filter(e=>!e.is_all_day).sort((a,b)=>(a.hour*60+a.minute)-(b.hour*60+b.minute));
+
+  // Simple overlap columns
+  const cols=[];
+  timed.forEach(ev=>{
+    if(ev.hour<TL_START||ev.hour>=TL_END) return;
+    const startM=ev.hour*60+ev.minute, endM=startM+ev.duration_min;
+    const top=((ev.hour-TL_START)+ev.minute/60)*HOUR_H;
+    const height=Math.max(ev.duration_min/60*HOUR_H-2,24);
+
+    let col=cols.length;
+    for(let i=0;i<cols.length;i++){ if(cols[i]<=startM){col=i;break} }
+    if(col>=cols.length) cols.push(0);
+    cols[col]=endM;
+
+    const maxCols=3;
+    const w=`calc((100% - ${col*28}px) / ${Math.min(col+1,maxCols)})`;
+    const l=col===0?0:col*28;
+
+    const block=document.createElement('div');
+    block.className='ev '+(CMAP[ev.color_id]||'');
+    block.style.cssText=`top:${top}px;height:${height}px;left:${l}px;right:3px`;
+    block.title=`${ev.title}\n${ev.start_time}–${ev.end_time}${ev.location?'\n'+ev.location:''}`;
+
+    const timeStr=ev.end_time?`${ev.start_time} – ${ev.end_time}`:ev.start_time;
+    block.innerHTML=`<div class="ev-title">${esc(ev.title)}</div>
+      <div class="ev-time">${esc(timeStr)}</div>
+      ${ev.location?`<div class="ev-loc">${esc(ev.location)}</div>`:''}`;
+    tl.appendChild(block);
+  });
+}
+
+// All-day strip
+function buildAllDay(events){
+  const bar=document.getElementById('allday-bar');
+  const all=events.filter(e=>e.is_all_day);
+  bar.innerHTML='';
+  if(!all.length){
+    bar.innerHTML='<div class="allday-empty">No all-day events</div>'; return;
+  }
+  all.forEach(ev=>{
+    const p=document.createElement('div');
+    p.className='allday-pill';
+    p.textContent=ev.title; bar.appendChild(p);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Upcoming panel
+function buildUpcoming(upcoming){
+  const el=document.getElementById('upcoming-list');
+  document.getElementById('upcoming-count').textContent=upcoming.length||'—';
+  if(!upcoming.length){ el.innerHTML='<div class="p-empty">No upcoming events</div>'; return; }
+
+  let html='', lastDay='';
+  upcoming.slice(0,20).forEach(ev=>{
+    if(ev.day!==lastDay){
+      const dt=new Date(ev.day+'T00:00:00');
+      html+=`<div class="p-day-label">${DAY_SHORT[dt.getDay()]}, ${dt.getDate()} ${MON_SHORT[dt.getMonth()]}</div>`;
+      lastDay=ev.day;
+    }
+    const dt=new Date(ev.day+'T00:00:00');
+    const loc=ev.location?`<div class="p-ev-loc">${esc(ev.location)}</div>`:'';
+    html+=`<div class="p-event">
+      <div class="p-ev-date">
+        <div class="p-ev-day">${dt.getDate()}</div>
+        <div class="p-ev-mon">${MON_SHORT[dt.getMonth()]}</div>
+      </div>
+      <div class="p-ev-info">
+        <div class="p-ev-title">${esc(ev.title)}</div>
+        <div class="p-ev-time">${ev.is_all_day?'All day':ev.start_time+(ev.end_time?' – '+ev.end_time:'')}</div>
+        ${loc}
+      </div>
+    </div>`;
+  });
+  el.innerHTML=html;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tasks panel
+function buildTasks(tasks){
+  const el=document.getElementById('task-list');
+  document.getElementById('tasks-count').textContent=tasks.length||'—';
+  document.getElementById('st-tasks').innerHTML=`<em>${tasks.length||0}</em>`;
+  if(!tasks.length){ el.innerHTML='<div class="p-empty">All clear — no pending tasks</div>'; return; }
+
+  const today=new Date().toISOString().split('T')[0];
+  let html='';
+  tasks.forEach(t=>{
+    const p=(t.priority||'medium').toLowerCase();
+    const due=t.due_date?t.due_date.slice(0,10):'';
+    const over=due&&due<today;
+    const dueStr=due?`<span class="${over?'p-task-due-over':''}">${over?'Overdue ':'Due '}${due}</span>`:'';
+    html+=`<div class="p-task">
+      <div class="p-task-check" onclick="this.classList.toggle('done')"></div>
+      <div>
+        <div class="p-task-title">${esc(t.title||'')}</div>
+        <div class="p-task-meta">${p.toUpperCase()}${due?' · '+dueStr:''}</div>
+      </div>
+      <div class="p-task-prio ${p}"></div>
+    </div>`;
+  });
+  el.innerHTML=html;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Load dashboard
+let _dash=null;
+async function load(){
+  try{
+    const res=await fetch('/api/productivity/dashboard');
+    const d=await res.json();
+    _dash=d;
+
+    // Cal badge
+    const badge=document.getElementById('cal-badge');
+    if(d.calendar_connected) badge.classList.add('ok');
+    badge.querySelector('span').textContent=d.calendar_connected?'Calendar ✓':'Calendar ✗';
+
+    // Masthead
+    document.getElementById('mast-sub').textContent='Your calendar at a glance';
+    document.getElementById('today-label').textContent=d.today_label||'Today';
+
+    const ec=d.today_events?d.today_events.length:0;
+    document.getElementById('ev-count-label').textContent=
+      ec===0?'No events today':`${ec} event${ec!==1?'s':''} today`;
+    document.getElementById('st-events').innerHTML=`<em>${ec}</em>`;
+
+    // Sections
+    buildAllDay(d.today_events||[]);
+    buildTimeline(d.today_events||[], d.calendar_connected);
+    buildWeekStrip(d.week_days||[], d.week_events||{});
+    buildUpcoming(d.upcoming||[]);
+    buildTasks(d.tasks||[]);
+  }catch(e){
+    console.error(e);
+    document.getElementById('ev-count-label').textContent='Could not load';
+  }
+}
+
+// Refresh now-line every minute
+setInterval(()=>{
+  if(_dash) buildTimeline(_dash.today_events||[], _dash.calendar_connected);
+},60000);
+
+// ─────────────────────────────────────────────────────────────────────────────
+function esc(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+load();
+
+// ── Miyamoto Chat Panel ───────────────────────────────────────────────────
+let _chatBusy = false;
+function _nowTime(){ const n=new Date(); return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0'); }
+function cpAppendMsg(role, text){
+  const box = document.getElementById('cp-msgs');
+  const el = document.createElement('div'); el.className = 'c-msg '+role;
+  const safe = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  el.innerHTML = `<div class="c-msg-meta">${role==='user'?'You':'Miyamoto'} · ${_nowTime()}</div><div class="c-msg-body">${safe}</div>`;
+  box.appendChild(el); box.scrollTop = box.scrollHeight;
+}
+function cpShowTyping(){
+  const box = document.getElementById('cp-msgs');
+  const el = document.createElement('div'); el.className = 'c-msg agent'; el.id = 'cp-typing';
+  el.innerHTML = '<div class="c-msg-meta">Miyamoto</div><div class="c-msg-body"><span class="c-dots"><span class="c-dot" style="animation-delay:0s"></span><span class="c-dot" style="animation-delay:.2s"></span><span class="c-dot" style="animation-delay:.4s"></span></span></div>';
+  box.appendChild(el); box.scrollTop = box.scrollHeight;
+}
+function cpHideTyping(){ const el = document.getElementById('cp-typing'); if(el) el.remove(); }
+async function cpSend(){
+  if(_chatBusy) return;
+  const ta = document.getElementById('cp-ta');
+  const text = ta.value.trim(); if(!text) return;
+  ta.value = ''; ta.style.height = 'auto';
+  document.getElementById('cp-chips').style.display = 'none';
+  _chatBusy = true; document.getElementById('cp-send').disabled = true;
+  cpAppendMsg('user', text);
+  cpShowTyping();
+  try {
+    const res = await fetch('/api/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message:text, agent:'schedule'})});
+    const data = await res.json();
+    cpHideTyping();
+    cpAppendMsg('agent', data.response || '(no response)');
+    setTimeout(() => load(), 600);
+  } catch(e) {
+    cpHideTyping();
+    cpAppendMsg('agent', 'Error: '+String(e.message||e));
+  } finally {
+    _chatBusy = false; document.getElementById('cp-send').disabled = false;
+    document.getElementById('cp-ta').focus();
+  }
+}
+function cpQuick(text){ document.getElementById('cp-ta').value = text; cpSend(); }
+function cpKey(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); cpSend(); } }
+function cpResize(ta){ ta.style.height='auto'; ta.style.height=Math.min(ta.scrollHeight,100)+'px'; }
+</script>
+<script src="/static/pixel/sprites.js"></script>
+<script>
+(function() {
+  var cv = document.getElementById('agent-sprite');
+  if (cv && window.PixelSprites) PixelSprites.render(cv, 'miyamoto', 4);
+})();
+</script>
+</body>
+</html>

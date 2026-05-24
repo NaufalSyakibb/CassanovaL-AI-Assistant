@@ -425,27 +425,130 @@ STOCK_TOOLS = [get_market_data, get_news_sentiment, get_technical_indicators]
 # ── Plotly JSON builders (called by server.py, not agents) ───────────────────
 
 def build_candlestick_json(ticker: str, ohlcv: dict) -> dict:
-    """Return a Plotly figure dict for a dark-theme candlestick chart."""
-    return {
-        "data": [{
+    """Return a Plotly figure dict: candlestick + volume bars + MA20/50/200 overlays."""
+    dates  = ohlcv.get("dates",  [])
+    opens  = ohlcv.get("open",   [])
+    highs  = ohlcv.get("high",   [])
+    lows   = ohlcv.get("low",    [])
+    closes = ohlcv.get("close",  [])
+    vols   = ohlcv.get("volume", [])
+
+    def _sma(n):
+        out = [None] * len(closes)
+        for i in range(n - 1, len(closes)):
+            out[i] = round(sum(closes[i - n + 1:i + 1]) / n, 4)
+        return out
+
+    ma20  = _sma(20)  if len(closes) >= 20  else [None] * len(closes)
+    ma50  = _sma(50)  if len(closes) >= 50  else [None] * len(closes)
+    ma200 = _sma(200) if len(closes) >= 200 else [None] * len(closes)
+
+    vol_colors = [
+        "rgba(0,204,68,0.45)" if i == 0 or closes[i] >= opens[i] else "rgba(255,34,34,0.45)"
+        for i in range(len(dates))
+    ]
+
+    last  = closes[-1] if closes else 0
+    first = closes[0]  if closes else 0
+    chg   = round((last - first) / first * 100, 2) if first else 0
+    sign  = "+" if chg >= 0 else ""
+
+    bg = "#000000"
+    gr = "#191919"
+    ax = "#555555"
+
+    traces = [
+        {
             "type": "candlestick",
-            "x":     ohlcv.get("dates", []),
-            "open":  ohlcv.get("open",  []),
-            "high":  ohlcv.get("high",  []),
-            "low":   ohlcv.get("low",   []),
-            "close": ohlcv.get("close", []),
-            "name":  ticker,
-            "increasing": {"line": {"color": "#00ff88"}},
-            "decreasing": {"line": {"color": "#ff4444"}},
-        }],
+            "x": dates, "open": opens, "high": highs, "low": lows, "close": closes,
+            "name": ticker,
+            "increasing": {"line": {"color": "#00cc44", "width": 1}, "fillcolor": "rgba(0,204,68,0.85)"},
+            "decreasing": {"line": {"color": "#ff2222", "width": 1}, "fillcolor": "rgba(255,34,34,0.85)"},
+            "whiskerwidth": 0.5,
+            "yaxis": "y",
+            "showlegend": False,
+        },
+        {
+            "type": "bar",
+            "x": dates, "y": vols,
+            "name": "VOL",
+            "marker": {"color": vol_colors, "line": {"width": 0}},
+            "yaxis": "y2",
+            "showlegend": False,
+        },
+        {
+            "type": "scatter",
+            "x": dates, "y": ma20,
+            "name": "MA20",
+            "line": {"color": "#ff6600", "width": 1.2, "dash": "dot"},
+            "yaxis": "y",
+            "connectgaps": True,
+            "showlegend": True,
+        },
+        {
+            "type": "scatter",
+            "x": dates, "y": ma50,
+            "name": "MA50",
+            "line": {"color": "#00cccc", "width": 1.2, "dash": "dot"},
+            "yaxis": "y",
+            "connectgaps": True,
+            "showlegend": True,
+        },
+    ]
+    if any(v is not None for v in ma200):
+        traces.append({
+            "type": "scatter",
+            "x": dates, "y": ma200,
+            "name": "MA200",
+            "line": {"color": "#cc88ff", "width": 1.2, "dash": "dash"},
+            "yaxis": "y",
+            "connectgaps": True,
+            "showlegend": True,
+        })
+
+    return {
+        "data": traces,
         "layout": {
-            "paper_bgcolor": "#0a0a0f",
-            "plot_bgcolor":  "#0d0d14",
-            "font":   {"color": "#c0c0d0", "family": "JetBrains Mono, monospace", "size": 11},
-            "xaxis":  {"gridcolor": "#1e1e2e", "color": "#8080a0", "rangeslider": {"visible": False}},
-            "yaxis":  {"gridcolor": "#1e1e2e", "color": "#8080a0", "title": "Price"},
-            "title":  {"text": f"{ticker} — Harga 1 Tahun", "font": {"color": "#00ff88", "size": 14}},
-            "margin": {"t": 50, "b": 40, "l": 70, "r": 20},
+            "paper_bgcolor": bg,
+            "plot_bgcolor":  bg,
+            "showlegend": True,
+            "legend": {
+                "x": 0, "y": 1.04, "orientation": "h",
+                "bgcolor": "rgba(0,0,0,0)",
+                "font": {"color": ax, "size": 9, "family": "IBM Plex Mono,Courier New,monospace"},
+            },
+            "font": {"color": ax, "family": "IBM Plex Mono,Courier New,monospace", "size": 10},
+            "title": {
+                "text": f"{ticker}  |  {last:,.4g}  ({sign}{chg}%)  ·  1Y",
+                "font": {"color": "#ff6600", "size": 11, "family": "IBM Plex Mono,Courier New,monospace"},
+                "x": 0.01,
+            },
+            "xaxis": {
+                "gridcolor": gr, "zerolinecolor": gr, "color": ax,
+                "rangeslider": {"visible": False},
+                "tickfont": {"size": 9},
+                "showgrid": True,
+                "linecolor": "#2a2a2a",
+            },
+            "yaxis": {
+                "gridcolor": gr, "zerolinecolor": gr, "color": ax,
+                "tickfont": {"size": 9}, "side": "right",
+                "domain": [0.26, 1.0],
+                "showgrid": True,
+                "linecolor": "#2a2a2a",
+            },
+            "yaxis2": {
+                "gridcolor": "rgba(0,0,0,0)", "zerolinecolor": gr, "color": ax,
+                "tickfont": {"size": 8}, "side": "right",
+                "domain": [0.0, 0.20],
+                "showgrid": False,
+            },
+            "margin": {"t": 42, "b": 36, "l": 8, "r": 70},
+            "hovermode": "x unified",
+            "hoverlabel": {
+                "bgcolor": "#111111", "bordercolor": "#333333",
+                "font": {"color": "#cccccc", "size": 10, "family": "IBM Plex Mono,Courier New,monospace"},
+            },
         },
     }
 
@@ -453,35 +556,71 @@ def build_candlestick_json(ticker: str, ohlcv: dict) -> dict:
 def build_heatmap_json(ticker: str, corr: dict) -> dict:
     """Return a Plotly figure dict for a macro-correlation heatmap."""
     if not corr:
-        return {"data": [], "layout": {"paper_bgcolor": "#0a0a0f", "title": {"text": "Korelasi tidak tersedia"}}}
+        return {
+            "data": [],
+            "layout": {
+                "paper_bgcolor": "#000000",
+                "title": {"text": "Macro correlation unavailable", "font": {"color": "#444444"}},
+            },
+        }
     label_map = {
-        "SP500": "S&P 500", "Gold": "Emas", "Oil_WTI": "Minyak (WTI)", "US_tbill_rate_3m": "T-Bill 3M"
+        "SP500": "S&P 500", "Gold": "Gold", "Oil_WTI": "WTI Oil", "US_tbill_rate_3m": "T-Bill 3M"
     }
+
+    def _desc(v):
+        if v > 0.6:  return "STRONG+"
+        if v > 0.3:  return "MOD+"
+        if v < -0.6: return "STRONG-"
+        if v < -0.3: return "MOD-"
+        return "NEUTRAL"
+
     labels = [label_map.get(k, k) for k in corr]
     values = [round(float(v), 3) for v in corr.values()]
-    text   = [[f"{v:+.2f}" for v in values]]
+    bg = "#000000"
+    gr = "#191919"
+    ax = "#555555"
     return {
         "data": [{
             "type": "heatmap",
             "z":    [values],
             "x":    labels,
             "y":    [ticker],
-            "colorscale": [[0, "#ff4444"], [0.5, "#1e1e2e"], [1, "#00ff88"]],
+            "colorscale": [
+                [0.00, "#cc0000"],
+                [0.25, "#440000"],
+                [0.50, "#0d0d0d"],
+                [0.75, "#004400"],
+                [1.00, "#00cc44"],
+            ],
             "zmin": -1,
             "zmax":  1,
-            "text":         text,
+            "text":         [[f"{v:+.3f}<br>{_desc(v)}" for v in values]],
             "texttemplate": "%{text}",
-            "textfont":     {"color": "#ffffff"},
+            "textfont":     {"color": "#ffffff", "size": 10, "family": "IBM Plex Mono,Courier New,monospace"},
             "showscale":    True,
+            "colorbar": {
+                "tickfont":  {"color": ax, "size": 9, "family": "IBM Plex Mono,Courier New,monospace"},
+                "thickness": 10,
+                "len":       0.85,
+            },
+            "hovertemplate": "%{x}: %{z:+.3f}<extra></extra>",
         }],
         "layout": {
-            "paper_bgcolor": "#0a0a0f",
-            "plot_bgcolor":  "#0d0d14",
-            "font":   {"color": "#c0c0d0", "family": "JetBrains Mono, monospace", "size": 11},
-            "xaxis":  {"color": "#8080a0"},
-            "yaxis":  {"color": "#8080a0"},
-            "title":  {"text": f"{ticker} — Korelasi vs Indikator Makro (1 Tahun)", "font": {"color": "#00ff88", "size": 14}},
-            "margin": {"t": 50, "b": 60, "l": 90, "r": 20},
+            "paper_bgcolor": bg,
+            "plot_bgcolor":  bg,
+            "font":  {"color": ax, "family": "IBM Plex Mono,Courier New,monospace", "size": 10},
+            "xaxis": {"color": ax, "tickfont": {"size": 10}, "linecolor": "#2a2a2a", "gridcolor": gr},
+            "yaxis": {"color": ax, "tickfont": {"size": 10}},
+            "title": {
+                "text":  f"{ticker}  ·  MACRO CORRELATION  (1Y)",
+                "font":  {"color": "#ff6600", "size": 11, "family": "IBM Plex Mono,Courier New,monospace"},
+                "x": 0.01,
+            },
+            "margin": {"t": 42, "b": 56, "l": 80, "r": 90},
+            "hoverlabel": {
+                "bgcolor": "#111111", "bordercolor": "#333333",
+                "font": {"color": "#cccccc", "size": 10, "family": "IBM Plex Mono,Courier New,monospace"},
+            },
         },
     }
 

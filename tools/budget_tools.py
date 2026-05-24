@@ -1,10 +1,12 @@
 import json
 import uuid
+from pathlib import Path
 from datetime import datetime, date as date_cls
 from langchain.tools import tool
 from tools.obsidian_tools import mirror_to_obsidian
 
-BUDGET_FILE = "data/budget.json"
+_BASE = Path(__file__).resolve().parent.parent
+BUDGET_FILE = str(_BASE / "data" / "budget.json")
 
 EXPENSE_CATEGORIES = ["food", "transport", "shopping", "entertainment", "bills", "health", "education", "subscriptions", "savings", "other"]
 INCOME_CATEGORIES  = ["salary", "freelance", "business", "investment", "gift", "other"]

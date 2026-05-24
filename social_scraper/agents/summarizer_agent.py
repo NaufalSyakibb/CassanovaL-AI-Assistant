@@ -1,6 +1,7 @@
 import json
 import re
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FutureTimeout
 
 _NAV_PHRASES = re.compile(
     r"^(sign in|log in|log out|sign up|register|create account|"
@@ -55,6 +56,8 @@ class SummarizerAgent:
             model="mistral-large-latest",
             api_key=os.getenv("MISTRAL_API_KEY", ""),
             temperature=0.4,
+            timeout=60,
+            max_retries=1,
         )
 
     def _summarize_platform(self, platform: str, raw_path: Path) -> str:
@@ -84,7 +87,29 @@ class SummarizerAgent:
             return f"_Gagal generate summary untuk {platform}: {exc}_"
 
     def run(self, raw_files: dict) -> dict:
+        """Run per-platform summaries in parallel with a 90s per-platform timeout."""
         summaries = {}
-        for platform, path in raw_files.items():
-            summaries[platform] = self._summarize_platform(platform, Path(path))
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            futures = {
+                pool.submit(self._summarize_platform, plat, Path(path)): plat
+                for plat, path in raw_files.items()
+            }
+            try:
+                for future in as_completed(futures, timeout=90 * len(raw_files)):
+                    plat = futures[future]
+                    try:
+                        summaries[plat] = future.result(timeout=90)
+                    except FutureTimeout:
+                        summaries[plat] = f"_Summary timed out for {plat}._"
+                    except Exception as exc:
+                        summaries[plat] = f"_Summary failed for {plat}: {exc}_"
+            except FutureTimeout:
+                for future, plat in futures.items():
+                    if future.done() and plat not in summaries:
+                        try:
+                            summaries[plat] = future.result()
+                        except Exception:
+                            pass
+                    elif plat not in summaries:
+                        summaries[plat] = f"_Summary timed out for {plat}._"
         return summaries

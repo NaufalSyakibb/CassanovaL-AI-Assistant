@@ -61,15 +61,19 @@ Cleans, analyzes, and visualizes CSV datasets:
 ```
 
 ### Pipeline 3 — Social Scraper (`crew_type: "scraper"`)
-Two-stage AI pipeline for harvesting trending content from up to 12 social platforms:
+Firecrawl-inspired multi-agent pipeline. Each platform runs 3 sequential micro-agents;
+all platforms run concurrently (ThreadPoolExecutor, max 3).
 
 ```
-Stage 1 — ScrapeGraphHarvester (social_scraper/agents/scrapegraph_harvester.py)
-  SearchGraph (ScrapeGraphAI v2 + Mistral)
-    └── SearchInternetNode  → DuckDuckGo search per platform
-    └── GraphIteratorNode   → SmartScraperGraph on top 5 result pages
-    └── MergeAnswersNode    → Mistral merges into structured topics list
-  Output: social_scraper/data/raw/<platform>/scrapegraph_<platform>_<ts>.json
+Stage 1 — FirecrawlHarvester (social_scraper/agents/firecrawl_harvester.py)
+  Per platform — 3 micro-agents in sequence:
+    [1] DiscoveryAgent  → DuckDuckGo search → top 6 source URLs
+    [2] ScraperAgent    → fetch each URL → clean LLM-ready markdown
+                          • FIRECRAWL_API_KEY set  → Firecrawl API (JS rendering, anti-bot)
+                          • No key (fallback)      → requests + html2text
+                          Inner parallel workers (ThreadPoolExecutor, max 4 per platform)
+    [3] ExtractorAgent  → mistral-small extracts structured trending topics from markdown
+  Output: social_scraper/data/raw/<platform>/firecrawl_<platform>_<ts>.json
 
 Stage 2 — SummarizerAgent (social_scraper/agents/summarizer_agent.py)
   mistral-large-latest generates per-platform Indonesian markdown summary:
@@ -80,7 +84,9 @@ Stage 2 — SummarizerAgent (social_scraper/agents/summarizer_agent.py)
 
 Supported platforms: `youtube`, `tiktok`, `facebook`, `instagram`, `twitter`, `reddit`, `linkedin`, `medium`, `twitch`, `pinterest`, `quora`, `soundcloud`
 
-> **First-time setup:** `playwright install chromium` (Playwright ships with scrapegraphai)
+Environment variables:
+- `FIRECRAWL_API_KEY` (optional) — get at firecrawl.dev for JS-capable scraping; falls back to requests+html2text without it
+- `MISTRAL_API_KEY` (required) — used by ExtractorAgent and SummarizerAgent
 
 ---
 

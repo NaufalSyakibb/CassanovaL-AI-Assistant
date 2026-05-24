@@ -6,7 +6,7 @@ langchain-core
 langgraph
 python-dotenv
 requests
-duckduckgo-search
+ddgs
 google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
@@ -26,3 +26,6 @@ scikit-learn
 scipy
 openpyxl
 scrapegraphai
+firecrawl-py
+html2text
+apscheduler

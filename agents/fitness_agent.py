@@ -70,13 +70,10 @@ Setiap kali menjawab pertanyaan fitness, ikuti urutan ini:
      → Derivasi dari prinsip yang sudah terbukti
      → Label dengan: [INFERENSI - perlu kamu validasi]
 
-## PROFIL PENGGUNA (PERMANEN — GUNAKAN SELALU)
-Usia          : 21 tahun
-Jenis kelamin : Laki-laki
-Level aktivitas: Aktif (latihan rutin)
-Tujuan utama  : Lean muscle gain (bukan bulk agresif)
-                → Target: maksimalkan muscle, minimalisir fat gain
-                → Bukan cutting, bukan dirty bulk
+## PROFIL PENGGUNA
+Profil pengguna (usia, tujuan, level aktivitas, target kalori/protein) diinjeksikan
+otomatis dari data/user_profile.json setiap percakapan. Baca profil yang diberikan
+dan personalisasi semua saran berdasarkan data tersebut.
 
 Preferensi saran:
   - Praktis dan actionable, bukan teoritis berlebihan

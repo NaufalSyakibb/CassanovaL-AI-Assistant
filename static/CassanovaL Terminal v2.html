@@ -257,8 +257,8 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
 
 /* ── CHARTS TAB ── */
 .charts-body{flex:1;display:flex;flex-direction:column;overflow:hidden}
-#cchart{flex:0 0 65%;border-bottom:1px solid var(--border)}
-#hchart{flex:0 0 35%}
+#cchart{flex:0 0 68%;min-height:320px;border-bottom:1px solid var(--border)}
+#hchart{flex:0 0 32%;min-height:140px}
 
 /* ── CODE TAB ── */
 .code-body{flex:1;display:flex;flex-direction:column;overflow:hidden}
@@ -311,12 +311,16 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
 <!-- ── COMMAND LINE ── -->
 <div id="cmdbar">
   <div class="cmd-label">CMD&gt;</div>
-  <input id="cmdinput" type="text" placeholder="Enter ticker and press &lt;GO&gt; e.g. BBCA.JK&lt;GO&gt;" maxlength="30" spellcheck="false" autocomplete="off">
+  <input id="cmdinput" type="text" placeholder="Ticker &lt;GO&gt;  e.g. AAPL · TSLA · NVDA · BBCA.JK · TLKM.JK" maxlength="20" spellcheck="false" autocomplete="off">
   <div class="cmd-presets">
-    <button class="cmd-preset" data-t="BBCA.JK">BBCA&lt;GO&gt;</button>
-    <button class="cmd-preset" data-t="TLKM.JK">TLKM&lt;GO&gt;</button>
-    <button class="cmd-preset" data-t="AAPL">AAPL&lt;GO&gt;</button>
-    <button class="cmd-preset" data-t="GOTO.JK">GOTO&lt;GO&gt;</button>
+    <button class="cmd-preset" data-t="AAPL">AAPL</button>
+    <button class="cmd-preset" data-t="TSLA">TSLA</button>
+    <button class="cmd-preset" data-t="NVDA">NVDA</button>
+    <button class="cmd-preset" data-t="MSFT">MSFT</button>
+    <button class="cmd-preset" data-t="AMZN">AMZN</button>
+    <button class="cmd-preset" data-t="BBCA.JK">BBCA</button>
+    <button class="cmd-preset" data-t="TLKM.JK">TLKM</button>
+    <button class="cmd-preset" data-t="GOTO.JK">GOTO</button>
   </div>
   <button class="cmd-run" id="abtn">&lt;GO&gt;</button>
 </div>
@@ -443,7 +447,7 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
           <div class="ph-title">CASSANOVAL TERMINAL</div>
           <div class="ph-sub">AI-POWERED STOCK ANALYSIS SYSTEM</div>
           <div class="ph-cmd">Type ticker + press &lt;GO&gt;</div>
-          <div class="ph-hint">Example: BBCA.JK &lt;GO&gt; &nbsp;|&nbsp; AAPL &lt;GO&gt; &nbsp;|&nbsp; TLKM.JK &lt;GO&gt;</div>
+          <div class="ph-hint">US: AAPL · TSLA · NVDA · MSFT · AMZN · GOOGL · META &nbsp;|&nbsp; IDX: BBCA.JK · TLKM.JK · GOTO.JK &nbsp;|&nbsp; Crypto: BTC-USD</div>
         </div>
       </div>
       <div id="rbody">
@@ -454,7 +458,7 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
             <div id="ks-price" style="font-size:18px;font-weight:700;color:var(--white);font-variant-numeric:tabular-nums">—</div>
           </div>
           <div style="border-right:1px solid var(--border);padding:6px 8px">
-            <div style="font-size:9px;color:var(--gray);letter-spacing:1px">CHG%</div>
+            <div style="font-size:9px;color:var(--gray);letter-spacing:1px">1Y CHG</div>
             <div id="ks-chg" style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums">—</div>
           </div>
           <div style="border-right:1px solid var(--border);padding:6px 8px">
@@ -651,13 +655,22 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
 
 // ── Tabs ──────────────────────────────────────────────────────────────────
 var TABS=['summary','strategy','charts','verdict','code'];
+function switchTab(t){
+  document.querySelectorAll('.tbtn').forEach(function(b){b.classList.remove('on')});
+  document.querySelectorAll('.tc').forEach(function(c){c.classList.remove('on')});
+  var btn=document.querySelector('.tbtn[data-t="'+t+'"]');
+  if(btn)btn.classList.add('on');
+  document.getElementById('tc-'+t).classList.add('on');
+  if(t==='charts'&&typeof Plotly!=='undefined'){
+    requestAnimationFrame(function(){
+      try{Plotly.Plots.resize(document.getElementById('cchart'))}catch(e){}
+      try{Plotly.Plots.resize(document.getElementById('hchart'))}catch(e){}
+    });
+  }
+}
+
 document.querySelectorAll('.tbtn').forEach(function(btn){
-  btn.addEventListener('click',function(){
-    document.querySelectorAll('.tbtn').forEach(function(b){b.classList.remove('on')});
-    document.querySelectorAll('.tc').forEach(function(c){c.classList.remove('on')});
-    btn.classList.add('on');
-    document.getElementById('tc-'+btn.dataset.t).classList.add('on');
-  });
+  btn.addEventListener('click',function(){ switchTab(btn.dataset.t); });
 });
 
 // F-key shortcuts
@@ -666,12 +679,7 @@ document.addEventListener('keydown',function(e){
   if(map[e.key]){
     e.preventDefault();
     if(e.key==='F8'){G.reset();return}
-    var t=map[e.key];
-    document.querySelectorAll('.tbtn').forEach(function(b){b.classList.remove('on')});
-    document.querySelectorAll('.tc').forEach(function(c){c.classList.remove('on')});
-    var btn=document.querySelector('.tbtn[data-t="'+t+'"]');
-    if(btn)btn.classList.add('on');
-    document.getElementById('tc-'+t).classList.add('on');
+    switchTab(map[e.key]);
   }
 });
 
@@ -694,6 +702,7 @@ document.getElementById('copybtn').addEventListener('click',function(){
 var G={};
 G.$=function(id){return document.getElementById(id)};
 G.logCount=0;
+G.currency='USD';
 
 G.setLive=function(on){
   G.$('ldot').classList.toggle('on',on);
@@ -737,7 +746,12 @@ G.reset=function(){
 G.renderKStats=function(price,chg,pe,roe,rsi){
   var p=G.$('ks-price'),c=G.$('ks-chg');
   if(p){
-    var fmt=price>=100?'Rp '+Math.round(price).toLocaleString('id-ID'):price.toFixed(2);
+    var fmt;
+    if(G.currency==='IDR'){
+      fmt='Rp '+Math.round(price).toLocaleString('id-ID');
+    }else{
+      fmt='$'+price.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    }
     p.textContent=fmt;
   }
   if(c){
@@ -808,47 +822,74 @@ G.renderVerdict=function(d){
   G.$('d-verdict').classList.add('v');
 };
 G.renderCharts=function(ticker){
-  var n=60,dates=[],opens=[],highs=[],lows=[],closes=[],vols=[],p=9200+Math.random()*800;
-  var dd=new Date('2025-01-02');
+  var n=120,dates=[],opens=[],highs=[],lows=[],closes=[],vols=[];
+  var basePrice=G.currency==='IDR'?9000+Math.random()*3000:150+Math.random()*200;
+  var p=basePrice,dd=new Date();dd.setDate(dd.getDate()-n*1.4);
   for(var i=0;i<n;i++){
     dd.setDate(dd.getDate()+1);
     if(dd.getDay()===0)dd.setDate(dd.getDate()+1);
     if(dd.getDay()===6)dd.setDate(dd.getDate()+2);
-    var o=p,ch=(Math.random()-.46)*180,c=o+ch,h=Math.max(o,c)+Math.random()*80,l=Math.min(o,c)-Math.random()*80;
+    var o=p,swing=p*(0.008+Math.random()*0.014),ch=(Math.random()-.47)*swing*2,c=o+ch;
+    var h=Math.max(o,c)+Math.random()*swing,l=Math.min(o,c)-Math.random()*swing;
     dates.push(dd.toISOString().slice(0,10));
-    opens.push(Math.round(o));closes.push(Math.round(c));
-    highs.push(Math.round(h));lows.push(Math.round(l));
-    vols.push(Math.round(5e6+Math.random()*15e6));p=c;
+    opens.push(parseFloat(o.toFixed(2)));closes.push(parseFloat(c.toFixed(2)));
+    highs.push(parseFloat(h.toFixed(2)));lows.push(parseFloat(l.toFixed(2)));
+    vols.push(Math.round((2e6+Math.random()*8e6)*(G.currency==='IDR'?5:1)));
+    p=c;
   }
-  var bg='#000000',gr='#222222',tf='#888888';
-  var base={paper_bgcolor:bg,plot_bgcolor:bg,showlegend:false,
-    font:{family:"'IBM Plex Mono','Courier New',monospace",color:tf,size:10},
-    xaxis:{gridcolor:gr,zerolinecolor:gr,tickfont:{size:9},rangeslider:{visible:false}},
-    yaxis:{gridcolor:gr,zerolinecolor:gr,tickfont:{size:9},side:'right'}};
-  Plotly.newPlot('cchart',[{
-    type:'candlestick',x:dates,open:opens,high:highs,low:lows,close:closes,
-    increasing:{line:{color:'#00cc44',width:1},fillcolor:'rgba(0,204,68,.8)'},
-    decreasing:{line:{color:'#ff2222',width:1},fillcolor:'rgba(255,34,34,.8)'},
-    whiskerwidth:.4
-  },{type:'bar',x:dates,y:vols,yaxis:'y2',
-    marker:{color:closes.map(function(c,i){return i===0||c>=opens[i]?'rgba(0,204,68,.4)':'rgba(255,34,34,.4)'})}}],
-    Object.assign({},base,{
-      title:{text:ticker+' EQUITY  | 3M OHLCV',font:{size:11,color:'#ff6600'},x:.01},
-      margin:{t:28,r:16,b:48,l:60},
-      yaxis:Object.assign({},base.yaxis,{domain:[.28,1]}),
-      yaxis2:{gridcolor:gr,domain:[0,.22],tickfont:{size:9},side:'right',zerolinecolor:gr}
-    }),{responsive:true,displayModeBar:false});
-  var secs=['BANKING','TELECOM','MINING','CONSUMER','PROPERTY','TECH'];
-  var z=secs.map(function(_,r){return secs.map(function(_,c){return r===c?1:parseFloat((Math.random()*1.8-.6).toFixed(2))})});
+  // Compute MA20 and MA50
+  var ma20=[],ma50=[];
+  for(var i=0;i<n;i++){
+    if(i>=19){var s=0;for(var j=i-19;j<=i;j++)s+=closes[j];ma20.push(parseFloat((s/20).toFixed(2)));}else{ma20.push(null);}
+    if(i>=49){var s=0;for(var j=i-49;j<=i;j++)s+=closes[j];ma50.push(parseFloat((s/50).toFixed(2)));}else{ma50.push(null);}
+  }
+  var bg='#000000',gr='#191919',ax='#555555';
+  var volColors=closes.map(function(c,i){return i===0||c>=opens[i]?'rgba(0,204,68,0.45)':'rgba(255,34,34,0.45)'});
+  var lastC=closes[closes.length-1],firstC=closes[0];
+  var chgPct=((lastC-firstC)/firstC*100).toFixed(2);
+  var sign=chgPct>=0?'+':'';
+  Plotly.newPlot('cchart',[
+    {type:'candlestick',x:dates,open:opens,high:highs,low:lows,close:closes,
+     name:ticker,showlegend:false,
+     increasing:{line:{color:'#00cc44',width:1},fillcolor:'rgba(0,204,68,0.85)'},
+     decreasing:{line:{color:'#ff2222',width:1},fillcolor:'rgba(255,34,34,0.85)'},
+     whiskerwidth:.5,yaxis:'y'},
+    {type:'bar',x:dates,y:vols,name:'VOL',showlegend:false,
+     marker:{color:volColors,line:{width:0}},yaxis:'y2'},
+    {type:'scatter',x:dates,y:ma20,name:'MA20',showlegend:true,
+     line:{color:'#ff6600',width:1.2,dash:'dot'},yaxis:'y',connectgaps:true},
+    {type:'scatter',x:dates,y:ma50,name:'MA50',showlegend:true,
+     line:{color:'#00cccc',width:1.2,dash:'dot'},yaxis:'y',connectgaps:true}
+  ],{paper_bgcolor:bg,plot_bgcolor:bg,showlegend:true,
+     legend:{x:0,y:1.04,orientation:'h',bgcolor:'rgba(0,0,0,0)',font:{color:ax,size:9}},
+     font:{family:"'IBM Plex Mono','Courier New',monospace",color:ax,size:10},
+     title:{text:ticker+'  |  '+lastC.toFixed(2)+'  ('+sign+chgPct+'%)  · DEMO',font:{size:11,color:'#ff6600'},x:.01},
+     xaxis:{gridcolor:gr,zerolinecolor:gr,color:ax,rangeslider:{visible:false},tickfont:{size:9}},
+     yaxis:{gridcolor:gr,zerolinecolor:gr,color:ax,side:'right',domain:[.26,1],tickfont:{size:9}},
+     yaxis2:{domain:[0,.20],side:'right',gridcolor:'rgba(0,0,0,0)',color:ax,tickfont:{size:8}},
+     margin:{t:42,r:70,b:36,l:8},hovermode:'x unified',
+     hoverlabel:{bgcolor:'#111111',bordercolor:'#333333',font:{color:'#cccccc',size:10}}
+  },{responsive:true,displayModeBar:false});
+  // Macro correlation heatmap (demo)
+  var macros=['S&P 500','Gold','WTI Oil','T-Bill 3M'];
+  var cv=macros.map(function(){return parseFloat((Math.random()*1.8-.6).toFixed(3))});
+  function desc(v){if(v>.6)return 'STRONG+';if(v>.3)return 'MOD+';if(v<-.6)return 'STRONG-';if(v<-.3)return 'MOD-';return 'NEUTRAL';}
   Plotly.newPlot('hchart',[{
-    type:'heatmap',x:secs,y:secs,z:z,
-    colorscale:[[0,'#ff2222'],[.5,'#111111'],[1,'#00cc44']],zmin:-1,zmax:1,
-    texttemplate:'%{z:.2f}',textfont:{size:9,color:'#ffffff'},
-    hovertemplate:'%{y} x %{x}: %{z:.2f}<extra></extra>'
-  }],Object.assign({},base,{
-    title:{text:'SECTOR CORRELATION MATRIX',font:{size:11,color:'#ff6600'},x:.01},
-    margin:{t:28,r:16,b:70,l:80}
-  }),{responsive:true,displayModeBar:false});
+    type:'heatmap',x:macros,y:[ticker],z:[cv],
+    colorscale:[[0,'#cc0000'],[.25,'#440000'],[.5,'#0d0d0d'],[.75,'#004400'],[1,'#00cc44']],
+    zmin:-1,zmax:1,
+    text:[[cv.map(function(v){return(v>=0?'+':'')+v.toFixed(3)+'\n'+desc(v)}).join('|')]],
+    texttemplate:cv.map(function(v){return(v>=0?'+':'')+v.toFixed(3)+'<br>'+desc(v)}).join(''),
+    textfont:{color:'#ffffff',size:10},showscale:true,
+    colorbar:{tickfont:{color:ax,size:9},thickness:10,len:.85},
+    hovertemplate:'%{x}: %{z:+.3f}<extra></extra>'
+  }],{paper_bgcolor:bg,plot_bgcolor:bg,
+     font:{family:"'IBM Plex Mono','Courier New',monospace",color:ax,size:10},
+     title:{text:ticker+'  ·  MACRO CORRELATION  (DEMO)',font:{size:11,color:'#ff6600'},x:.01},
+     xaxis:{color:ax,tickfont:{size:10},gridcolor:gr},yaxis:{color:ax,tickfont:{size:10}},
+     margin:{t:42,b:56,l:80,r:90},
+     hoverlabel:{bgcolor:'#111111',bordercolor:'#333333',font:{color:'#cccccc',size:10}}
+  },{responsive:true,displayModeBar:false});
   G.$('d-charts').classList.add('v');
 };
 G.hl=function(r){
@@ -938,6 +979,7 @@ document.getElementById('abtn').addEventListener('click',function(){
           break;
         case 'log':G.log(msg.text);break;
         case 'market':
+          G.currency=msg.currency||'USD';
           G.renderKStats(msg.price||0,msg.chg||0,msg.pe,msg.roe,msg.rsi);
           break;
         case 'strategy':G.renderStrategy(msg.data||{});break;

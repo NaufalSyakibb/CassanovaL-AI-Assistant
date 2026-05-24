@@ -19,7 +19,8 @@ function CommandPalette({ onClose, setAgent, setTab, toggleTheme, theme }) {
         sub: AGENTS[k].sub,
         hue: AGENTS[k].hue,
       })),
-      { type:'tab',    key:'overview', label:'Open the Dashboard',     sub:'Ledger · roster · recent' },
+      { type:'tab',    key:'ledger',   label:'Open the Daily Ledger',   sub:'Transactions · roster · recent notes' },
+      { type:'tab',    key:'overview', label:'Open Agent Overview',     sub:'Per-agent stats, progress, logs' },
       { type:'tab',    key:'chat',     label:'Open the Dialogue',       sub:'Return to the active agent' },
       { type:'link',   key:'/stock',   label:'Open Stock Terminal',     sub:'Bloomberg-style analysis terminal' },
       { type:'link',   key:'/stock/v2',label:'Open Pixel Terminal v2',  sub:'Retro pixel stock terminal' },
@@ -238,9 +239,10 @@ function CrewDrawer({ onClose }) {
       ]
     : crewType === 'scraper'
     ? [
-        { num:'1', name:'Scout',     role:'Trend monitoring — 24 platforms', phase:'Phase 1', hue:'var(--hue-alfred)' },
-        { num:'2', name:'Harvester', role:'Raw content collection + anti-bot', phase:'Phase 2', hue:'var(--hue-linus)' },
-        { num:'3', name:'Cleaner',   role:'Normalize · dedupe · spam filter · translate', phase:'Phase 3', hue:'var(--hue-cicero)' },
+        { num:'1', name:'DiscoveryAgent', role:'DuckDuckGo search → top URLs per platform', llm:'ddgs', phase:'Phase 1', hue:'var(--hue-alfred)' },
+        { num:'2', name:'ScraperAgent',   role:'Firecrawl API → clean LLM-ready markdown (parallel workers)', llm:'firecrawl', phase:'Phase 2', hue:'var(--hue-linus)' },
+        { num:'3', name:'ExtractorAgent', role:'Mistral-small → structured trending topics list', llm:'mistral-small', phase:'Phase 3', hue:'var(--hue-cicero)' },
+        { num:'4', name:'SummarizerAgent',role:'Mistral-large → Indonesian per-platform summary', llm:'mistral-large', phase:'Phase 4', hue:'var(--hue-najwa)' },
       ]
     : /* dataanalyst */ [
         { num:'I',   name:'The Cleaner',      role:'Preprocessing',     hue:'var(--hue-miyamoto)' },
@@ -292,7 +294,7 @@ function CrewDrawer({ onClose }) {
                 </button>
                 <button className={`crew-type ${crewType==='scraper'?'active':''}`} onClick={() => setCrewType('scraper')}>
                   <div className="crew-type-title">Social Scraper</div>
-                  <div className="crew-type-sub">Scout → Harvest → Clean</div>
+                  <div className="crew-type-sub">Discover → Scrape → Extract → Summarize</div>
                 </button>
               </div>
             </div>
@@ -444,7 +446,7 @@ function CrewDrawer({ onClose }) {
                 : crewType === 'research'       ? 'Estimated 3–6 min · Mistral LLM'
                 : crewType === 'career'         ? 'Estimated 2–4 min · Mistral LLM'
                 : crewType === 'academic_swarm' ? 'Estimated 2–10 min · Quick/Deep/Academic'
-                : crewType === 'scraper'        ? 'Time varies · depends on platforms + rate limits'
+                : crewType === 'scraper'        ? 'Firecrawl API · Discover → Scrape → Extract → Summarize · time varies by platform count'
                 : 'Estimated 1–3 min · Mistral LLM'}
             </div>
           </div>
@@ -522,4 +524,54 @@ function ResultModal({ outputs, onClose }) {
   );
 }
 
-window.CLOverlays = { CommandPalette, CrewDrawer, ResultModal };
+/* ── Notification Popover ─────────────────────────────────── */
+function NotifPopover({ notifs, onClose, onMarkRead, onOpenAlfred }) {
+  const fmtRelTime = ts => {
+    if (!ts) return '';
+    const diff = Date.now() - new Date(ts).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  };
+
+  const sorted = [...notifs].sort((a, b) => new Date(b.generated_at || b.date || 0) - new Date(a.generated_at || a.date || 0)).slice(0, 10);
+  const unreadCount = notifs.filter(n => !n.read).length;
+
+  return (
+    <>
+      <div className="notif-popover-backdrop" onClick={onClose}/>
+      <div className="notif-popover">
+        <div className="notif-popover-head">
+          <div className="notif-popover-title">
+            Briefs{unreadCount > 0 && <span style={{marginLeft:8, fontSize:13, color:'var(--clay)', fontFamily:'Inter, sans-serif'}}>{unreadCount} new</span>}
+          </div>
+        </div>
+        <div className="notif-popover-body">
+          {sorted.length === 0 ? (
+            <div className="notif-popover-empty">No briefs yet. Alfred fires one at 07:00.</div>
+          ) : sorted.map((n, i) => {
+            const firstLine = (n.content || n.brief || '').split('\n').find(l => l.trim()) || '';
+            const display = firstLine.replace(/^#+\s*/, '').slice(0, 90);
+            return (
+              <div key={i} className={`notif-popover-item${!n.read ? ' unread' : ''}`}>
+                <div className="notif-popover-item-text">{display || 'Morning brief'}</div>
+                <div className="notif-popover-item-time">{fmtRelTime(n.generated_at || n.date || n.timestamp)}</div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="notif-popover-foot">
+          {unreadCount > 0 && (
+            <button className="notif-mark-btn" onClick={onMarkRead}>Mark all read</button>
+          )}
+          <button className="notif-open-btn" onClick={() => { onOpenAlfred(); onClose(); }}>Open in Alfred</button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+window.CLOverlays = { CommandPalette, CrewDrawer, ResultModal, NotifPopover };

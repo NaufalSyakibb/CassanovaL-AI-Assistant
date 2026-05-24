@@ -1,8 +1,12 @@
 /* ============================================================
    App — state, tweaks, theme, keyboard
    ============================================================ */
-const { Sidebar, Masthead, ChatView, DashboardView, RightPanel } = window.CLViews;
-const { CommandPalette, CrewDrawer } = window.CLOverlays;
+const { Sidebar, Masthead, ChatView, DashboardView, AgentOverview, RightPanel } = window.CLViews;
+const { CommandPalette, CrewDrawer, NotifPopover } = window.CLOverlays;
+
+// Cross-tab sync: broadcast which agent wrote data so dashboard tabs refresh
+const _syncBC = typeof BroadcastChannel !== 'undefined'
+  ? new BroadcastChannel('cassanoval-sync') : null;
 
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "theme": "light",
@@ -25,6 +29,10 @@ function App() {
   const [showCrew, setShowCrew] = React.useState(false);
   const [panelOpen, setPanelOpen] = React.useState(() => window.innerWidth >= 1100);
   const [dash, setDash] = React.useState({ tStats: null, tasks: [], budget: null, notes: [], notesTotal: 0, recentTx: [] });
+  const [dashLoading, setDashLoading] = React.useState(true);
+  const [notifs, setNotifs] = React.useState([]);
+  const [notifOpen, setNotifOpen] = React.useState(false);
+  const briefInjectedRef = React.useRef(false);
 
   /* Theme on root */
   React.useEffect(() => {
@@ -57,12 +65,14 @@ function App() {
 
   /* Dashboard data */
   const loadDash = React.useCallback(() => {
+    setDashLoading(true);
     if (tweaks.useMockData) {
       setDash({
         tStats: MOCK.tStats, tasks: MOCK.tasks, budget: MOCK.budget,
         notes: MOCK.notes, notesTotal: MOCK.notesTotal,
         recentTx: MOCK.budget.recent_transactions,
       });
+      setDashLoading(false);
       return;
     }
     Promise.all([tasksAPI(), notesAPI(), budgetAPI()])
@@ -72,17 +82,63 @@ function App() {
           notes: n.notes ?? [], notesTotal: n.total ?? 0,
           recentTx: b?.recent_transactions ?? [],
         });
+        setDashLoading(false);
       }).catch(() => {
-        // Fallback to mock if API unreachable
         setDash({
           tStats: MOCK.tStats, tasks: MOCK.tasks, budget: MOCK.budget,
           notes: MOCK.notes, notesTotal: MOCK.notesTotal,
           recentTx: MOCK.budget.recent_transactions,
         });
+        setDashLoading(false);
       });
   }, [tweaks.useMockData]);
 
   React.useEffect(() => { loadDash(); }, [loadDash]);
+
+  /* BroadcastChannel — refresh hub sidebar when another tab's chat writes data */
+  React.useEffect(() => {
+    if (!_syncBC) return;
+    const h = () => loadDash();
+    _syncBC.addEventListener('message', h);
+    return () => _syncBC.removeEventListener('message', h);
+  }, [loadDash]);
+
+  /* Notification bell — poll every 5 minutes */
+  const loadNotifs = React.useCallback(async () => {
+    try {
+      const r = await fetch('/api/alfred/notifications');
+      const data = await r.json();
+      setNotifs(data.notifications || []);
+    } catch (_) {}
+  }, []);
+
+  React.useEffect(() => {
+    loadNotifs();
+    const id = setInterval(loadNotifs, 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [loadNotifs]);
+
+  /* Auto-inject morning brief when Alfred's chat is first opened today */
+  React.useEffect(() => {
+    if (agKey !== 'task' || tweaks.useMockData) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const stored = localStorage.getItem('alfred_brief_date');
+    if (stored === today || briefInjectedRef.current) return;
+    briefInjectedRef.current = true;
+    fetch('/api/alfred/brief/today')
+      .then(r => r.json())
+      .then(data => {
+        if (data.brief) {
+          setMsgs(p => ({
+            ...p,
+            task: [{ role: 'assistant', content: data.brief, ts: new Date().toISOString() }, ...p.task],
+          }));
+          localStorage.setItem('alfred_brief_date', today);
+          loadNotifs();
+        }
+      })
+      .catch(() => {});
+  }, [agKey, tweaks.useMockData, loadNotifs]);
 
   /* Keyboard shortcuts */
   React.useEffect(() => {
@@ -106,6 +162,8 @@ function App() {
       } else {
         const r = await chatAPI(text, agKey);
         setMsgs(p => ({ ...p, [agKey]: [...p[agKey], { role: 'assistant', content: r.response, ts: new Date().toISOString() }] }));
+        // Notify other open tabs (finance, fitness dashboards) that data changed
+        if (_syncBC) _syncBC.postMessage({ agent: agKey, ts: Date.now() });
       }
     } catch (e) {
       setMsgs(p => ({ ...p, [agKey]: [...p[agKey], {
@@ -120,6 +178,17 @@ function App() {
 
   const switchAgent = k => { setAgKey(k); setTab('chat'); };
 
+  /* Bell click — open popover */
+  const handleBellClick = () => setNotifOpen(p => !p);
+
+  const handleMarkAllRead = () => {
+    fetch('/api/alfred/notifications/read', { method: 'POST' })
+      .then(() => loadNotifs())
+      .catch(() => {});
+  };
+
+  const unreadCount = notifs.filter(n => !n.read).length;
+
   return (
     <div className={`app ${panelOpen ? 'panel-open' : ''}`}>
       <Sidebar
@@ -129,10 +198,13 @@ function App() {
       <main className="main">
         <Masthead
           agKey={agKey} tab={tab} setTab={setTab}
-          panelOpen={panelOpen} setPanelOpen={setPanelOpen}/>
+          panelOpen={panelOpen} setPanelOpen={setPanelOpen}
+          notifCount={unreadCount} onBellClick={handleBellClick}/>
         {tab === 'chat'
           ? <ChatView agKey={agKey} messages={msgs[agKey]} loading={loading} onSend={send}/>
-          : <DashboardView dash={dash} setAgent={switchAgent}/>}
+          : tab === 'overview'
+            ? <AgentOverview agKey={agKey}/>
+            : <DashboardView dash={dash} setAgent={switchAgent} loading={dashLoading}/>}
       </main>
       <RightPanel agKey={agKey} dash={dash} panelOpen={panelOpen}/>
 
@@ -141,6 +213,11 @@ function App() {
         setAgent={switchAgent} setTab={setTab}
         theme={tweaks.theme} toggleTheme={toggleTheme}/>}
       {showCrew && <CrewDrawer onClose={() => setShowCrew(false)}/>}
+      {notifOpen && <NotifPopover
+        notifs={notifs}
+        onClose={() => setNotifOpen(false)}
+        onMarkRead={handleMarkAllRead}
+        onOpenAlfred={() => switchAgent('task')}/>}
 
       {editMode && <TweakPanel tweaks={tweaks} update={updateTweak} onClose={() => setEditMode(false)}/>}
     </div>
