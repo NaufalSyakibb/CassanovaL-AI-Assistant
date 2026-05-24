@@ -662,6 +662,20 @@ function AgentOverview({ agKey }) {
     fetch().then(d => { setData(d); setLoading(false); }).catch(() => setLoading(false));
   }, [agKey]);
 
+  _useEffect(() => {
+    const fetchFn = {
+      task:    () => tasksAPI(),
+      fitness: () => fitnessDashAPI(),
+      journal: () => journalDashAPI(),
+      budget:  () => window.CLData.budgetAPI ? window.CLData.budgetAPI() : Promise.resolve(null),
+    }[agKey];
+    if (!fetchFn) return;
+    const id = setInterval(() => {
+      fetchFn().then(d => { if (d) setData(d); }).catch(() => {});
+    }, 30000);
+    return () => clearInterval(id);
+  }, [agKey]);
+
   const [firstName, ...rest] = ag.name.split(' ');
 
   return (

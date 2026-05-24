@@ -95,6 +95,12 @@ function App() {
 
   React.useEffect(() => { loadDash(); }, [loadDash]);
 
+  // 30-second polling to keep dashboard fresh
+  React.useEffect(() => {
+    const id = setInterval(loadDash, 30000);
+    return () => clearInterval(id);
+  }, [loadDash]);
+
   /* BroadcastChannel — refresh hub sidebar when another tab's chat writes data */
   React.useEffect(() => {
     if (!_syncBC) return;
