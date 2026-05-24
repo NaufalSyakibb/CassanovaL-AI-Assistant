@@ -3,8 +3,10 @@ Supervisor router that classifies the user's intent and delegates
 to the correct specialist agent.
 """
 import os
+import json
 import time
 import logging
+from pathlib import Path
 from dotenv import load_dotenv
 from langchain_mistralai import ChatMistralAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
@@ -147,8 +149,39 @@ class SupervisorRouter:
         )
         self._agents: dict = {}
         self._chat_histories: dict = {name: [] for name in AGENT_REGISTRY}
+        self._load_histories()
 
+    def _load_histories(self) -> None:
+        path = Path("data/chat_history.json")
+        if not path.exists():
+            return
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+            for name, msgs in raw.items():
+                if name in self._chat_histories:
+                    rebuilt = []
+                    for m in msgs:
+                        if m.get("role") == "human":
+                            rebuilt.append(HumanMessage(content=m["content"]))
+                        elif m.get("role") == "ai":
+                            rebuilt.append(AIMessage(content=m["content"]))
+                    self._chat_histories[name] = rebuilt
+        except Exception:
+            pass  # corrupt file → start fresh
 
+    def _save_histories(self) -> None:
+        path = Path("data/chat_history.json")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        serialised = {}
+        for name, msgs in self._chat_histories.items():
+            serialised[name] = [
+                {"role": "human" if isinstance(m, HumanMessage) else "ai", "content": m.content}
+                for m in msgs
+            ]
+        try:
+            path.write_text(json.dumps(serialised, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception:
+            pass
 
     def _load_agent(self, name: str):
         """Lazy-load agents on first use."""
@@ -254,6 +287,7 @@ class SupervisorRouter:
         history.append(AIMessage(content=answer))
         if len(history) > 20:
             self._chat_histories[agent_name] = history[-20:]
+        self._save_histories()
 
         # Auto-save to Obsidian history (silently skipped if vault not configured)
         try:
@@ -296,6 +330,7 @@ class SupervisorRouter:
         history.append(AIMessage(content=answer))
         if len(history) > 20:
             self._chat_histories[agent_name] = history[-20:]
+        self._save_histories()
 
         # Auto-save to Obsidian history (silently skipped if vault not configured)
         try:
