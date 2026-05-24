@@ -2061,3 +2061,24 @@ select.crew-field { min-height: 0; }
   text-align: center;
 }
 }
+
+/* Scraper platform action buttons */
+.scraper-platform-actions {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.scraper-action-btn {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.scraper-action-btn:hover {
+  background: var(--hover);
+  color: var(--ink);
+}

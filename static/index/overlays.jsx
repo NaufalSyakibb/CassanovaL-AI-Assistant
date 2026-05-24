@@ -307,6 +307,16 @@ function CrewDrawer({ onClose }) {
                     placeholder="e.g. AI news Indonesia, machine learning, ChatGPT…"
                     value={topic} onChange={e => setTopic(e.target.value)}/>
                   <div className="crew-label small-caps" style={{marginTop:14}}>§ Platforms <span style={{color:'var(--ink-4)',fontWeight:400}}>(leave all unchecked to scrape every enabled platform)</span></div>
+                  <div className="scraper-platform-actions">
+                    <button type="button" className="scraper-action-btn"
+                      onClick={() => setScraperPlatforms([])}>
+                      Clear all
+                    </button>
+                    <button type="button" className="scraper-action-btn"
+                      onClick={() => setScraperPlatforms(SCRAPER_PLATFORMS.map(p => p.key))}>
+                      Select all
+                    </button>
+                  </div>
                   <div className="scraper-platform-grid">
                     {SCRAPER_PLATFORMS.map(p => (
                       <label key={p.key} className={`scraper-platform-chip ${scraperPlatforms.includes(p.key)?'active':''}`}>
