@@ -537,6 +537,108 @@ function DashboardView({ dash, setAgent, loading }) {
 }
 
 
+/* ── Intelligence Dashboard (inside Alfred Overview) ─────── */
+function IntelAgentCard({ agent }) {
+  const { KEEP: k, DISCARD: d, INCONCLUSIVE: i, total } = agent.experiments;
+  const dot = total === 0         ? 'grey'
+            : k / total >= 0.6   ? 'green'
+            : d / total >= 0.6   ? 'red'
+            : 'yellow';
+  const name = agent.folder.replace(' Agent', '').replace('TaskCore', 'Alfred');
+  const hyp  = agent.hypothesis
+    ? (agent.hypothesis.length > 95 ? agent.hypothesis.slice(0, 95) + '…' : agent.hypothesis)
+    : 'No experiments yet.';
+  return (
+    <div className="intel-agent-card">
+      <div className="intel-agent-head">
+        <span className={`intel-dot intel-dot--${dot}`} />
+        <span className="intel-agent-name">{name}</span>
+      </div>
+      <p className="intel-agent-hypothesis">{hyp}</p>
+      <div className="intel-agent-pills">
+        <span className="intel-pill intel-pill--k">{k}K</span>
+        <span className="intel-pill intel-pill--d">{d}D</span>
+        <span className="intel-pill intel-pill--i">{i}I</span>
+      </div>
+    </div>
+  );
+}
+
+function IntelligenceDashboard() {
+  const { intelligenceAPI, refreshIntelligenceAPI, renderMd, fmtDate } = window.CLData;
+  const { IcoRefresh } = window.Icons;
+  const [intel,    setIntel]    = _useState(null);
+  const [loading,  setLoading]  = _useState(true);
+  const [spinning, setSpinning] = _useState(false);
+  const [expanded, setExpanded] = _useState(false);
+
+  _useEffect(() => {
+    intelligenceAPI()
+      .then(setIntel)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleRefresh = async () => {
+    setSpinning(true);
+    await refreshIntelligenceAPI();
+    const prev = intel?.generated_at;
+    for (let i = 0; i < 10; i++) {
+      await new Promise(r => setTimeout(r, 3000));
+      try {
+        const fresh = await intelligenceAPI();
+        if (fresh.generated_at !== prev) { setIntel(fresh); break; }
+      } catch {}
+    }
+    setSpinning(false);
+  };
+
+  return (
+    <div className="intel-section">
+      <div className="intel-header">
+        <span className="intel-header-label">CassanovaL Intelligence</span>
+        {intel?.generated_at && (
+          <span className="intel-date">Last analyzed: {fmtDate(intel.generated_at)}</span>
+        )}
+        <button className={`intel-refresh-btn${spinning ? ' spinning' : ''}`}
+          onClick={handleRefresh} disabled={spinning} type="button">
+          <IcoRefresh size={12} />
+          {spinning ? 'Generating…' : 'Refresh'}
+        </button>
+      </div>
+      {loading && (
+        <div>
+          <div className="skeleton skeleton-line" style={{width:'90%', marginBottom:10}}/>
+          <div className="skeleton skeleton-line" style={{width:'75%', marginBottom:10}}/>
+          <div className="skeleton skeleton-line" style={{width:'85%'}}/>
+        </div>
+      )}
+      {!loading && intel?.synthesis && (
+        <div className="intel-synthesis"
+          dangerouslySetInnerHTML={{ __html: renderMd(intel.synthesis) }} />
+      )}
+      {!loading && !intel?.synthesis && (
+        <p className="intel-no-data">
+          No synthesis yet. Click Refresh or wait for Sunday's auto-run.
+        </p>
+      )}
+      {!loading && intel?.agents?.length > 0 && (
+        <>
+          <div className="intel-agents-toggle" onClick={() => setExpanded(e => !e)}>
+            <span>{expanded ? '▾' : '▸'}</span>
+            Per-agent details
+          </div>
+          {expanded && (
+            <div className="intel-agents-grid">
+              {intel.agents.map(a => <IntelAgentCard key={a.agent_key} agent={a} />)}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 /* ── Agent Overview Tab ───────────────────────────────────── */
 function AgentOverview({ agKey }) {
   const { AGENTS, fmtMoney, fmtDate, fitnessDashAPI, journalDashAPI, tasksAPI, patternsAPI } = window.CLData;
@@ -613,6 +715,7 @@ function AgentOverview({ agKey }) {
               )}
             </div>
           </div>
+          <IntelligenceDashboard />
         </>
       )}
 
