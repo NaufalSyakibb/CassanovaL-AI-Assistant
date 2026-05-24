@@ -10,7 +10,7 @@ import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 from datetime import datetime, date
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
@@ -99,12 +99,25 @@ def _run_monthly_budget():
         print(f"[Scheduler] Monthly budget error: {e}")
 
 
+def _run_intelligence_synthesis():
+    """Sunday 08:30 — auto-refresh the agent intelligence synthesis."""
+    try:
+        from tools.intelligence_tools import generate_intelligence_synthesis
+        generate_intelligence_synthesis(force=True)
+        print("[Scheduler] Intelligence synthesis complete.")
+    except Exception as e:
+        print(f"[Scheduler] Intelligence synthesis error: {e}")
+
+
 def _setup_scheduler(scheduler):
     brief_hour = int(os.getenv("MORNING_BRIEF_HOUR", "7"))
     scheduler.add_job(_run_morning_brief,   "cron", hour=brief_hour, minute=0,  id="morning_brief",   replace_existing=True)
     scheduler.add_job(_run_weekly_patterns, "cron", day_of_week="sun", hour=8, minute=0, id="weekly_patterns", replace_existing=True)
     scheduler.add_job(_run_monthly_budget,  "cron", day=1, hour=9, minute=0,    id="monthly_budget",  replace_existing=True)
-    print(f"[Scheduler] Morning brief → daily {brief_hour:02d}:00 WIB | Weekly patterns → Sun 08:00 | Monthly budget → 1st 09:00")
+    scheduler.add_job(_run_intelligence_synthesis, "cron",
+                      day_of_week="sun", hour=8, minute=30,
+                      id="intelligence_synthesis", replace_existing=True)
+    print(f"[Scheduler] Morning brief → daily {brief_hour:02d}:00 WIB | Weekly patterns → Sun 08:00 | Monthly budget → 1st 09:00 | Intelligence → Sun 08:30")
 
 
 @asynccontextmanager
@@ -457,6 +470,24 @@ async def get_alfred_patterns():
         return result
     except Exception as e:
         return {"insights": [], "error": str(e)}
+
+
+@app.get("/api/alfred/intelligence")
+async def get_intelligence():
+    """Return cached intelligence synthesis + per-agent experiment stats."""
+    try:
+        from tools.intelligence_tools import generate_intelligence_synthesis
+        return generate_intelligence_synthesis(force=False)
+    except Exception as e:
+        return {"synthesis": "", "generated_at": None, "agents": [], "error": str(e)}
+
+
+@app.post("/api/alfred/intelligence/refresh", status_code=202)
+async def refresh_intelligence(background_tasks: BackgroundTasks):
+    """Trigger a fresh Mistral synthesis in the background. Returns 202 immediately."""
+    from tools.intelligence_tools import generate_intelligence_synthesis
+    background_tasks.add_task(generate_intelligence_synthesis, True)
+    return {"status": "generating"}
 
 
 # ─── Data Endpoints ───────────────────────────────────────────────────────────
