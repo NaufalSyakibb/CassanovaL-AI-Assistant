@@ -76,6 +76,26 @@ sentiment_score: -1.0 (sangat negatif) hingga +1.0 (sangat positif).
 anomaly_detected: true jika volume_anomaly dari tool adalah true atau ada event major.
 """
 
+_TECHNICAL_ANALYST_PROMPT = """Kamu adalah TechnicalAnalyst Agent — spesialis analisis teknikal yang membaca data indikator secara kuantitatif dan tepat.
+Kamu menerima data teknikal terstruktur (RSI, MACD, Bollinger Bands, Moving Averages, support/resistance, volume) sebagai konteks dalam pesan.
+Tugasmu: Baca data tersebut dan hasilkan narasi analisis teknikal yang terse, kuantitatif, dan actionable dalam Bahasa Indonesia profesional.
+
+Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
+{
+  "trend_assessment": "tren keseluruhan — bullish/bearish/ranging dengan penjelasan berdasarkan MA dan cross_signal",
+  "momentum_reading": "kondisi momentum berdasarkan RSI dan MACD — apakah oversold/overbought/netral dengan angka aktual",
+  "key_levels": "narasi support dan resistance spesifik berdasarkan support_60d dan resistance_60d dengan harga aktual",
+  "entry_quality": "good|neutral|poor"
+}
+
+entry_quality:
+  good    → RSI oversold atau approaching_oversold DAN MACD bullish, ATAU bb_position at_lower_band/near_lower_band
+  poor    → RSI overbought atau approaching_overbought, ATAU bb_position at_upper_band, ATAU death_cross aktif
+  neutral → kondisi selain di atas
+
+Semua klaim HARUS merujuk angka aktual dari data yang diberikan. Jangan mengarang angka.
+"""
+
 _STRATEGY_PROMPT = """Kamu adalah Strategy Agent — ahli strategi trading yang terinspirasi dari metodologi ValueCell.
 Kamu menerima output dari DeepResearch dan NewsIntelligence sebagai konteks dalam pesan.
 Tugasmu: Berdasarkan analisis fundamental, teknikal, dan sentimen, susun strategi trading yang konkret dan actionable dalam Bahasa Indonesia profesional.
@@ -159,6 +179,30 @@ def run_news_intelligence(ticker: str) -> dict:
     agent = build_agent(_NEWS_INTELLIGENCE_PROMPT, [get_news_sentiment])
     result = _invoke_with_retry(agent, {
         "messages": [{"role": "user", "content": f"Analisis berita dan sentimen untuk saham: {ticker}"}]
+    })
+    return _parse_json_output(result)
+
+
+def run_technical_analyst(ticker: str, technical_data: dict) -> dict:
+    agent = build_agent(_TECHNICAL_ANALYST_PROMPT, [])
+    context = json.dumps({
+        "ticker":         ticker,
+        "rsi_14":         technical_data.get("rsi_14"),
+        "rsi_status":     technical_data.get("rsi_status"),
+        "macd_signal":    technical_data.get("macd_signal"),
+        "macd_histogram": technical_data.get("macd_histogram"),
+        "bb_position":    technical_data.get("bb_position"),
+        "price_vs_ma20":  technical_data.get("price_vs_ma20"),
+        "price_vs_ma50":  technical_data.get("price_vs_ma50"),
+        "price_vs_ma200": technical_data.get("price_vs_ma200"),
+        "cross_signal":   technical_data.get("cross_signal"),
+        "support_60d":    technical_data.get("support_60d"),
+        "resistance_60d": technical_data.get("resistance_60d"),
+        "volume_trend":   technical_data.get("volume_trend"),
+        "current_price":  technical_data.get("current_price"),
+    }, ensure_ascii=False)
+    result = _invoke_with_retry(agent, {
+        "messages": [{"role": "user", "content": f"Analisis teknikal untuk {ticker} berdasarkan data ini: {context}"}]
     })
     return _parse_json_output(result)
 

@@ -148,3 +148,39 @@ def test_run_final_verdict_returns_expected_keys():
     assert "bull_case" in result
     assert "bear_case" in result
     assert "investment_memo" in result
+
+
+# ── run_technical_analyst ──────────────────────────────────────
+
+def test_run_technical_analyst_returns_expected_keys():
+    from agents.stock_agents import run_technical_analyst
+    fake_out = {
+        "trend_assessment": "Tren bullish — harga di atas MA20, MA50, MA200",
+        "momentum_reading": "RSI 38 mendekati oversold, MACD bullish crossover",
+        "key_levels": "Support 60d: 9,200 — Resistance 60d: 10,500",
+        "entry_quality": "good",
+    }
+    tech_data = {
+        "ticker": "BBCA.JK",
+        "rsi_14": 38.0,
+        "rsi_status": "approaching_oversold",
+        "macd_signal": "bullish_crossover",
+        "macd_histogram": 0.12,
+        "bb_position": "near_lower_band",
+        "support_60d": 9200.0,
+        "resistance_60d": 10500.0,
+        "cross_signal": None,
+        "volume_trend": "expanding",
+        "current_price": 9750.0,
+    }
+
+    with patch("agents.stock_agents.build_agent") as mock_build:
+        mock_agent = MagicMock()
+        mock_agent.invoke.return_value = _fake_agent_result(fake_out)
+        mock_build.return_value = mock_agent
+        result = run_technical_analyst("BBCA.JK", tech_data)
+
+    assert "trend_assessment" in result
+    assert "momentum_reading" in result
+    assert "key_levels" in result
+    assert result["entry_quality"] in ("good", "neutral", "poor")
