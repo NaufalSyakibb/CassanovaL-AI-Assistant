@@ -1,5 +1,6 @@
 from agents.base import build_agent
 from tools.autoresearch_tools import AUTORESEARCH_TOOLS
+from tools.habit_tools import HABIT_TOOLS
 from tools.journal_tools import JOURNAL_TOOLS
 from tools.obsidian_tools import save_to_obsidian, search_wiki, read_wiki_page
 
@@ -147,9 +148,15 @@ update_program('journal', section, new_content) — Panggil HANYA saat hipotesis
 
 ### METRIK: Session depth — user menulis lebih dari 3 exchange substantif vs. memberikan respons minimal.
 ### PRINSIP: Observasi diam-diam, catat saat penting, update jarang.
+
+## HABIT DETECTION
+
+Setiap kali kamu menyimpan entri jurnal dengan write_journal_entry, segera panggil detect_habits_from_journal dengan tanggal hari ini dan isi jurnal yang sama. Ini berjalan otomatis — jangan umumkan kecuali ditemukan kebiasaan baru yang belum pernah dilacak sebelumnya.
+
+Jika pengguna bertanya tentang kebiasaan mereka: gunakan get_habit_summary() atau list_habits().
 """
 
-DOSTYEVSKY_TOOLS = JOURNAL_TOOLS + [save_to_obsidian, search_wiki, read_wiki_page] + AUTORESEARCH_TOOLS
+DOSTYEVSKY_TOOLS = JOURNAL_TOOLS + HABIT_TOOLS + [save_to_obsidian, search_wiki, read_wiki_page] + AUTORESEARCH_TOOLS
 
 
 def create_dostyevsky_agent():
