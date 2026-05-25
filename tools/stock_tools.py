@@ -453,7 +453,7 @@ def build_candlestick_json(ticker: str, ohlcv: dict) -> dict:
     chg   = round((last - first) / first * 100, 2) if first else 0
     sign  = "+" if chg >= 0 else ""
 
-    bg = "#000000"
+    bg = "#0a0a0f"
     gr = "#191919"
     ax = "#555555"
 
@@ -559,7 +559,7 @@ def build_heatmap_json(ticker: str, corr: dict) -> dict:
         return {
             "data": [],
             "layout": {
-                "paper_bgcolor": "#000000",
+                "paper_bgcolor": "#0a0a0f",
                 "title": {"text": "Macro correlation unavailable", "font": {"color": "#444444"}},
             },
         }
@@ -576,7 +576,7 @@ def build_heatmap_json(ticker: str, corr: dict) -> dict:
 
     labels = [label_map.get(k, k) for k in corr]
     values = [round(float(v), 3) for v in corr.values()]
-    bg = "#000000"
+    bg = "#0a0a0f"
     gr = "#191919"
     ax = "#555555"
     return {
