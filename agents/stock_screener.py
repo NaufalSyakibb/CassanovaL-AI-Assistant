@@ -6,6 +6,7 @@ from tools.stock_tools import get_market_data, get_technical_indicators
 
 
 def _invoke_with_retry(agent, messages: dict, max_retries: int = 5) -> dict:
+    """Invoke a LangGraph agent with exponential backoff on 429 / rate-limit errors."""
     delay = 20
     last_exc = None
     for attempt in range(max_retries):
@@ -22,6 +23,7 @@ def _invoke_with_retry(agent, messages: dict, max_retries: int = 5) -> dict:
 
 
 def _parse_json_output(agent_result: dict) -> dict:
+    """Extract the last AI message content and parse it as JSON. Returns error dict on failure."""
     messages = agent_result.get("messages", [])
     for msg in reversed(messages):
         content = getattr(msg, "content", "")

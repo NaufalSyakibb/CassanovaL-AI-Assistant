@@ -53,3 +53,17 @@ def test_run_pick_screener_injects_ticker_into_result():
         result = run_pick_screener("DVN")
 
     assert result["ticker"] == "DVN"
+
+
+def test_run_pick_screener_handles_unparseable_response():
+    from agents.stock_screener import run_pick_screener
+    from langchain_core.messages import AIMessage
+
+    with patch("agents.stock_screener.build_agent") as mock_build:
+        mock_agent = MagicMock()
+        mock_agent.invoke.return_value = {"messages": [AIMessage(content="not valid json at all!!!")]}
+        mock_build.return_value = mock_agent
+        result = run_pick_screener("SLB")
+
+    assert "error" in result
+    assert result["ticker"] == "SLB"
