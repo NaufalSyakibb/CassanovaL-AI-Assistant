@@ -81,8 +81,15 @@ const AGENTS = {
     greeting: 'Apa yang perlu ditulis? Dari awal, atau ada draft yang perlu dipertajam?',
     Ico: () => { const {IcoFeather} = window.Icons; return <IcoFeather/>; },
   },
+  nostradamus: {
+    name: 'Nostradamus', sub: 'Prophetic Intelligence', hue: 'var(--hue-nostradamus)',
+    issue: 'XII.', cluster: 'research', url: '/nostradamus',
+    tagline: 'Five minds, one verdict — predicting what current events foretell.',
+    greeting: 'Name the event. Five prophets will read the signs.',
+    Ico: () => { const {IcoSparkle} = window.Icons; return <IcoSparkle/>; },
+  },
 };
-const AGENT_ORDER = ['task','notes','news','coding','schedule','budget','fitness','journal','davinci','euler','orwell'];
+const AGENT_ORDER = ['task','notes','news','coding','schedule','budget','fitness','journal','davinci','euler','orwell','nostradamus'];
 
 const AGENT_CLUSTERS = {
   all:      { label: 'All',       accent: 'var(--c-fg)' },

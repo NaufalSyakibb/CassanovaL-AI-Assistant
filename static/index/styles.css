@@ -38,6 +38,7 @@
   --hue-davinci:  #B6834C;   /* amber */
   --hue-euler:    #7260A0;   /* deep violet */
   --hue-orwell:   #8A7058;   /* warm sepia */
+  --hue-nostradamus: #8B5A9E;   /* deep violet */
 
   --shadow-1: 0 1px 0 rgba(23,23,26,0.04);
   --shadow-2: 0 4px 24px rgba(23,23,26,0.06);
@@ -73,6 +74,7 @@
   --hue-davinci:  #D9AC78;
   --hue-euler:    #A890D4;   /* soft violet */
   --hue-orwell:   #BEAA90;   /* warm sepia light */
+  --hue-nostradamus: #B8A0D4;   /* soft violet */
 
   --shadow-1: 0 1px 0 rgba(0,0,0,0.3);
   --shadow-2: 0 4px 24px rgba(0,0,0,0.4);
