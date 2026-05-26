@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cicero — Study Mode</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #EDE8DF;
+    --surface:  #F3EEE5;
+    --paper:    #FAF6EE;
+    --white:    #FFFFFF;
+    --ink:      #17171A;
+    --ink2:     #3B3B3F;
+    --dim:      #6B6355;
+    --gold:     #A68A3E;
+    --clay:     #CC785C;
+    --green:    #5E8A6A;
+    --red:      #A65046;
+    --border:   #C8C0B2;
+    --border2:  #D4CCBC;
+    --shadow:   rgba(23,23,26,0.06);
+  }
+
+  body {
+    background: var(--bg);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 0 28px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .header-brand { display: flex; align-items: center; gap: 10px; }
+  .header-logo {
+    font-family: 'Instrument Serif', serif;
+    font-size: 20px;
+    color: var(--paper);
+    letter-spacing: 0.02em;
+  }
+  .header-tag {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--gold);
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.1em;
+    font-weight: 500;
+  }
+  .header-back {
+    font-size: 11px;
+    color: #888;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    text-decoration: none;
+  }
+  .header-back:hover { color: var(--paper); }
+
+  /* ── Input bar ── */
+  .input-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border2);
+    padding: 16px 28px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    flex-shrink: 0;
+  }
+  .input-wrap { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+  .input-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  #topic-input {
+    width: 100%;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  #topic-input::placeholder { color: #A89F93; }
+  #topic-input:focus { border-color: var(--gold); }
+  #btn-generate {
+    background: var(--clay);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 22px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+  }
+  #btn-generate:hover { opacity: 0.88; }
+  #btn-generate:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* ── Agent strip ── */
+  .agent-strip {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border2);
+    padding: 8px 28px;
+    display: flex;
+    gap: 22px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .agent-pill { display: flex; align-items: center; gap: 7px; font-size: 11px; }
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--border);
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .dot.running {
+    background: var(--gold);
+    animation: pulse 1s ease-in-out infinite;
+  }
+  .dot.done { background: var(--green); }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+  .agent-pname { font-weight: 600; color: var(--ink2); font-size: 11px; }
+  .agent-pstatus { color: var(--border); font-size: 10px; }
+  .agent-pstatus.running { color: var(--gold); }
+  .agent-pstatus.done { color: var(--green); }
+  .arrow { color: var(--border); font-size: 11px; }
+
+  /* ── Main layout ── */
+  .main-wrap {
+    flex: 1;
+    padding: 20px 28px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .cornell-top {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    overflow: hidden;
+    min-height: 360px;
+  }
+
+  /* Left: Cue column */
+  .col-cue {
+    background: var(--paper);
+    border-right: 1px solid var(--border);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .col-header {
+    font-size: 10px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .agent-badge {
+    font-size: 9px;
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .badge-konsep { background: rgba(94,138,106,0.12); color: var(--green); }
+  .badge-materi { background: rgba(166,138,62,0.12); color: var(--gold); }
+  .badge-ringkasan { background: rgba(204,120,92,0.12); color: var(--clay); }
+
+  .cue-list { flex: 1; display: flex; flex-direction: column; gap: 0; }
+  .cue-item {
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--border2);
+  }
+  .cue-item:last-child { border-bottom: none; }
+  .cue-term {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink2);
+    margin-bottom: 3px;
+    font-family: 'Instrument Serif', serif;
+  }
+  .cue-def {
+    font-size: 11px;
+    color: var(--dim);
+    line-height: 1.55;
+  }
+
+  /* Right: Notes column */
+  .col-notes {
+    background: var(--white);
+    padding: 16px 20px;
+    overflow-y: auto;
+  }
+  .notes-section { margin-bottom: 18px; }
+  .notes-section:last-child { margin-bottom: 0; }
+  .notes-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 16px;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .notes-content {
+    font-size: 12px;
+    color: var(--ink2);
+    line-height: 1.8;
+    white-space: pre-wrap;
+  }
+
+  /* Bottom: Summary */
+  .col-summary {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--gold);
+    border-radius: 0 0 8px 8px;
+    padding: 14px 20px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    min-height: 60px;
+  }
+  .summary-label {
+    font-size: 10px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.1em;
+    color: var(--clay);
+    text-transform: uppercase;
+    white-space: nowrap;
+    padding-top: 2px;
+    min-width: 80px;
+  }
+  #ringkasan-text {
+    font-family: 'Instrument Serif', serif;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--dim);
+    line-height: 1.75;
+    flex: 1;
+  }
+  #ringkasan-text.filled { color: var(--ink2); font-style: italic; }
+
+  /* Save bar */
+  .save-bar {
+    padding: 12px 0 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  #btn-save {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--dim);
+    border-radius: 6px;
+    padding: 7px 18px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: none;
+  }
+  #btn-save:hover { background: var(--border2); }
+
+  /* Placeholder */
+  .ph {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--border);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    font-style: italic;
+    min-height: 120px;
+  }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 999;
+  }
+  #toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-brand">
+    <span class="header-logo">Cicero</span>
+    <span class="header-tag">STUDY</span>
+  </div>
+  <a class="header-back" href="/">← Kembali ke CassanovaL</a>
+</div>
+
+<div class="input-bar">
+  <div class="input-wrap">
+    <div class="input-label">Topik Pelajaran</div>
+    <input id="topic-input" type="text" placeholder="mis. Fotosintesis, Revolusi Industri, Hukum Newton..." />
+  </div>
+  <button id="btn-generate">BELAJAR →</button>
+</div>
+
+<div class="agent-strip">
+  <div class="agent-pill">
+    <div class="dot" id="dot-MateriAgent"></div>
+    <span class="agent-pname">MateriAgent</span>
+    <span class="agent-pstatus" id="st-MateriAgent">IDLE</span>
+  </div>
+  <span class="arrow">→</span>
+  <div class="agent-pill">
+    <div class="dot" id="dot-KonsepAgent"></div>
+    <span class="agent-pname">KonsepAgent</span>
+    <span class="agent-pstatus" id="st-KonsepAgent">IDLE</span>
+  </div>
+  <span class="arrow">→</span>
+  <div class="agent-pill">
+    <div class="dot" id="dot-RingkasanAgent"></div>
+    <span class="agent-pname">RingkasanAgent</span>
+    <span class="agent-pstatus" id="st-RingkasanAgent">IDLE</span>
+  </div>
+</div>
+
+<div class="main-wrap">
+  <div class="cornell-top">
+    <!-- Left: Key Concepts -->
+    <div class="col-cue">
+      <div class="col-header" style="color:var(--green)">
+        KONSEP KUNCI
+        <span class="agent-badge badge-konsep">AGENT 2</span>
+      </div>
+      <div class="cue-list" id="cue-list">
+        <div class="ph">Menunggu KonsepAgent...</div>
+      </div>
+    </div>
+    <!-- Right: Full Material -->
+    <div class="col-notes">
+      <div class="col-header" style="color:var(--gold)">
+        MATERI LENGKAP
+        <span class="agent-badge badge-materi">AGENT 1</span>
+      </div>
+      <div id="notes-body">
+        <div class="ph">Masukkan topik dan klik BELAJAR untuk memulai.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom: Summary -->
+  <div class="col-summary">
+    <div class="summary-label">
+      RINGKASAN<br>
+      <span style="font-size:8px;color:var(--border);font-family:'JetBrains Mono',monospace">AGENT 3</span>
+    </div>
+    <div id="ringkasan-text">Ringkasan akan muncul setelah semua agent selesai...</div>
+  </div>
+
+  <div class="save-bar">
+    <button id="btn-save">Simpan ke Catatan</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  var G = {
+    es: null,
+    state: { materi: {}, konsep: {}, ringkasan: {} },
+
+    $: function(id) { return document.getElementById(id); },
+
+    toast: function(msg, dur) {
+      var t = G.$('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(function(){ t.classList.remove('show'); }, dur || 2500);
+    },
+
+    setAgent: function(name, status) {
+      var dot = G.$('dot-' + name);
+      var st  = G.$('st-' + name);
+      if (!dot || !st) return;
+      dot.className = 'dot ' + status;
+      st.className  = 'agent-pstatus ' + status;
+      var labels = { running: 'Berjalan...', done: '✓ Selesai', '': 'IDLE' };
+      st.textContent = labels[status] !== undefined ? labels[status] : status;
+    },
+
+    reset: function() {
+      ['MateriAgent','KonsepAgent','RingkasanAgent'].forEach(function(n){ G.setAgent(n,''); });
+      G.$('notes-body').innerHTML = '<div class="ph">Memproses...</div>';
+      G.$('cue-list').innerHTML   = '<div class="ph">Menunggu KonsepAgent...</div>';
+      G.$('ringkasan-text').textContent = 'Ringkasan akan muncul setelah semua agent selesai...';
+      G.$('ringkasan-text').classList.remove('filled');
+      G.$('btn-save').style.display = 'none';
+      G.state = { materi: {}, konsep: {}, ringkasan: {} };
+    },
+
+    renderMateri: function(data) {
+      G.state.materi = data;
+      var sections = data.sections || [];
+      if (!sections.length) {
+        G.$('notes-body').innerHTML = '<div class="ph">Tidak ada konten.</div>';
+        return;
+      }
+      var html = sections.map(function(s) {
+        return '<div class="notes-section">'
+          + '<div class="notes-title">' + esc(s.title || '') + '</div>'
+          + '<div class="notes-content">' + esc(s.content || '') + '</div>'
+          + '</div>';
+      }).join('');
+      G.$('notes-body').innerHTML = html;
+    },
+
+    renderKonsep: function(data) {
+      G.state.konsep = data;
+      var concepts = data.concepts || [];
+      if (!concepts.length) {
+        G.$('cue-list').innerHTML = '<div class="ph">Tidak ada konsep.</div>';
+        return;
+      }
+      var html = concepts.map(function(c) {
+        return '<div class="cue-item">'
+          + '<div class="cue-term">' + esc(c.term || '') + '</div>'
+          + '<div class="cue-def">'  + esc(c.definition || '') + '</div>'
+          + '</div>';
+      }).join('');
+      G.$('cue-list').innerHTML = html;
+    },
+
+    renderRingkasan: function(data) {
+      G.state.ringkasan = data;
+      var t = G.$('ringkasan-text');
+      t.textContent = data.summary || '—';
+      t.classList.add('filled');
+      G.$('btn-save').style.display = '';
+    },
+
+    start: function(topic) {
+      if (G.es) { G.es.close(); G.es = null; }
+      G.reset();
+      G.$('btn-generate').disabled = true;
+
+      var url = '/api/study/generate?topic=' + encodeURIComponent(topic);
+      G.es = new EventSource(url);
+
+      G.es.onmessage = function(e) {
+        var msg;
+        try { msg = JSON.parse(e.data); } catch(err) { return; }
+
+        switch (msg.event) {
+          case 'step':
+            G.setAgent(msg.agent, msg.status);
+            break;
+          case 'materi':
+            G.renderMateri(msg.data || {});
+            break;
+          case 'konsep':
+            G.renderKonsep(msg.data || {});
+            break;
+          case 'ringkasan':
+            G.renderRingkasan(msg.data || {});
+            break;
+          case 'done':
+            G.es.close();
+            G.es = null;
+            G.$('btn-generate').disabled = false;
+            break;
+          case 'error':
+            G.toast('Error: ' + (msg.message || 'Terjadi kesalahan'), 4000);
+            G.es.close();
+            G.es = null;
+            G.$('btn-generate').disabled = false;
+            break;
+        }
+      };
+
+      G.es.onerror = function() {
+        G.toast('Koneksi terputus.', 3000);
+        G.$('btn-generate').disabled = false;
+        if (G.es) { G.es.close(); G.es = null; }
+      };
+    },
+
+    save: function() {
+      var topic = G.$('topic-input').value.trim();
+      if (!topic) return;
+      G.$('btn-save').disabled = true;
+      fetch('/api/study/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic:     topic,
+          materi:    G.state.materi,
+          konsep:    G.state.konsep,
+          ringkasan: G.state.ringkasan,
+        }),
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        G.toast('Tersimpan: ' + (d.title || topic));
+        G.$('btn-save').disabled = false;
+      })
+      .catch(function(){
+        G.toast('Gagal menyimpan. Coba lagi.', 3500);
+        G.$('btn-save').disabled = false;
+      });
+    },
+  };
+
+  function esc(str) {
+    return String(str)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+
+  document.getElementById('btn-generate').addEventListener('click', function() {
+    var topic = document.getElementById('topic-input').value.trim();
+    if (!topic) { G.toast('Masukkan topik terlebih dahulu.'); return; }
+    G.start(topic);
+  });
+
+  document.getElementById('topic-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') document.getElementById('btn-generate').click();
+  });
+
+  document.getElementById('btn-save').addEventListener('click', G.save);
+</script>
+</body>
+</html>
