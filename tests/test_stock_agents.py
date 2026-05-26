@@ -137,13 +137,15 @@ def test_run_final_verdict_returns_expected_keys():
     }
     dr = {"summary": "ok", "ohlcv": {}}
     ni = {"summary": "ok", "sentiment_score": 0.5}
-    st = {"entry_zone": "100-105", "exit_target": "120"}
+    st = {"entry_zone": "9200-9500", "exit_target": "10500"}
+    ta = {"trend_assessment": "bullish", "entry_quality": "good"}
+    td = {"support_60d": 9200.0, "resistance_60d": 10500.0}
 
     with patch("agents.stock_agents.build_agent") as mock_build:
         mock_agent = MagicMock()
         mock_agent.invoke.return_value = _fake_agent_result(fake_out)
         mock_build.return_value = mock_agent
-        result = run_final_verdict("BBCA.JK", dr, ni, st)
+        result = run_final_verdict("BBCA.JK", dr, ni, st, ta, td)
 
     assert result["verdict"] in ("BUY", "HOLD", "SELL")
     assert isinstance(result["conviction_score"], int)

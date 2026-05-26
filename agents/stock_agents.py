@@ -237,13 +237,20 @@ def run_strategy(deep_research: dict, news_intelligence: dict,
     return _parse_json_output(result)
 
 
-def run_final_verdict(ticker: str, deep_research: dict, news_intelligence: dict, strategy: dict) -> dict:
+def run_final_verdict(ticker: str, deep_research: dict, news_intelligence: dict,
+                      strategy: dict, technical_analyst: dict = None,
+                      technical_data: dict = None) -> dict:
     agent = build_agent(_FINAL_VERDICT_PROMPT, [])
+    td = technical_data or {}
     combined = json.dumps({
-        "ticker":            ticker,
-        "deep_research":     {k: v for k, v in deep_research.items() if k != "ohlcv"},
-        "news_intelligence": news_intelligence,
-        "strategy":          strategy,
+        "ticker":               ticker,
+        "deep_research":        {k: v for k, v in deep_research.items() if k != "ohlcv"},
+        "news_intelligence":    news_intelligence,
+        "strategy":             strategy,
+        "technical_analyst":    technical_analyst or {},
+        "technical_support":    td.get("support_60d"),
+        "technical_resistance": td.get("resistance_60d"),
+        "rsi_status":           td.get("rsi_status"),
     }, ensure_ascii=False)
     result = _invoke_with_retry(agent, {
         "messages": [{"role": "user", "content": f"Buat laporan investasi final: {combined}"}]
