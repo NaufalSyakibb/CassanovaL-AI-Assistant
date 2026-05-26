@@ -271,6 +271,25 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
 #codeblk{flex:1;overflow:auto;padding:10px;font-size:11px;line-height:1.7;white-space:pre;color:var(--gray2)}
 .kw{color:#c792ea}.str{color:#c3e88d}.cm{color:var(--border2);font-style:italic}.num{color:var(--yellow)}
 
+/* ── PICKS TAB ── */
+#tc-picks{flex-direction:column;gap:0;padding:0}
+.picks-bar{display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
+.picks-region-btn{background:var(--panel);border:1px solid var(--border2);color:var(--gray);border-radius:3px;padding:3px 10px;font-size:10px;font-family:var(--mono);letter-spacing:0.08em;cursor:pointer;transition:all .15s}
+.picks-region-btn.on{background:var(--orange);border-color:var(--orange);color:var(--black);font-weight:700}
+.picks-status{margin-left:auto;font-size:10px;color:var(--gray);letter-spacing:0.05em}
+.picks-table-wrap{flex:1;overflow-y:auto}
+table.picks-tbl{width:100%;border-collapse:collapse;font-size:11px}
+table.picks-tbl th{padding:5px 8px;text-align:left;color:var(--gray);font-size:9px;letter-spacing:0.1em;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:1}
+table.picks-tbl td{padding:5px 8px;border-bottom:1px solid var(--border2);vertical-align:middle}
+.picks-tbl tr.pick-buy{background:rgba(74,140,74,0.06)}
+.picks-tbl tr.pick-watch{background:rgba(200,140,50,0.06)}
+.picks-verdict{font-size:9px;font-weight:700;padding:1px 6px;border-radius:2px;letter-spacing:0.06em}
+.picks-verdict.BUY{background:rgba(74,140,74,0.2);color:#4CAF50}
+.picks-verdict.WATCH{background:rgba(200,140,50,0.2);color:#FFC107}
+.picks-analyze-btn{background:var(--orange);color:var(--black);border:none;border-radius:3px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap}
+.picks-analyze-btn:hover{opacity:0.85}
+#picks-ph{flex:1;display:flex;align-items:center;justify-content:center;color:var(--border2);font-size:11px;letter-spacing:1px}
+
 /* ── FUNCTION KEY BAR ── */
 #fkbar{
   display:flex;height:20px;background:var(--panel2);
@@ -446,6 +465,7 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
       <button class="tbtn" data-t="charts">F3 CHARTS<span class="tdot" id="d-charts"></span></button>
       <button class="tbtn" data-t="verdict">F4 VERDICT<span class="tdot" id="d-verdict"></span></button>
       <button class="tbtn" data-t="code">F5 CODE<span class="tdot" id="d-code"></span></button>
+      <button class="tbtn" data-t="picks">★ PICKS<span class="tdot" id="d-picks"></span></button>
       <div class="tab-spacer"></div>
     </div>
 
@@ -712,6 +732,30 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
       </div>
     </div>
 
+    <!-- PICKS -->
+    <div class="tc" id="tc-picks">
+      <div class="picks-bar">
+        <button class="picks-region-btn on" data-r="us" onclick="G.loadPicks('us')">US</button>
+        <button class="picks-region-btn" data-r="asia" onclick="G.loadPicks('asia')">ASIA</button>
+        <button class="picks-region-btn" data-r="idx" onclick="G.loadPicks('idx')">IDX</button>
+        <button class="picks-region-btn" onclick="G.refreshPicks()" style="margin-left:6px">↻</button>
+        <span id="picks-status" class="picks-status">Memuat US picks...</span>
+      </div>
+      <div class="picks-table-wrap">
+        <div id="picks-ph">PICKS TAB — AUTO-LOADING US STOCKS</div>
+        <table class="picks-tbl" id="picks-table" style="display:none">
+          <thead>
+            <tr>
+              <th>#</th><th>TICKER</th><th>VERDICT</th><th>RATIONALE</th>
+              <th style="text-align:center">CONV.</th><th style="text-align:center">P/E</th>
+              <th style="text-align:center">RSI</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="picks-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
   </div><!-- /rpan -->
 </div><!-- /main -->
 
@@ -739,7 +783,7 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
 })();
 
 // ── Tabs ──────────────────────────────────────────────────────────────────
-var TABS=['summary','strategy','technicals','charts','verdict','code'];
+var TABS=['summary','strategy','technicals','charts','verdict','code','picks'];
 function switchTab(t){
   document.querySelectorAll('.tbtn').forEach(function(b){b.classList.remove('on')});
   document.querySelectorAll('.tc').forEach(function(c){c.classList.remove('on')});
@@ -777,6 +821,84 @@ document.querySelectorAll('.cmd-preset').forEach(function(b){
 });
 
 // Copy
+// ── PICKS TAB ──────────────────────────────────────────────────────────────
+function _escPicks(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+G.picksCache={};G.picksES=null;G.picksRegion='us';
+G.loadPicks=function(region){
+  region=region||'us';G.picksRegion=region;
+  document.querySelectorAll('.picks-region-btn').forEach(function(b){b.classList.toggle('on',b.dataset.r===region)});
+  if(G.picksCache[region]){G.renderPicksFromCache(region);return}
+  G.$('picks-tbody').innerHTML='';
+  G.$('picks-ph').style.display='flex';G.$('picks-table').style.display='none';
+  G.$('picks-status').textContent='Memuat '+region.toUpperCase()+' picks...';
+  if(G.picksES){G.picksES.close();G.picksES=null}
+  var cache=[];
+  var es=new EventSource('/api/stock/picks?region='+region);G.picksES=es;
+  es.onmessage=function(e){
+    var msg;try{msg=JSON.parse(e.data)}catch(err){return}
+    switch(msg.event){
+      case 'picks_start':
+        G.$('picks-status').textContent='Menganalisis 0/'+msg.total+'...';
+        break;
+      case 'pick_result':
+        if(msg.verdict==='ERROR'||msg.verdict==='SKIP')break;
+        cache.push(msg);
+        cache.sort(function(a,b){return(b.conviction_score||0)-(a.conviction_score||0)});
+        G.renderPicksRows(cache.slice(0,8));
+        G.$('picks-status').textContent='Menganalisis '+cache.length+'...';
+        break;
+      case 'picks_done':
+        G.picksCache[region]=cache;
+        G.$('picks-status').textContent=cache.slice(0,8).length+' picks \xb7 '+region.toUpperCase();
+        es.close();G.picksES=null;
+        break;
+      case 'error':
+        G.$('picks-status').textContent='Error: '+(msg.message||'Gagal');
+        es.close();G.picksES=null;
+        break;
+    }
+  };
+  es.onerror=function(){
+    G.$('picks-status').textContent='Koneksi terputus.';
+    if(G.picksES){G.picksES.close();G.picksES=null}
+  };
+};
+G.renderPicksRows=function(rows){
+  G.$('picks-ph').style.display='none';G.$('picks-table').style.display='';
+  G.$('picks-tbody').innerHTML=rows.map(function(p,i){
+    var cls=p.verdict==='BUY'?'pick-buy':'pick-watch';
+    var pe=p.pe_ratio?parseFloat(p.pe_ratio).toFixed(1)+'x':'—';
+    var rsi=p.rsi?parseFloat(p.rsi).toFixed(1):'—';
+    var rat=p.rationale?p.rationale.substring(0,70)+(p.rationale.length>70?'…':''):'—';
+    return '<tr class="'+cls+'">'
+      +'<td style="color:var(--gray)">'+(i+1)+'</td>'
+      +'<td style="font-weight:700;color:var(--white)">'+_escPicks(p.ticker||'')+'</td>'
+      +'<td><span class="picks-verdict '+p.verdict+'">'+p.verdict+'</span></td>'
+      +'<td style="color:var(--gray);max-width:220px">'+_escPicks(rat)+'</td>'
+      +'<td style="text-align:center;color:var(--white)">'+(p.conviction_score||'—')+'/10</td>'
+      +'<td style="text-align:center;color:var(--gray)">'+pe+'</td>'
+      +'<td style="text-align:center;color:var(--gray)">'+rsi+'</td>'
+      +'<td><button class="picks-analyze-btn" onclick="G.analyzePickTicker(\''+_escPicks(p.ticker||'')+'\')">ANALYZE →</button></td>'
+      +'</tr>';
+  }).join('');
+};
+G.renderPicksFromCache=function(region){
+  var rows=(G.picksCache[region]||[]).slice(0,8);
+  G.renderPicksRows(rows);
+  G.$('picks-status').textContent=rows.length+' picks \xb7 '+region.toUpperCase()+' (cached)';
+};
+G.analyzePickTicker=function(ticker){
+  G.$('cmdinput').value=ticker;
+  switchTab('summary');
+  document.getElementById('abtn').click();
+};
+G.refreshPicks=function(){
+  delete G.picksCache[G.picksRegion];
+  G.loadPicks(G.picksRegion);
+};
+// Auto-trigger US picks on load
+document.addEventListener('DOMContentLoaded',function(){G.loadPicks('us')});
+
 document.getElementById('copybtn').addEventListener('click',function(){
   navigator.clipboard.writeText(document.getElementById('codeblk').innerText).then(function(){
     var b=document.getElementById('copybtn');b.textContent='COPIED';
