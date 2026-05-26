@@ -1534,6 +1534,94 @@ async def stock_picks(region: str = "us"):
     )
 
 
+# ── Da Vinci Creative Page ─────────────────────────────────────────────────────
+
+@app.get("/api/davinci/generate")
+async def davinci_generate(topic: str = ""):
+    topic = topic.strip()
+    if not topic:
+        raise HTTPException(status_code=400, detail="Topic required")
+    if len(topic) > 200:
+        raise HTTPException(status_code=400, detail="Topic too long (max 200 chars)")
+
+    async def generate():
+        try:
+            from agents.davinci_pipeline import run_idea_generator
+            loop = asyncio.get_running_loop()
+            result = await _run_agent(loop, run_idea_generator, topic)
+            ideas = result.get("ideas", [])
+            for idea in ideas:
+                yield _sse({"event": "idea", **idea})
+            yield _sse({"event": "ideas_done", "count": len(ideas)})
+        except Exception as e:
+            yield _sse({"event": "error", "message": str(e)})
+
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+@app.get("/api/davinci/expand")
+async def davinci_expand(ideas: str = ""):
+    try:
+        ideas_list = json.loads(ideas)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid ideas param — must be JSON array")
+    if not ideas_list:
+        raise HTTPException(status_code=400, detail="No ideas provided")
+
+    async def generate():
+        try:
+            from agents.davinci_pipeline import run_idea_expander
+            loop = asyncio.get_running_loop()
+            tasks = [_run_agent(loop, run_idea_expander, idea["title"], idea.get("tagline", ""))
+                     for idea in ideas_list]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            count = 0
+            for idea, result in zip(ideas_list, results):
+                if isinstance(result, Exception):
+                    yield _sse({"event": "expansion", "title": idea["title"],
+                                "error": str(result)[:120]})
+                else:
+                    yield _sse({"event": "expansion", **result})
+                count += 1
+            yield _sse({"event": "expand_done", "count": count})
+        except Exception as e:
+            yield _sse({"event": "error", "message": str(e)})
+
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+class DaVinciSaveRequest(BaseModel):
+    topic: str
+    expansions: list[dict]
+
+
+@app.post("/api/davinci/save")
+async def davinci_save(req: DaVinciSaveRequest):
+    notes_path = Path("data/notes.json")
+    try:
+        notes = json.loads(notes_path.read_text(encoding="utf-8"))
+    except Exception:
+        notes = []
+    for exp in req.expansions:
+        content = f"## {exp.get('title', '')}\n\n"
+        content += f"**Use Cases:** {exp.get('use_cases', '')}\n\n"
+        content += f"**Steps:** {exp.get('steps', '')}\n\n"
+        content += f"**Example:** {exp.get('example', '')}\n\n"
+        content += f"**Impact:** {exp.get('impact', '')}"
+        notes.append({
+            "id": str(uuid.uuid4()),
+            "title": exp.get("title", req.topic),
+            "content": content,
+            "tags": ["da-vinci", "brainstorming", req.topic[:30]],
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat(),
+        })
+    notes_path.write_text(json.dumps(notes, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"saved": len(req.expansions)}
+
+
 # ─── Najwa News Feed ──────────────────────────────────────────────────────────
 
 _news_cache: dict = {"data": None, "ts": 0.0}
@@ -1841,6 +1929,7 @@ Path("static").mkdir(exist_ok=True)
 Path("static/avatars").mkdir(exist_ok=True)
 Path("static/stock").mkdir(exist_ok=True)
 Path("static/study").mkdir(exist_ok=True)
+Path("static/davinci").mkdir(exist_ok=True)
 
 
 @app.get("/stock", include_in_schema=False)
@@ -1869,6 +1958,15 @@ async def serve_study():
     if p.exists():
         return FileResponse(str(p), headers={"Cache-Control": "no-cache"})
     return JSONResponse({"error": "Study page not found"}, status_code=404)
+
+
+@app.get("/davinci", include_in_schema=False)
+@app.get("/davinci/", include_in_schema=False)
+async def serve_davinci():
+    p = Path("static/davinci/index.html")
+    if p.exists():
+        return FileResponse(str(p), headers={"Cache-Control": "no-cache"})
+    return JSONResponse({"error": "Da Vinci page not found"}, status_code=404)
 
 
 @app.get("/fitness", include_in_schema=False)
