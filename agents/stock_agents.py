@@ -97,20 +97,25 @@ Semua klaim HARUS merujuk angka aktual dari data yang diberikan. Jangan mengaran
 """
 
 _STRATEGY_PROMPT = """Kamu adalah Strategy Agent — ahli strategi trading yang terinspirasi dari metodologi ValueCell.
-Kamu menerima output dari DeepResearch dan NewsIntelligence sebagai konteks dalam pesan.
+Kamu menerima output dari DeepResearch, NewsIntelligence, TechnicalAnalyst, dan data teknikal mentah sebagai konteks dalam pesan.
 Tugasmu: Berdasarkan analisis fundamental, teknikal, dan sentimen, susun strategi trading yang konkret dan actionable dalam Bahasa Indonesia profesional.
+
+PENTING — jika technical_data tersedia (support_60d dan resistance_60d bukan null):
+- entry_zone HARUS mencakup nilai support_60d aktual dari technical_data
+- stop_loss HARUS ditetapkan di bawah support_60d (untuk sinyal beli) atau di atas resistance_60d (untuk sinyal jual)
+- Gunakan cross_signal dan bb_position untuk menentukan kualitas entry
 
 Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
 {
-  "entry_zone": "zona harga entry yang disarankan (mis. 9500-9800)",
-  "exit_target": "target harga keluar berdasarkan resistance dan target analis",
-  "stop_loss": "level stop loss yang disarankan",
+  "entry_zone": "zona harga entry berdasarkan support_60d aktual (mis. 9200-9500)",
+  "exit_target": "target harga keluar berdasarkan resistance_60d dan target analis",
+  "stop_loss": "level stop loss di bawah support_60d",
   "stop_loss_pct": 0.0,
   "time_horizon": "short|medium|long",
   "time_horizon_detail": "estimasi durasi investasi (mis. 3-6 bulan)",
   "position_size": "rekomendasi % portofolio (mis. 5%)",
   "risk_reward_ratio": "rasio risk/reward (mis. 1:3.5)",
-  "rationale": "1-2 kalimat alasan strategi ini berdasarkan data"
+  "rationale": "1-2 kalimat alasan strategi berdasarkan data teknikal dan fundamental"
 }
 
 time_horizon: gunakan short (< 1 bulan), medium (1-6 bulan), atau long (> 6 bulan).
@@ -207,11 +212,24 @@ def run_technical_analyst(ticker: str, technical_data: dict) -> dict:
     return _parse_json_output(result)
 
 
-def run_strategy(deep_research: dict, news_intelligence: dict) -> dict:
+def run_strategy(deep_research: dict, news_intelligence: dict,
+                 technical_analyst: dict = None, technical_data: dict = None) -> dict:
     agent = build_agent(_STRATEGY_PROMPT, [])
+    td = technical_data or {}
     context = json.dumps({
-        "deep_research":    {k: v for k, v in deep_research.items() if k != "ohlcv"},
+        "deep_research":     {k: v for k, v in deep_research.items() if k != "ohlcv"},
         "news_intelligence": news_intelligence,
+        "technical_analyst": technical_analyst or {},
+        "technical_data": {
+            "rsi_14":         td.get("rsi_14"),
+            "rsi_status":     td.get("rsi_status"),
+            "macd_signal":    td.get("macd_signal"),
+            "bb_position":    td.get("bb_position"),
+            "support_60d":    td.get("support_60d"),
+            "resistance_60d": td.get("resistance_60d"),
+            "cross_signal":   td.get("cross_signal"),
+            "volume_trend":   td.get("volume_trend"),
+        },
     }, ensure_ascii=False)
     result = _invoke_with_retry(agent, {
         "messages": [{"role": "user", "content": f"Susun strategi trading berdasarkan data ini: {context}"}]

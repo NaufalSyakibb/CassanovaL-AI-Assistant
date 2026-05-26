@@ -71,16 +71,18 @@ def test_run_strategy_returns_expected_keys():
         "time_horizon_detail": "3-6 bulan",
         "position_size": "5%",
         "risk_reward_ratio": "1:3.0",
-        "rationale": "Support kuat di 9500",
+        "rationale": "Support kuat di 9500, RSI 38 approaching oversold",
     }
     dr = {"summary": "ok", "ohlcv": {}, "current_price": 9700.0}
     ni = {"summary": "ok", "sentiment_score": 0.5}
+    ta = {"trend_assessment": "bullish", "momentum_reading": "RSI 38", "key_levels": "support 9200", "entry_quality": "good"}
+    td = {"support_60d": 9200.0, "resistance_60d": 10500.0, "rsi_14": 38.0, "rsi_status": "approaching_oversold"}
 
     with patch("agents.stock_agents.build_agent") as mock_build:
         mock_agent = MagicMock()
         mock_agent.invoke.return_value = _fake_agent_result(fake_out)
         mock_build.return_value = mock_agent
-        result = run_strategy(dr, ni)
+        result = run_strategy(dr, ni, ta, td)
 
     assert "entry_zone" in result
     assert "exit_target" in result
@@ -111,7 +113,7 @@ def test_run_strategy_strips_ohlcv_from_context():
         mock_agent = MagicMock()
         mock_agent.invoke.side_effect = capture_invoke
         mock_build.return_value = mock_agent
-        run_strategy(dr, ni)
+        run_strategy(dr, ni, {}, {})
 
     assert "ohlcv" not in captured_content[0]
 
