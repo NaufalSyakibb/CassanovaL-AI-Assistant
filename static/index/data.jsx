@@ -11,7 +11,7 @@ const AGENTS = {
   },
   notes: {
     name: 'Cicero', sub: 'Study Assistant', hue: 'var(--hue-cicero)',
-    issue: 'II.', cluster: 'academic',
+    issue: 'II.', cluster: 'academic', url: '/study',
     tagline: 'Your personal tutor — explains concepts, builds quizzes, creates flashcards, and prepares you for exams.',
     greeting: 'Apa yang ingin kita pelajari hari ini? Aku bisa jelaskan konsep, buatkan soal latihan, atau bantu persiapan ujian.',
     Ico: () => { const {IcoFeather} = window.Icons; return <IcoFeather/>; },
