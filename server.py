@@ -1391,6 +1391,103 @@ async def stock_analyze(ticker: str):
     )
 
 
+# ── Study Pipeline ─────────────────────────────────────────────────────────────
+
+@app.get("/api/study/generate")
+async def study_generate(topic: str):
+    if not topic or not topic.strip():
+        raise HTTPException(status_code=400, detail="Topic is required")
+    if len(topic) > 200:
+        raise HTTPException(status_code=400, detail="Topic too long (max 200 chars)")
+    topic = topic.strip()
+
+    async def generate():
+        yield _sse({"event": "log", "text": f"Memulai pipeline untuk: {topic}..."})
+        try:
+            from agents.study_agents import run_materi_agent, run_konsep_agent, run_ringkasan_agent
+            loop = asyncio.get_running_loop()
+
+            # Phase 1: MateriAgent
+            yield _sse({"event": "step", "agent": "MateriAgent", "status": "running"})
+            materi_data = await _run_agent(loop, run_materi_agent, topic)
+            yield _sse({"event": "materi", "data": materi_data})
+            yield _sse({"event": "step", "agent": "MateriAgent", "status": "done"})
+
+            sections = materi_data.get("sections", [])
+            materi_text = "\n\n".join(
+                f"{s.get('title', '')}\n{s.get('content', '')}" for s in sections
+            )
+
+            # Phase 2: KonsepAgent
+            yield _sse({"event": "step", "agent": "KonsepAgent", "status": "running"})
+            konsep_data = await _run_agent(loop, run_konsep_agent, topic, materi_text)
+            yield _sse({"event": "konsep", "data": konsep_data})
+            yield _sse({"event": "step", "agent": "KonsepAgent", "status": "done"})
+
+            concepts = konsep_data.get("concepts", [])
+            konsep_text = "\n".join(
+                f"- {c.get('term', '')}: {c.get('definition', '')}" for c in concepts
+            )
+
+            # Phase 3: RingkasanAgent
+            yield _sse({"event": "step", "agent": "RingkasanAgent", "status": "running"})
+            ringkasan_data = await _run_agent(loop, run_ringkasan_agent, topic, materi_text, konsep_text)
+            yield _sse({"event": "ringkasan", "data": ringkasan_data})
+            yield _sse({"event": "step", "agent": "RingkasanAgent", "status": "done"})
+
+            yield _sse({"event": "done"})
+
+        except Exception as e:
+            yield _sse({"event": "error", "message": str(e)})
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+class StudySaveRequest(BaseModel):
+    topic: str
+    materi: dict
+    konsep: dict
+    ringkasan: dict
+
+
+@app.post("/api/study/save")
+async def study_save(req: StudySaveRequest):
+    notes_path = Path("data/notes.json")
+    try:
+        notes = json.loads(notes_path.read_text(encoding="utf-8")) if notes_path.exists() else []
+    except Exception:
+        notes = []
+
+    sections = req.materi.get("sections", [])
+    concepts = req.konsep.get("concepts", [])
+    summary = req.ringkasan.get("summary", "")
+
+    lines = [f"# {req.topic}\n\n## Materi Lengkap\n"]
+    for s in sections:
+        lines.append(f"### {s.get('title', '')}\n{s.get('content', '')}\n")
+    lines.append("\n## Konsep Kunci\n")
+    for c in concepts:
+        lines.append(f"**{c.get('term', '')}:** {c.get('definition', '')}")
+    lines.append(f"\n## Ringkasan\n{summary}")
+
+    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    note = {
+        "id": uuid.uuid4().hex[:8],
+        "title": req.topic,
+        "content": "\n".join(lines),
+        "tags": ["study", "cicero"],
+        "created_at": now,
+        "updated_at": now,
+    }
+    notes.append(note)
+    notes_path.write_text(json.dumps(notes, indent=2, ensure_ascii=False), encoding="utf-8")
+    return {"id": note["id"], "title": note["title"]}
+
+
 # ─── Najwa News Feed ──────────────────────────────────────────────────────────
 
 _news_cache: dict = {"data": None, "ts": 0.0}
@@ -1697,6 +1794,7 @@ async def crew_jobs():
 Path("static").mkdir(exist_ok=True)
 Path("static/avatars").mkdir(exist_ok=True)
 Path("static/stock").mkdir(exist_ok=True)
+Path("static/study").mkdir(exist_ok=True)
 
 
 @app.get("/stock", include_in_schema=False)
@@ -1716,6 +1814,15 @@ async def serve_stock_terminal():
 # Mounts must come AFTER explicit routes so Starlette checks routes first
 app.mount("/stock", StaticFiles(directory="static/stock", html=True), name="stock")
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.get("/study", include_in_schema=False)
+@app.get("/study/", include_in_schema=False)
+async def serve_study():
+    p = Path("static/study/index.html")
+    if p.exists():
+        return FileResponse(str(p), headers={"Cache-Control": "no-cache"})
+    return JSONResponse({"error": "Study page not found"}, status_code=404)
 
 
 @app.get("/fitness", include_in_schema=False)
