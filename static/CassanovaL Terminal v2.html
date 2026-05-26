@@ -274,7 +274,7 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
 /* ── PICKS TAB ── */
 #tc-picks{flex-direction:column;gap:0;padding:0}
 .picks-bar{display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
-.picks-region-btn{background:var(--panel);border:1px solid var(--border2);color:var(--gray);border-radius:3px;padding:3px 10px;font-size:10px;font-family:var(--mono);letter-spacing:0.08em;cursor:pointer;transition:all .15s}
+.picks-region-btn,.picks-refresh-btn{background:var(--panel);border:1px solid var(--border2);color:var(--gray);border-radius:3px;padding:3px 10px;font-size:10px;font-family:var(--mono);letter-spacing:0.08em;cursor:pointer;transition:all .15s}
 .picks-region-btn.on{background:var(--orange);border-color:var(--orange);color:var(--black);font-weight:700}
 .picks-status{margin-left:auto;font-size:10px;color:var(--gray);letter-spacing:0.05em}
 .picks-table-wrap{flex:1;overflow-y:auto}
@@ -738,7 +738,7 @@ table.picks-tbl td{padding:5px 8px;border-bottom:1px solid var(--border2);vertic
         <button class="picks-region-btn on" data-r="us" onclick="G.loadPicks('us')">US</button>
         <button class="picks-region-btn" data-r="asia" onclick="G.loadPicks('asia')">ASIA</button>
         <button class="picks-region-btn" data-r="idx" onclick="G.loadPicks('idx')">IDX</button>
-        <button class="picks-region-btn" onclick="G.refreshPicks()" style="margin-left:6px">↻</button>
+        <button class="picks-refresh-btn" onclick="G.refreshPicks()" style="margin-left:6px">↻</button>
         <span id="picks-status" class="picks-status">Memuat US picks...</span>
       </div>
       <div class="picks-table-wrap">
@@ -845,12 +845,12 @@ G.loadPicks=function(region){
   G.$('picks-status').textContent='Memuat '+region.toUpperCase()+' picks...';
   if(G.picksES){G.picksES.close();G.picksES=null}
   var cache=[];
-  var es=new EventSource('/api/stock/picks?region='+region);G.picksES=es;
+  var es=new EventSource('/api/stock/picks?region='+encodeURIComponent(region));G.picksES=es;
   es.onmessage=function(e){
     var msg;try{msg=JSON.parse(e.data)}catch(err){return}
     switch(msg.event){
       case 'picks_start':
-        G.$('picks-status').textContent='Menganalisis 0/'+msg.total+'...';
+        G.$('picks-status').textContent='Menganalisis 0/'+(msg.total||'?')+'...';
         break;
       case 'pick_result':
         if(msg.verdict==='ERROR'||msg.verdict==='SKIP')break;
@@ -885,9 +885,9 @@ G.renderPicksRows=function(rows){
     return '<tr class="'+cls+'">'
       +'<td style="color:var(--gray)">'+(i+1)+'</td>'
       +'<td style="font-weight:700;color:var(--white)">'+_escPicks(p.ticker||'')+'</td>'
-      +'<td><span class="picks-verdict '+p.verdict+'">'+p.verdict+'</span></td>'
+      +'<td><span class="picks-verdict '+_escPicks(p.verdict||'')+'">'+_escPicks(p.verdict||'')+'</span></td>'
       +'<td style="color:var(--gray);max-width:220px">'+_escPicks(rat)+'</td>'
-      +'<td style="text-align:center;color:var(--white)">'+(p.conviction_score||'—')+'/10</td>'
+      +'<td style="text-align:center;color:var(--white)">'+_escPicks(String(p.conviction_score||'—'))+'/10</td>'
       +'<td style="text-align:center;color:var(--gray)">'+pe+'</td>'
       +'<td style="text-align:center;color:var(--gray)">'+rsi+'</td>'
       +'<td><button class="picks-analyze-btn" onclick="G.analyzePickTicker(\''+_escPicks(p.ticker||'')+'\')">ANALYZE →</button></td>'
@@ -935,6 +935,7 @@ G.log=function(text,cls){
   var l=G.$('logs');l.appendChild(d);l.scrollTop=9999;
 };
 G.reset=function(){
+  if(G.picksES){G.picksES.close();G.picksES=null}
   G.logCount=0;G.$('log-count').textContent='0 EVENTS';
   ['DeepResearch','NewsIntelligence','TechnicalAnalyst','Strategy','FinalVerdict','BuyTiming'].forEach(function(a){G.setAgent(a,'')});
   G.$('logs').innerHTML='';
