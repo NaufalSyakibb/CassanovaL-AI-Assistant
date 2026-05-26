@@ -1488,6 +1488,50 @@ async def study_save(req: StudySaveRequest):
     return {"id": note["id"], "title": note["title"]}
 
 
+# ── Stock Picks Screener ───────────────────────────────────────────────────────
+
+_VALID_PICK_REGIONS = {"us", "asia", "idx"}
+
+@app.get("/api/stock/picks")
+async def stock_picks(region: str = "us"):
+    region = region.lower()
+    if region not in _VALID_PICK_REGIONS:
+        raise HTTPException(status_code=400, detail=f"Unknown region: {region}. Valid: us, asia, idx")
+
+    async def generate():
+        from agents.stock_screener import run_pick_screener, WATCHLISTS
+        tickers = WATCHLISTS.get(region, [])
+        if not tickers:
+            yield _sse({"event": "error", "message": f"No watchlist for region: {region}"})
+            return
+
+        yield _sse({"event": "picks_start", "region": region, "total": len(tickers)})
+        loop = asyncio.get_running_loop()
+        count = 0
+
+        for i in range(0, len(tickers), 3):
+            batch = tickers[i:i + 3]
+            tasks = [_run_agent(loop, run_pick_screener, t) for t in batch]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for ticker, result in zip(batch, results):
+                if isinstance(result, Exception):
+                    yield _sse({"event": "pick_result", "ticker": ticker, "verdict": "ERROR",
+                                "conviction_score": 0, "rationale": str(result)[:120],
+                                "key_catalyst": "", "risk_factor": "", "pe_ratio": 0, "rsi": 0})
+                else:
+                    result["ticker"] = ticker
+                    yield _sse({"event": "pick_result", **result})
+                count += 1
+
+        yield _sse({"event": "picks_done", "region": region, "count": count})
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
 # ─── Najwa News Feed ──────────────────────────────────────────────────────────
 
 _news_cache: dict = {"data": None, "ts": 0.0}
