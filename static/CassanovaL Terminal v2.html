@@ -821,6 +821,18 @@ document.querySelectorAll('.cmd-preset').forEach(function(b){
 });
 
 // Copy
+document.getElementById('copybtn').addEventListener('click',function(){
+  navigator.clipboard.writeText(document.getElementById('codeblk').innerText).then(function(){
+    var b=document.getElementById('copybtn');b.textContent='COPIED';
+    setTimeout(function(){b.textContent='COPY TO CLIPBOARD'},2000);
+  });
+});
+
+var G={};
+G.$=function(id){return document.getElementById(id)};
+G.logCount=0;
+G.currency='USD';
+
 // ── PICKS TAB ──────────────────────────────────────────────────────────────
 function _escPicks(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 G.picksCache={};G.picksES=null;G.picksRegion='us';
@@ -898,18 +910,6 @@ G.refreshPicks=function(){
 };
 // Auto-trigger US picks on load
 document.addEventListener('DOMContentLoaded',function(){G.loadPicks('us')});
-
-document.getElementById('copybtn').addEventListener('click',function(){
-  navigator.clipboard.writeText(document.getElementById('codeblk').innerText).then(function(){
-    var b=document.getElementById('copybtn');b.textContent='COPIED';
-    setTimeout(function(){b.textContent='COPY TO CLIPBOARD'},2000);
-  });
-});
-
-var G={};
-G.$=function(id){return document.getElementById(id)};
-G.logCount=0;
-G.currency='USD';
 
 G.setLive=function(on){
   G.$('ldot').classList.toggle('on',on);
