@@ -1622,6 +1622,93 @@ async def davinci_save(req: DaVinciSaveRequest):
     return {"saved": len(req.expansions)}
 
 
+# ── Nostradamus Prophetic Page ────────────────────────────────────────────────
+
+@app.get("/api/nostradamus/prophesy")
+async def nostradamus_prophesy(event: str = ""):
+    event = event.strip()
+    if not event:
+        raise HTTPException(status_code=400, detail="Event required")
+    if len(event) > 200:
+        raise HTTPException(status_code=400, detail="Event too long (max 200 chars)")
+
+    async def generate():
+        try:
+            from agents.nostradamus_pipeline import run_news_gatherer, run_predictor, run_council, PREDICTORS
+            loop = asyncio.get_running_loop()
+
+            # Phase 1 — News gathering
+            news_result = await _run_agent(loop, run_news_gatherer, event)
+            news_items = news_result.get("news", [])
+            news_summary = "\n".join(
+                f"- {n.get('headline', '')} ({n.get('source', '')}, {n.get('date', '')}): {n.get('summary', '')}"
+                for n in news_items
+            )
+            for item in news_items:
+                yield _sse({"event": "news_item", **item})
+            yield _sse({"event": "news_done", "count": len(news_items)})
+
+            # Phase 2 — Parallel predictions, stream as each finishes
+            async def safe_predict(predictor):
+                try:
+                    return await _run_agent(loop, run_predictor, predictor, event, news_summary)
+                except Exception as exc:
+                    return {"agent_id": predictor["id"], "agent_name": predictor["name"],
+                            "error": str(exc)[:120]}
+
+            tasks = [asyncio.create_task(safe_predict(p)) for p in PREDICTORS]
+            predictions = []
+            for coro in asyncio.as_completed(tasks):
+                result = await coro
+                if "error" not in result:
+                    predictions.append(result)
+                yield _sse({"event": "prediction", **result})
+            yield _sse({"event": "predictions_done", "count": len(PREDICTORS)})
+
+            # Phase 3 — Council verdict
+            verdict = await _run_agent(loop, run_council, event, predictions)
+            yield _sse({"event": "verdict", **verdict})
+            yield _sse({"event": "prophesy_done"})
+
+        except Exception as exc:
+            yield _sse({"event": "error", "message": str(exc)})
+
+    return StreamingResponse(generate(), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+class NostradamusSaveRequest(BaseModel):
+    event: str
+    verdict: dict
+
+
+@app.post("/api/nostradamus/save")
+async def nostradamus_save(req: NostradamusSaveRequest):
+    notes_path = Path("data/notes.json")
+    try:
+        notes = json.loads(notes_path.read_text(encoding="utf-8"))
+    except Exception:
+        notes = []
+    v = req.verdict
+    content = (
+        f"## {v.get('verdict_title', req.event)}\n\n"
+        f"{v.get('verdict_detail', '')}\n\n"
+        f"**Kepercayaan:** {v.get('confidence', '?')}%  \n"
+        f"**Didukung:** {v.get('endorsed_agent', '')}  \n"
+        f"**Dissent:** {v.get('dissenting_view', '')}"
+    )
+    notes.append({
+        "id": str(uuid.uuid4()),
+        "title": v.get("verdict_title", req.event),
+        "content": content,
+        "tags": ["nostradamus", "prediction", req.event[:30]],
+        "created_at": datetime.now().isoformat(),
+        "updated_at": datetime.now().isoformat(),
+    })
+    notes_path.write_text(json.dumps(notes, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"saved": 1}
+
+
 # ─── Najwa News Feed ──────────────────────────────────────────────────────────
 
 _news_cache: dict = {"data": None, "ts": 0.0}
@@ -1930,6 +2017,7 @@ Path("static/avatars").mkdir(exist_ok=True)
 Path("static/stock").mkdir(exist_ok=True)
 Path("static/study").mkdir(exist_ok=True)
 Path("static/davinci").mkdir(exist_ok=True)
+Path("static/nostradamus").mkdir(exist_ok=True)
 
 
 @app.get("/stock", include_in_schema=False)
@@ -1967,6 +2055,15 @@ async def serve_davinci():
     if p.exists():
         return FileResponse(str(p), headers={"Cache-Control": "no-cache"})
     return JSONResponse({"error": "Da Vinci page not found"}, status_code=404)
+
+
+@app.get("/nostradamus", include_in_schema=False)
+@app.get("/nostradamus/", include_in_schema=False)
+async def serve_nostradamus():
+    p = Path("static/nostradamus/index.html")
+    if p.exists():
+        return FileResponse(str(p), headers={"Cache-Control": "no-cache"})
+    return JSONResponse({"error": "Nostradamus page not found"}, status_code=404)
 
 
 @app.get("/fitness", include_in_schema=False)
