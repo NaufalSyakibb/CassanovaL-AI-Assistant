@@ -375,7 +375,7 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
   <div id="lpan">
     <div class="panel-hdr">
       <span>AGENT STATUS</span>
-      <span class="panel-hdr-num">5 AGENTS</span>
+      <span class="panel-hdr-num">6 AGENTS</span>
     </div>
     <div id="agpan">
       <div class="a-hdr">ANALYSIS PIPELINE</div>
@@ -394,6 +394,14 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
           <div class="adesc">Sentiment &amp; Macro</div>
         </div>
         <div class="aright" id="rt-NewsIntelligence">IDLE</div>
+      </div>
+      <div class="arow" id="r-TechnicalAnalyst">
+        <div class="astatus"></div>
+        <div>
+          <div class="aname">TECHNICALANALYST</div>
+          <div class="adesc">RSI · MACD · Bollinger · Support/Resistance</div>
+        </div>
+        <div class="aright" id="rt-TechnicalAnalyst">IDLE</div>
       </div>
       <div class="arow" id="r-Strategy">
         <div class="astatus"></div>
@@ -434,6 +442,7 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
     <div id="tabbar">
       <button class="tbtn on" data-t="summary">F1 SUMMARY<span class="tdot" id="d-summary"></span></button>
       <button class="tbtn" data-t="strategy">F2 STRATEGY<span class="tdot" id="d-strategy"></span></button>
+      <button class="tbtn" data-t="technicals">T TECHNICALS<span class="tdot" id="d-technicals"></span></button>
       <button class="tbtn" data-t="charts">F3 CHARTS<span class="tdot" id="d-charts"></span></button>
       <button class="tbtn" data-t="verdict">F4 VERDICT<span class="tdot" id="d-verdict"></span></button>
       <button class="tbtn" data-t="code">F5 CODE<span class="tdot" id="d-code"></span></button>
@@ -582,6 +591,82 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
           <div class="sb-hdr cy">TIMING RATIONALE &amp; DCA PLAN</div>
           <div class="sb-body" id="s-trat" style="font-size:11px;color:var(--gray2);line-height:1.7;overflow-y:auto;max-height:100px"></div>
         </div>
+        <div class="strat-block full" id="tech-confirm-block" style="display:none">
+          <div class="sb-hdr cy">TECHNICAL CONFIRMATION <span style="color:var(--gray)">BUYTIMING</span></div>
+          <div class="sb-body" id="s-techconf" style="font-size:10px;color:var(--gray2);line-height:1.9;font-family:inherit"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TECHNICALS -->
+    <div class="tc" id="tc-technicals">
+      <div id="tech-ph" style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--border2);font-size:11px;letter-spacing:1px">TECHNICALANALYST NOT YET RUN</div>
+      <div id="tech-body" style="display:none;padding:12px;overflow-y:auto">
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px">
+          <div class="strat-block" style="margin:0">
+            <div class="sb-hdr or">RSI 14</div>
+            <div class="sb-body">
+              <div class="big-val" id="ti-rsi" style="font-size:22px">—</div>
+              <div class="big-sub" id="ti-rsi-status">—</div>
+            </div>
+          </div>
+          <div class="strat-block" style="margin:0">
+            <div class="sb-hdr">MACD</div>
+            <div class="sb-body">
+              <div class="big-val" id="ti-macd" style="font-size:14px">—</div>
+              <div class="big-sub" id="ti-macd-hist">—</div>
+            </div>
+          </div>
+          <div class="strat-block" style="margin:0">
+            <div class="sb-hdr cy">BOLLINGER</div>
+            <div class="sb-body">
+              <div class="big-val cy" id="ti-bb" style="font-size:13px">—</div>
+              <div class="big-sub">BAND POSITION</div>
+            </div>
+          </div>
+          <div class="strat-block" style="margin:0">
+            <div class="sb-hdr gr">MA ALIGNMENT</div>
+            <div class="sb-body">
+              <div class="big-val" id="ti-cross" style="font-size:13px">—</div>
+              <div class="big-sub" id="ti-ma20">—</div>
+            </div>
+          </div>
+          <div class="strat-block" style="margin:0">
+            <div class="sb-hdr">VOLUME</div>
+            <div class="sb-body">
+              <div class="big-val" id="ti-vol" style="font-size:16px">—</div>
+              <div class="big-sub" id="ti-vol-ratio">—</div>
+            </div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+          <div class="strat-block" style="margin:0">
+            <div class="sb-hdr gr">SUPPORT 60D</div>
+            <div class="sb-body"><div class="big-val gr" id="ti-sup">—</div><div class="big-sub">FLOOR LEVEL</div></div>
+          </div>
+          <div class="strat-block" style="margin:0">
+            <div class="sb-hdr re">RESISTANCE 60D</div>
+            <div class="sb-body"><div class="big-val re" id="ti-res">—</div><div class="big-sub">CEILING LEVEL</div></div>
+          </div>
+        </div>
+        <div id="tech-narrative" style="display:none">
+          <div class="strat-block full" style="margin:0 0 8px 0">
+            <div class="sb-hdr">TREND ASSESSMENT</div>
+            <div class="sb-body" id="ti-trend" style="font-size:11px;color:var(--gray2);line-height:1.7"></div>
+          </div>
+          <div class="strat-block full" style="margin:0 0 8px 0">
+            <div class="sb-hdr cy">MOMENTUM</div>
+            <div class="sb-body" id="ti-momentum" style="font-size:11px;color:var(--gray2);line-height:1.7"></div>
+          </div>
+          <div class="strat-block full" style="margin:0 0 8px 0">
+            <div class="sb-hdr gr">KEY LEVELS</div>
+            <div class="sb-body" id="ti-levels" style="font-size:11px;color:var(--gray2);line-height:1.7"></div>
+          </div>
+          <div class="strat-block" style="margin:0">
+            <div class="sb-hdr">ENTRY QUALITY</div>
+            <div class="sb-body"><div class="big-val" id="ti-eq">—</div><div class="big-sub">TECHNICAL ENTRY SIGNAL</div></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -654,7 +739,7 @@ html,body{height:100%;overflow:hidden;background:var(--black);color:var(--white)
 })();
 
 // ── Tabs ──────────────────────────────────────────────────────────────────
-var TABS=['summary','strategy','charts','verdict','code'];
+var TABS=['summary','strategy','technicals','charts','verdict','code'];
 function switchTab(t){
   document.querySelectorAll('.tbtn').forEach(function(b){b.classList.remove('on')});
   document.querySelectorAll('.tc').forEach(function(c){c.classList.remove('on')});
@@ -729,7 +814,7 @@ G.log=function(text,cls){
 };
 G.reset=function(){
   G.logCount=0;G.$('log-count').textContent='0 EVENTS';
-  ['DeepResearch','NewsIntelligence','Strategy','FinalVerdict','BuyTiming'].forEach(function(a){G.setAgent(a,'')});
+  ['DeepResearch','NewsIntelligence','TechnicalAnalyst','Strategy','FinalVerdict','BuyTiming'].forEach(function(a){G.setAgent(a,'')});
   G.$('logs').innerHTML='';
   G.$('ph').style.display='flex';G.$('rbody').style.display='none';
   G.$('sph').style.display='flex';G.$('sbody').style.display='none';
@@ -740,7 +825,11 @@ G.reset=function(){
   ['ks-price','ks-chg','ks-pe','ks-roe','ks-rsi','ks-conv'].forEach(function(id){var el=G.$(id);if(el){el.textContent='—';el.style.color='';el.style.fontSize='';el.style.fontWeight=''}});
   for(var i=1;i<=10;i++){var cb=G.$('cb'+i);if(cb)cb.className='cb'}
   TABS.forEach(function(t){var d=G.$('d-'+t);if(d)d.classList.remove('v')});
-  ['tim-sig-block','tim-win-block','tim-rat-block'].forEach(function(id){var el=G.$(id);if(el)el.style.display='none'});
+  ['tim-sig-block','tim-win-block','tim-rat-block','tech-confirm-block'].forEach(function(id){var el=G.$(id);if(el)el.style.display='none'});
+  var tph=G.$('tech-ph'),tbd=G.$('tech-body'),tnar=G.$('tech-narrative');
+  if(tph)tph.style.display='';
+  if(tbd)tbd.style.display='none';
+  if(tnar)tnar.style.display='none';
   G.setLive(false);
 };
 G.renderKStats=function(price,chg,pe,roe,rsi){
@@ -764,6 +853,43 @@ G.renderKStats=function(price,chg,pe,roe,rsi){
   if(G.$('ks-roe'))G.$('ks-roe').textContent=roe||'—';
   if(G.$('ks-rsi')&&rsi!=null)G.$('ks-rsi').textContent=String(rsi);
 };
+G.renderTechnicalsData=function(d){
+  var ph=G.$('tech-ph'),bd=G.$('tech-body');
+  if(ph)ph.style.display='none';
+  if(bd)bd.style.display='';
+  var rsi=d.rsi_14!=null?d.rsi_14.toFixed(1):'—';
+  var rsiStatus=(d.rsi_status||'neutral').replace(/_/g,' ').toUpperCase();
+  var rsiCol=d.rsi_14<=30?'var(--green)':d.rsi_14>=70?'var(--red)':'var(--orange)';
+  if(G.$('ti-rsi')){G.$('ti-rsi').textContent=rsi;G.$('ti-rsi').style.color=rsiCol;}
+  if(G.$('ti-rsi-status')){G.$('ti-rsi-status').textContent=rsiStatus;G.$('ti-rsi-status').style.color=rsiCol;}
+  var macdSig=(d.macd_signal||'').replace(/_/g,' ').toUpperCase();
+  var macdCol=macdSig.indexOf('BULL')>=0?'var(--green)':macdSig.indexOf('BEAR')>=0?'var(--red)':'var(--gray2)';
+  if(G.$('ti-macd')){G.$('ti-macd').textContent=macdSig||'—';G.$('ti-macd').style.color=macdCol;}
+  if(G.$('ti-macd-hist')){var h=d.macd_histogram!=null?'HIST '+d.macd_histogram.toFixed(3):'—';G.$('ti-macd-hist').textContent=h;}
+  var bbPos=(d.bb_position||'mid_range').replace(/_/g,' ').toUpperCase();
+  var bbCol=bbPos.indexOf('LOWER')>=0?'var(--green)':bbPos.indexOf('UPPER')>=0?'var(--red)':'var(--cyan)';
+  if(G.$('ti-bb')){G.$('ti-bb').textContent=bbPos;G.$('ti-bb').style.color=bbCol;}
+  var cross=(d.cross_signal||'none').replace(/_/g,' ').toUpperCase();
+  var crossCol=cross.indexOf('GOLDEN')>=0?'var(--green)':cross.indexOf('DEATH')>=0?'var(--red)':'var(--gray2)';
+  if(G.$('ti-cross')){G.$('ti-cross').textContent=cross==='NONE'?'NO CROSS':cross;G.$('ti-cross').style.color=crossCol;}
+  if(G.$('ti-ma20'))G.$('ti-ma20').textContent=d.price_vs_ma20?'VS MA20: '+d.price_vs_ma20:'—';
+  var volT=(d.volume_trend||'neutral').toUpperCase();
+  var volCol=volT==='EXPANDING'?'var(--green)':volT==='CONTRACTING'?'var(--red)':'var(--gray2)';
+  if(G.$('ti-vol')){G.$('ti-vol').textContent=volT;G.$('ti-vol').style.color=volCol;}
+  if(G.$('ti-vol-ratio'))G.$('ti-vol-ratio').textContent=d.volume_ratio!=null?'RATIO '+d.volume_ratio.toFixed(2)+'x':'—';
+  if(G.$('ti-sup'))G.$('ti-sup').textContent=d.support_60d!=null?d.support_60d.toLocaleString('id-ID'):'—';
+  if(G.$('ti-res'))G.$('ti-res').textContent=d.resistance_60d!=null?d.resistance_60d.toLocaleString('id-ID'):'—';
+  var dot=G.$('d-technicals');if(dot)dot.classList.add('v');
+};
+G.renderTechnicalsAnalysis=function(a){
+  var nar=G.$('tech-narrative');if(nar)nar.style.display='';
+  if(G.$('ti-trend'))G.$('ti-trend').textContent=a.trend_assessment||'—';
+  if(G.$('ti-momentum'))G.$('ti-momentum').textContent=a.momentum_reading||'—';
+  if(G.$('ti-levels'))G.$('ti-levels').textContent=a.key_levels||'—';
+  var eq=(a.entry_quality||'neutral').toUpperCase();
+  var eqCol=eq==='GOOD'?'var(--green)':eq==='POOR'?'var(--red)':'var(--yellow)';
+  if(G.$('ti-eq')){G.$('ti-eq').textContent=eq;G.$('ti-eq').style.color=eqCol;}
+};
 G.renderTiming=function(d){
   var sig=(d.timing_signal||'WAIT').replace(/_/g,' ');
   var conf=parseInt(d.confidence||5,10);
@@ -781,6 +907,15 @@ G.renderTiming=function(d){
   if(G.$('s-trat'))G.$('s-trat').textContent=rat;
   ['tim-sig-block','tim-win-block','tim-rat-block'].forEach(function(id){var el=G.$(id);if(el)el.style.display='';});
   G.$('d-strategy').classList.add('v');
+  var ts=d.technical_signals||{};
+  var lines=[];
+  if(ts.rsi)lines.push('RSI    '+ts.rsi);
+  if(ts.macd)lines.push('MACD   '+ts.macd);
+  if(ts.bollinger)lines.push('BB     '+ts.bollinger);
+  if(ts.trend)lines.push('TREND  '+ts.trend);
+  if(ts.volume)lines.push('VOL    '+ts.volume);
+  var tcb=G.$('tech-confirm-block'),tcc=G.$('s-techconf');
+  if(tcb&&lines.length){tcb.style.display='';if(tcc)tcc.textContent=lines.join('\n');}
 };
 G.renderReport=function(r){
   G.$('ph').style.display='none';G.$('rbody').style.display='block';
@@ -984,6 +1119,8 @@ document.getElementById('abtn').addEventListener('click',function(){
           break;
         case 'strategy':G.renderStrategy(msg.data||{});break;
         case 'verdict':G.renderVerdict(msg.data||{});break;
+        case 'technicals':G.renderTechnicalsData(msg.data||{});break;
+        case 'technicals_analysis':G.renderTechnicalsAnalysis(msg.data||{});break;
         case 'timing':G.renderTiming(msg.data||{});break;
         case 'chart':
           if(msg.candlestick&&msg.candlestick.data)
