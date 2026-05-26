@@ -62,7 +62,7 @@ const AGENTS = {
   },
   davinci: {
     name: 'Da Vinci', sub: 'Ideas Lab', hue: 'var(--hue-davinci)',
-    issue: 'IX.', cluster: 'personal',
+    issue: 'IX.', cluster: 'personal', url: '/davinci',
     tagline: 'A workshop of half-finished inventions and stubborn sketches.',
     greeting: 'Curiosity first. Let us sketch something improbable and see where it leads.',
     Ico: () => { const {IcoLamp} = window.Icons; return <IcoLamp/>; },
