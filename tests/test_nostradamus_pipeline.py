@@ -54,6 +54,11 @@ def test_run_council_returns_verdict_keys():
         result = run_council("US-China trade war", predictions)
     for key in ("verdict_title", "verdict_detail", "confidence", "endorsed_agent", "dissenting_view"):
         assert key in result
+    # Verify council agent was built with save_prophecy tool
+    assert mock_build.call_count == 1
+    call_args = mock_build.call_args
+    tools_passed = call_args[0][1] if call_args[0] else call_args[1].get("tools", [])
+    assert len(tools_passed) == 1
 
 
 def test_run_predictor_handles_unparseable_response():

@@ -6,7 +6,7 @@ from agents.base import build_agent
 
 def _invoke_with_retry(agent, messages: dict, max_retries: int = 5) -> dict:
     delay = 20
-    last_exc = None
+    last_exc = RuntimeError("max_retries must be > 0")
     for attempt in range(max_retries):
         try:
             return agent.invoke(messages)
@@ -182,6 +182,6 @@ def run_council(event: str, predictions: list) -> dict:
         for p in predictions
     )
     result = _invoke_with_retry(agent, {
-        "messages": [{"role": "user", "content": f"Topik: {event}\n\n5 Prediksi:\n\n{preds_text}\n\nTetapkan vonis dan simpan ke vault."}]
+        "messages": [{"role": "user", "content": f"Topik: {event}\n\n{len(predictions)} Prediksi:\n\n{preds_text}\n\nTetapkan vonis dan simpan ke vault."}]
     })
     return _parse_json_output(result)

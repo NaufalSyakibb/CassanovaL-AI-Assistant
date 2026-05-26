@@ -2,6 +2,8 @@ from langchain.tools import tool
 from pathlib import Path
 from datetime import datetime
 
+_ROOT = Path(__file__).resolve().parents[1]
+
 
 @tool
 def save_prophecy(topic: str, verdict: str) -> str:
@@ -10,7 +12,7 @@ def save_prophecy(topic: str, verdict: str) -> str:
         topic: The event or topic that was analyzed.
         verdict: The council verdict text to save.
     """
-    vault = Path("AI Data/Nostradamus Agent")
+    vault = _ROOT / "AI Data" / "Nostradamus Agent"
     vault.mkdir(parents=True, exist_ok=True)
     ts = datetime.now().strftime("%Y-%m-%d_%H-%M")
     fname = vault / f"prophecy_{ts}.md"
