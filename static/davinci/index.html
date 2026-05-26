@@ -534,7 +534,7 @@ G.generate = function(topic) {
         G.es.close(); G.es = null;
         G.$('btn-generate').disabled = false;
         G.$('btn-generate').textContent = 'GENERATE';
-        G.toast('Error: ' + msg.message);
+        G.toast('Error: ' + G._esc(msg.message));
         var sk = G.$('ideas-list').querySelector('.idea-skeleton');
         if (sk) sk.remove();
       }
@@ -621,7 +621,7 @@ G.expand = function() {
         G.expandEs.close(); G.expandEs = null;
         G.$('btn-expand').disabled = false;
         G.$('btn-expand').textContent = 'EKSPANSI IDE →';
-        G.toast('Error: ' + msg.message);
+        G.toast('Error: ' + G._esc(msg.message));
       }
     } catch(err) {}
   };
