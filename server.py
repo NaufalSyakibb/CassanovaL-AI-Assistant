@@ -1253,10 +1253,13 @@ async def stock_analyze(ticker: str):
         yield _sse({"event": "log", "text": f"Initializing pipeline for {ticker}..."})
         try:
             from agents.stock_agents import (
-                run_deep_research, run_news_intelligence,
+                run_deep_research, run_news_intelligence, run_technical_analyst,
                 run_strategy, run_final_verdict, run_buy_timing,
             )
-            from tools.stock_tools import build_candlestick_json, build_heatmap_json, build_python_code
+            from tools.stock_tools import (
+                build_candlestick_json, build_heatmap_json, build_python_code,
+                get_technical_indicators,
+            )
             loop = asyncio.get_running_loop()
 
             # ── Phase 1: DeepResearch ─────────────────────────────────────
@@ -1266,6 +1269,15 @@ async def stock_analyze(ticker: str):
             growth = deep_research_data.get("growth_trend", "N/A")
             yield _sse({"event": "log", "text": f"Harga: {price} | Growth: {growth}"})
             yield _sse({"event": "step", "agent": "DeepResearch", "status": "done"})
+
+            # ── Phase 1.5 — direct tool call, no LLM ─────────────────────────
+            try:
+                tech_raw = get_technical_indicators.invoke({"ticker": ticker})
+                technical_data = json.loads(tech_raw) if isinstance(tech_raw, str) else tech_raw
+            except Exception:
+                technical_data = {}
+            technical_analyst_data = {}
+            yield _sse({"event": "technicals", "data": technical_data})
 
             # ── Market stats event (populates key-stats bar in terminal) ──────
             pe_raw  = deep_research_data.get("pe_ratio")
@@ -1292,19 +1304,30 @@ async def stock_analyze(ticker: str):
 
             await asyncio.sleep(5)
 
-            # ── Phase 2: NewsIntelligence ─────────────────────────────────
+            # ── Phase 2 — parallel: NewsIntelligence + TechnicalAnalyst ─────
             yield _sse({"event": "step", "agent": "NewsIntelligence", "status": "running"})
-            news_data = await _run_agent(loop, run_news_intelligence, ticker)
+            yield _sse({"event": "step", "agent": "TechnicalAnalyst", "status": "running"})
+            news_data, technical_analyst_data = await asyncio.gather(
+                _run_agent(loop, run_news_intelligence, ticker),
+                _run_agent(loop, run_technical_analyst, ticker, technical_data),
+            )
             sentiment  = news_data.get("sentiment_score", "N/A")
             event_type = news_data.get("event_type", "N/A")
             yield _sse({"event": "log", "text": f"Sentimen: {sentiment} | Event: {event_type}"})
             yield _sse({"event": "step", "agent": "NewsIntelligence", "status": "done"})
+            trend = str(technical_analyst_data.get("trend_assessment", ""))[:60]
+            yield _sse({"event": "log", "text": f"Teknikal: {trend}"})
+            yield _sse({"event": "step", "agent": "TechnicalAnalyst", "status": "done"})
+            yield _sse({"event": "technicals_analysis", "data": technical_analyst_data})
 
             await asyncio.sleep(5)
 
             # ── Phase 3: Strategy ─────────────────────────────────────────
             yield _sse({"event": "step", "agent": "Strategy", "status": "running"})
-            strategy_data = await _run_agent(loop, run_strategy, deep_research_data, news_data)
+            strategy_data = await _run_agent(
+                loop, run_strategy, deep_research_data, news_data,
+                technical_analyst_data, technical_data,
+            )
             entry = strategy_data.get("entry_zone", "N/A")
             rr    = strategy_data.get("risk_reward_ratio", "N/A")
             yield _sse({"event": "strategy", "data": strategy_data})
@@ -1316,7 +1339,8 @@ async def stock_analyze(ticker: str):
             # ── Phase 4: FinalVerdict ─────────────────────────────────────
             yield _sse({"event": "step", "agent": "FinalVerdict", "status": "running"})
             verdict_data = await _run_agent(
-                loop, run_final_verdict, ticker, deep_research_data, news_data, strategy_data
+                loop, run_final_verdict, ticker, deep_research_data, news_data,
+                strategy_data, technical_analyst_data, technical_data,
             )
             yield _sse({"event": "verdict", "data": verdict_data})
             yield _sse({"event": "step", "agent": "FinalVerdict", "status": "done"})
