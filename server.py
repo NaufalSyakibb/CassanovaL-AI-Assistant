@@ -1488,6 +1488,26 @@ async def study_save(req: StudySaveRequest):
     return {"id": note["id"], "title": note["title"]}
 
 
+class KontenRequest(BaseModel):
+    topic: str
+    materi: dict
+    konsep: dict
+    ringkasan: dict
+
+
+@app.post("/api/study/konten")
+async def study_konten(req: KontenRequest):
+    from agents.konten_agent import run_konten_agent
+    loop = asyncio.get_running_loop()
+    result = await loop.run_in_executor(
+        None, run_konten_agent,
+        req.topic, req.materi, req.konsep, req.ringkasan
+    )
+    if "error" in result:
+        raise HTTPException(status_code=500, detail=result["error"])
+    return result
+
+
 # ── Stock Picks Screener ───────────────────────────────────────────────────────
 
 _VALID_PICK_REGIONS = {"us", "asia", "idx"}
