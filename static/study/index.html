@@ -1337,6 +1337,10 @@
     },
 
     downloadPNG: function(){
+      if (typeof html2canvas === 'undefined') {
+        G.toast('PNG unavailable — html2canvas not loaded', 4000);
+        return;
+      }
       var theme = $('konten-panel').getAttribute('data-konten-theme') || 'vibrant';
       var cls = theme === 'vibrant' ? 'ks-vibrant' : 'ks-editorial';
       var slides = document.querySelectorAll('#slide-row .konten-slide');
