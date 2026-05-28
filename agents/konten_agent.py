@@ -34,7 +34,7 @@ Return ONLY valid JSON (no other text):
 
 def _invoke_with_retry(agent, messages: dict, max_retries: int = 5) -> dict:
     delay = 20
-    last_exc = None
+    last_exc: Exception = RuntimeError("no retry attempts made")
     for attempt in range(max_retries):
         try:
             return agent.invoke(messages)
