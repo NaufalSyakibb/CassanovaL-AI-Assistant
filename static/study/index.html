@@ -1,577 +1,1454 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cicero — Study Mode</title>
+<title>Cicero — Mode Belajar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg:       #EDE8DF;
-    --surface:  #F3EEE5;
-    --paper:    #FAF6EE;
-    --white:    #FFFFFF;
-    --ink:      #17171A;
-    --ink2:     #3B3B3F;
-    --dim:      #6B6355;
-    --gold:     #A68A3E;
-    --clay:     #CC785C;
-    --green:    #5E8A6A;
-    --red:      #A65046;
-    --border:   #C8C0B2;
-    --border2:  #D4CCBC;
-    --shadow:   rgba(23,23,26,0.06);
+    --canvas:    #E8E1D2;
+    --paper:     #FBF7EE;
+    --paper-2:   #F4EDDE;
+    --rule:      #D9CFB8;
+    --rule-2:    #C9BCA0;
+    --margin:    #B4453A;
+    --ink:       #1A1814;
+    --ink-2:     #3D362B;
+    --dim:       #6E6450;
+    --mute:      #9B9078;
+    --gold:      #8C6E2C;
+    --gold-2:    #B89855;
+    --clay:      #B05A3F;
+    --green:     #4D7456;
+    --burgundy:  #6D2E2C;
+    --shadow:    0 1px 0 rgba(26,24,20,0.04), 0 24px 60px -24px rgba(26,24,20,0.18), 0 6px 18px -8px rgba(26,24,20,0.08);
   }
 
+  [data-theme="dark"] {
+    --canvas:    #12110E;
+    --paper:     #1A1815;
+    --paper-2:   #201E19;
+    --rule:      rgba(240,234,216,0.08);
+    --rule-2:    rgba(240,234,216,0.13);
+    --margin:    #7A3A30;
+    --ink:       #F0EAD8;
+    --ink-2:     #C5B898;
+    --dim:       #8A7E6A;
+    --mute:      #5C5145;
+    --gold:      #C4983C;
+    --gold-2:    #DEB96A;
+    --clay:      #D0734F;
+    --green:     #5E9268;
+    --burgundy:  #9B4B48;
+    --shadow:    0 1px 0 rgba(0,0,0,0.4), 0 24px 60px -24px rgba(0,0,0,0.6), 0 6px 18px -8px rgba(0,0,0,0.3);
+  }
+
+  html, body { height: 100%; }
   body {
-    background: var(--bg);
-    font-family: 'Inter', sans-serif;
-    font-size: 13px;
+    background:
+      radial-gradient(ellipse 1200px 600px at 50% -100px, rgba(140,110,44,0.07), transparent 60%),
+      var(--canvas);
+    font-family: 'Newsreader', Georgia, serif;
+    font-size: 15px;
     color: var(--ink);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    font-feature-settings: "ss01", "kern", "liga";
+    -webkit-font-smoothing: antialiased;
+    transition: background 0.25s, color 0.25s;
+  }
+  [data-theme="dark"] body {
+    background: var(--canvas);
   }
 
-  /* ── Header ── */
-  .header {
-    background: var(--ink);
-    color: var(--paper);
-    padding: 0 28px;
-    height: 44px;
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none;
+    opacity: 0.35;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.08  0 0 0 0 0.07  0 0 0 0 0.05  0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    mix-blend-mode: multiply;
+    z-index: 0;
+  }
+  [data-theme="dark"] body::before { mix-blend-mode: screen; opacity: 0.08; }
+
+  /* ── Masthead ── */
+  .mast {
+    position: relative; z-index: 2;
+    padding: 22px 36px 14px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    flex-shrink: 0;
+    border-bottom: 1px solid var(--rule);
+    background: transparent;
   }
-  .header-brand { display: flex; align-items: center; gap: 10px; }
-  .header-logo {
+  .mast::after {
+    content: "";
+    position: absolute;
+    left: 36px; right: 36px;
+    bottom: -4px;
+    height: 1px;
+    background: var(--rule);
+  }
+  .brand { display: flex; align-items: baseline; gap: 14px; }
+  .brand-mark {
     font-family: 'Instrument Serif', serif;
-    font-size: 20px;
-    color: var(--paper);
-    letter-spacing: 0.02em;
+    font-size: 34px;
+    line-height: 1;
+    color: var(--ink);
+    letter-spacing: -0.01em;
   }
-  .header-tag {
-    font-size: 10px;
+  .brand-mark .dot { color: var(--clay); }
+  .brand-sub {
     font-family: 'JetBrains Mono', monospace;
-    background: var(--gold);
-    color: #fff;
-    padding: 2px 8px;
-    border-radius: 20px;
-    letter-spacing: 0.1em;
-    font-weight: 500;
-  }
-  .header-back {
-    font-size: 11px;
-    color: #888;
-    cursor: pointer;
-    letter-spacing: 0.05em;
-    text-decoration: none;
-  }
-  .header-back:hover { color: var(--paper); }
-
-  /* ── Input bar ── */
-  .input-bar {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border2);
-    padding: 16px 28px;
-    display: flex;
-    gap: 10px;
-    align-items: flex-end;
-    flex-shrink: 0;
-  }
-  .input-wrap { flex: 1; display: flex; flex-direction: column; gap: 5px; }
-  .input-label {
     font-size: 10px;
-    font-weight: 600;
-    color: var(--gold);
-    letter-spacing: 0.1em;
+    letter-spacing: 0.22em;
+    color: var(--dim);
     text-transform: uppercase;
+    padding-bottom: 4px;
+  }
+  .mast-meta {
+    display: flex; align-items: center; gap: 18px;
     font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+  .mast-meta .sep { color: var(--rule-2); }
+  .mast-back { color: var(--ink-2); text-decoration: none; transition: color 0.2s; }
+  .mast-back:hover { color: var(--clay); }
+  .theme-btn {
+    background: none;
+    border: 1px solid var(--rule-2);
+    color: var(--dim);
+    border-radius: 999px;
+    padding: 4px 11px;
+    font-size: 13px;
+    line-height: 1.5;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .theme-btn:hover { border-color: var(--ink-2); color: var(--ink); }
+
+  /* ── Stage / Page ── */
+  .stage {
+    position: relative; z-index: 1;
+    flex: 1;
+    padding: 28px 36px 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .page {
+    width: 100%;
+    max-width: 1180px;
+    background: var(--paper);
+    border-radius: 2px;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+    transition: background 0.25s, box-shadow 0.25s;
+  }
+
+  /* ── Letterhead ── */
+  .letterhead {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: end;
+    padding: 26px 40px 18px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--paper);
+    position: relative;
+  }
+  .letterhead::after {
+    content: "";
+    position: absolute;
+    left: 40px; right: 40px;
+    bottom: 2px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .lh-left, .lh-right {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--dim);
+    text-transform: uppercase;
+  }
+  .lh-right { text-align: right; }
+  .lh-mid {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    color: var(--ink);
+    line-height: 1;
+    text-align: center;
+    font-style: italic;
+  }
+  .lh-num { font-variant-numeric: tabular-nums; color: var(--ink-2); }
+
+  /* ── Composer ── */
+  .composer {
+    padding: 22px 40px;
+    display: flex;
+    gap: 14px;
+    align-items: stretch;
+    background: var(--paper);
+    border-bottom: 1px solid var(--rule);
+  }
+  .composer-fld {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .composer-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.22em;
+    color: var(--gold);
+    text-transform: uppercase;
+    font-weight: 600;
   }
   #topic-input {
     width: 100%;
-    background: var(--white);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 10px 14px;
-    font-size: 14px;
-    font-family: 'Inter', sans-serif;
+    background: transparent;
+    border: none;
+    border-bottom: 1.5px solid var(--ink);
+    border-radius: 0;
+    padding: 6px 0 8px;
+    font-family: 'Instrument Serif', serif;
+    font-size: 26px;
     color: var(--ink);
     outline: none;
     transition: border-color 0.2s;
   }
-  #topic-input::placeholder { color: #A89F93; }
-  #topic-input:focus { border-color: var(--gold); }
+  #topic-input::placeholder { color: var(--mute); font-style: italic; }
+  #topic-input:focus { border-color: var(--clay); }
   #btn-generate {
-    background: var(--clay);
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 10px 22px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    letter-spacing: 0.05em;
-    white-space: nowrap;
-    transition: opacity 0.2s;
-  }
-  #btn-generate:hover { opacity: 0.88; }
-  #btn-generate:disabled { opacity: 0.45; cursor: not-allowed; }
-
-  /* ── Agent strip ── */
-  .agent-strip {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border2);
-    padding: 8px 28px;
-    display: flex;
-    gap: 22px;
-    align-items: center;
-    flex-shrink: 0;
-  }
-  .agent-pill { display: flex; align-items: center; gap: 7px; font-size: 11px; }
-  .dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--border);
-    flex-shrink: 0;
-    transition: background 0.3s;
-  }
-  .dot.running {
-    background: var(--gold);
-    animation: pulse 1s ease-in-out infinite;
-  }
-  .dot.done { background: var(--green); }
-  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
-  .agent-pname { font-weight: 600; color: var(--ink2); font-size: 11px; }
-  .agent-pstatus { color: var(--border); font-size: 10px; }
-  .agent-pstatus.running { color: var(--gold); }
-  .agent-pstatus.done { color: var(--green); }
-  .arrow { color: var(--border); font-size: 11px; }
-
-  /* ── Main layout ── */
-  .main-wrap {
-    flex: 1;
-    padding: 20px 28px 28px;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-  }
-
-  .cornell-top {
-    display: grid;
-    grid-template-columns: 280px 1fr;
-    border: 1px solid var(--border);
-    border-bottom: none;
-    border-radius: 8px 8px 0 0;
-    overflow: hidden;
-    min-height: 360px;
-  }
-
-  /* Left: Cue column */
-  .col-cue {
-    background: var(--paper);
-    border-right: 1px solid var(--border);
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-  }
-  .col-header {
-    font-size: 10px;
-    font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    margin-bottom: 12px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border2);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .agent-badge {
-    font-size: 9px;
-    padding: 1px 6px;
-    border-radius: 10px;
-    font-weight: 600;
-    font-family: 'JetBrains Mono', monospace;
-  }
-  .badge-konsep { background: rgba(94,138,106,0.12); color: var(--green); }
-  .badge-materi { background: rgba(166,138,62,0.12); color: var(--gold); }
-  .badge-ringkasan { background: rgba(204,120,92,0.12); color: var(--clay); }
-
-  .cue-list { flex: 1; display: flex; flex-direction: column; gap: 0; }
-  .cue-item {
-    padding: 10px 0;
-    border-bottom: 1px dashed var(--border2);
-  }
-  .cue-item:last-child { border-bottom: none; }
-  .cue-term {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--ink2);
-    margin-bottom: 3px;
-    font-family: 'Instrument Serif', serif;
-  }
-  .cue-def {
-    font-size: 11px;
-    color: var(--dim);
-    line-height: 1.55;
-  }
-
-  /* Right: Notes column */
-  .col-notes {
-    background: var(--white);
-    padding: 16px 20px;
-    overflow-y: auto;
-  }
-  .notes-section { margin-bottom: 18px; }
-  .notes-section:last-child { margin-bottom: 0; }
-  .notes-title {
-    font-family: 'Instrument Serif', serif;
-    font-size: 16px;
-    color: var(--ink);
-    margin-bottom: 6px;
-  }
-  .notes-content {
-    font-size: 12px;
-    color: var(--ink2);
-    line-height: 1.8;
-    white-space: pre-wrap;
-  }
-
-  /* Bottom: Summary */
-  .col-summary {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-top: 2px solid var(--gold);
-    border-radius: 0 0 8px 8px;
-    padding: 14px 20px;
-    display: flex;
-    gap: 16px;
-    align-items: flex-start;
-    min-height: 60px;
-  }
-  .summary-label {
-    font-size: 10px;
-    font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
-    letter-spacing: 0.1em;
-    color: var(--clay);
-    text-transform: uppercase;
-    white-space: nowrap;
-    padding-top: 2px;
-    min-width: 80px;
-  }
-  #ringkasan-text {
-    font-family: 'Instrument Serif', serif;
-    font-size: 14px;
-    font-style: italic;
-    color: var(--dim);
-    line-height: 1.75;
-    flex: 1;
-  }
-  #ringkasan-text.filled { color: var(--ink2); font-style: italic; }
-
-  /* Save bar */
-  .save-bar {
-    padding: 12px 0 0 0;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 10px;
-  }
-  #btn-save {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--dim);
-    border-radius: 6px;
-    padding: 7px 18px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: background 0.2s;
-    display: none;
-  }
-  #btn-save:hover { background: var(--border2); }
-
-  /* Placeholder */
-  .ph {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--border);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    font-style: italic;
-    min-height: 120px;
-  }
-
-  /* Toast */
-  #toast {
-    position: fixed;
-    bottom: 28px;
-    right: 28px;
+    align-self: flex-end;
     background: var(--ink);
     color: var(--paper);
-    padding: 10px 18px;
-    border-radius: 6px;
-    font-size: 12px;
-    opacity: 0;
-    transition: opacity 0.3s;
-    pointer-events: none;
-    z-index: 999;
+    border: none;
+    border-radius: 999px;
+    padding: 12px 24px 12px 26px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, background 0.2s;
+    display: flex; align-items: center; gap: 10px;
+    height: 44px;
   }
-  #toast.show { opacity: 1; }
+  #btn-generate:hover:not(:disabled) { background: var(--burgundy); transform: translateY(-1px); }
+  #btn-generate:disabled { opacity: 0.45; cursor: not-allowed; }
+  #btn-generate .arrow-i { font-family: 'Instrument Serif', serif; font-size: 18px; letter-spacing: 0; }
+
+  /* ── Pipeline ── */
+  .pipeline {
+    padding: 14px 40px;
+    display: flex;
+    align-items: center;
+    background: var(--paper-2);
+    border-bottom: 1px solid var(--rule);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .pl-label { color: var(--dim); padding-right: 18px; border-right: 1px solid var(--rule); margin-right: 18px; }
+  .pl-flow { flex: 1; display: flex; align-items: center; gap: 14px; }
+  .pl-step { display: flex; align-items: center; gap: 10px; transition: opacity 0.3s; }
+  .pl-num {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 1px solid var(--rule-2);
+    background: var(--paper);
+    color: var(--dim);
+    font-size: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-variant-numeric: tabular-nums;
+    transition: all 0.3s;
+    position: relative;
+  }
+  .pl-step .pl-name { color: var(--ink-2); font-weight: 600; }
+  .pl-step .pl-status { color: var(--mute); font-size: 9.5px; letter-spacing: 0.16em; }
+  .pl-step.running .pl-num { background: var(--ink); color: var(--paper); border-color: var(--ink); animation: pulse 1.4s ease-in-out infinite; }
+  .pl-step.running .pl-status { color: var(--clay); }
+  .pl-step.done .pl-num { background: var(--green); color: var(--paper); border-color: var(--green); }
+  .pl-step.done .pl-num::after { content: "✓"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+  .pl-step.done .pl-num span { display: none; }
+  .pl-step.done .pl-status { color: var(--green); }
+  @keyframes pulse { 0%,100%{ box-shadow: 0 0 0 0 rgba(26,24,20,0.25); } 50%{ box-shadow: 0 0 0 6px rgba(26,24,20,0); } }
+  .pl-arrow { flex: 1; height: 1px; background: repeating-linear-gradient(to right, var(--rule-2) 0 3px, transparent 3px 7px); min-width: 30px; }
+  .pl-elapsed { color: var(--dim); padding-left: 18px; border-left: 1px solid var(--rule); margin-left: 18px; font-variant-numeric: tabular-nums; min-width: 70px; text-align: right; }
+
+  /* ── Cornell ── */
+  .cornell { display: grid; grid-template-columns: 280px 1fr; min-height: 520px; position: relative; }
+  .cornell::before {
+    content: ""; position: absolute; left: 280px; top: 0; bottom: 0;
+    width: 1px; background: var(--margin); opacity: 0.55; z-index: 1;
+  }
+  .cornell::after {
+    content: ""; position: absolute; left: 282px; top: 0; bottom: 0;
+    width: 1px; background: var(--margin); opacity: 0.3; z-index: 1;
+  }
+
+  .col-cue { background: var(--paper); padding: 28px 28px 32px 40px; }
+  .col-cap { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
+  .col-cap-title { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 600; color: var(--ink-2); }
+  .agent-mark { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.15em; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; font-weight: 500; }
+  .mark-konsep { color: var(--green); }
+  .mark-materi { color: var(--gold); }
+
+  .cue-list { display: flex; flex-direction: column; }
+  .cue-item { padding: 14px 0; border-bottom: 1px solid var(--rule); }
+  .cue-item:first-child { padding-top: 4px; }
+  .cue-item:last-child { border-bottom: none; }
+  .cue-term { font-family: 'Instrument Serif', serif; font-size: 19px; color: var(--ink); margin-bottom: 4px; line-height: 1.15; }
+  .cue-def { font-family: 'Newsreader', serif; font-size: 13.5px; color: var(--ink-2); line-height: 1.55; }
+
+  .col-notes {
+    background: repeating-linear-gradient(to bottom, transparent 0, transparent 31px, var(--rule) 31px, var(--rule) 32px), var(--paper);
+    padding: 28px 40px 36px 32px;
+    position: relative;
+  }
+  .col-notes-inner { background: linear-gradient(var(--paper), var(--paper)); padding: 0 0 8px; }
+  .notes-section { margin-bottom: 22px; }
+  .notes-section:last-child { margin-bottom: 0; }
+  .notes-h { font-family: 'Instrument Serif', serif; font-size: 24px; color: var(--ink); margin-bottom: 6px; line-height: 1.2; display: flex; align-items: baseline; gap: 12px; }
+  .notes-h .sect-n { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--gold); letter-spacing: 0.1em; font-variant-numeric: tabular-nums; }
+  .notes-body { font-family: 'Newsreader', serif; font-size: 15.5px; color: var(--ink-2); line-height: 1.7; text-wrap: pretty; }
+  .notes-body p + p { margin-top: 10px; }
+
+  /* ── Empty state ── */
+  .empty {
+    grid-column: 1 / -1;
+    padding: 64px 40px 88px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; min-height: 520px;
+  }
+  .empty-quill { width: 56px; height: 56px; color: var(--clay); opacity: 0.7; margin-bottom: 18px; }
+  .empty-h { font-family: 'Instrument Serif', serif; font-style: italic; font-size: 44px; color: var(--ink); line-height: 1.1; max-width: 680px; margin-bottom: 14px; letter-spacing: -0.01em; }
+  .empty-p { font-family: 'Newsreader', serif; font-size: 16px; color: var(--dim); max-width: 540px; line-height: 1.6; margin-bottom: 28px; }
+  .empty-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 640px; }
+  .chip { font-family: 'Newsreader', serif; font-size: 14px; color: var(--ink-2); background: var(--paper-2); border: 1px solid var(--rule); border-radius: 999px; padding: 7px 14px; cursor: pointer; transition: all 0.15s; font-style: italic; }
+  .chip:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .empty-quote { margin-top: 36px; padding-top: 22px; border-top: 1px solid var(--rule); max-width: 520px; font-family: 'Instrument Serif', serif; font-style: italic; font-size: 16px; color: var(--dim); line-height: 1.5; }
+  .empty-quote-attr { display: block; margin-top: 6px; font-family: 'JetBrains Mono', monospace; font-style: normal; font-size: 10px; letter-spacing: 0.2em; color: var(--mute); text-transform: uppercase; }
+
+  /* ── Skeleton ── */
+  .sk { background: var(--rule); border-radius: 2px; opacity: 0.55; animation: sk 1.3s ease-in-out infinite; }
+  @keyframes sk { 0%,100%{opacity:.35} 50%{opacity:.7} }
+
+  /* ── Summary ── */
+  .summary {
+    background: var(--paper-2);
+    border-top: 1px solid var(--rule);
+    padding: 22px 40px 26px;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    align-items: start;
+    position: relative;
+  }
+  .summary::before { content: ""; position: absolute; left: 280px; top: 0; bottom: 0; width: 1px; background: var(--margin); opacity: 0.55; }
+  .summary::after  { content: ""; position: absolute; left: 282px; top: 0; bottom: 0; width: 1px; background: var(--margin); opacity: 0.3; }
+  .sum-lbl { padding: 4px 28px 0 40px; display: flex; flex-direction: column; gap: 4px; }
+  .sum-lbl-h { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 600; color: var(--clay); }
+  .sum-lbl-s { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.15em; color: var(--mute); }
+  .sum-text { padding: 0 0 0 32px; font-family: 'Instrument Serif', serif; font-style: italic; font-size: 19px; color: var(--dim); line-height: 1.5; max-width: 760px; text-wrap: pretty; }
+  .sum-text.filled { color: var(--ink-2); }
+  .sum-text::before { content: "\201C"; font-family: 'Instrument Serif', serif; font-size: 60px; color: var(--clay); opacity: 0.4; line-height: 0; position: relative; top: 22px; margin-right: 6px; margin-left: -18px; }
+
+  /* ── Footer ── */
+  .foot { padding: 16px 40px 22px; background: var(--paper); border-top: 1px solid var(--rule); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .foot-meta { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.18em; color: var(--dim); text-transform: uppercase; display: flex; align-items: center; gap: 14px; }
+  .foot-meta .sep { color: var(--rule-2); }
+  .foot-actions { display: flex; gap: 8px; }
+  .btn-ghost { background: transparent; border: 1px solid var(--rule-2); color: var(--ink-2); border-radius: 999px; padding: 9px 18px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 500; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 8px; }
+  .btn-ghost:hover:not(:disabled) { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .btn-ghost:disabled { opacity: 0.4; cursor: not-allowed; }
+  #btn-save { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  #btn-save:hover:not(:disabled) { background: var(--burgundy); border-color: var(--burgundy); }
+  .foot-state-hidden { display: none !important; }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed; bottom: 28px; left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    background: var(--ink); color: var(--paper);
+    padding: 12px 22px; border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+    opacity: 0; transition: opacity 0.25s, transform 0.25s;
+    pointer-events: none; z-index: 999;
+    box-shadow: 0 12px 30px -10px rgba(26,24,20,0.5);
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── KontenAgent carousel ── */
+  #konten-panel {
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px 28px 28px;
+    border-top: 1px solid var(--rule);
+  }
+  .konten-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .konten-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+  .konten-theme-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 5px 12px;
+    border: 1px solid var(--rule-2);
+    border-radius: 4px;
+    background: var(--paper);
+    color: var(--dim);
+    cursor: pointer;
+    transition: border-color .15s, color .15s;
+  }
+  .konten-theme-btn.active {
+    border-color: var(--margin);
+    color: var(--margin);
+  }
+  .slide-row {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+  .konten-slide {
+    width: 540px;
+    height: 540px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+  /* ── Vibrant Dark theme ── */
+  .ks-vibrant {
+    width: 540px; height: 540px;
+    background: linear-gradient(145deg, #0f0c29, #302b63, #24243e);
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    padding: 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    position: relative;
+    box-sizing: border-box;
+  }
+  .ks-v-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    opacity: 0.5;
+  }
+  .ks-v-num {
+    font-size: 80px;
+    font-weight: 900;
+    line-height: 1;
+    background: linear-gradient(90deg, #a78bfa, #60a5fa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .ks-v-title {
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+  .ks-v-hook {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.4;
+    color: #e0d9ff;
+  }
+  .ks-v-divider {
+    width: 56px;
+    height: 3px;
+    background: linear-gradient(90deg, #a78bfa, #60a5fa);
+    border-radius: 2px;
+  }
+  .ks-v-heading {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #a78bfa;
+  }
+  .ks-v-chip {
+    background: rgba(255,255,255,0.08);
+    border-left: 3px solid #a78bfa;
+    border-radius: 0 6px 6px 0;
+    padding: 10px 14px;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+  .ks-v-chip:nth-child(2) { border-color: #60a5fa; }
+  .ks-v-chip:nth-child(3) { border-color: #34d399; }
+  .ks-v-chip:nth-child(4) { border-color: #fbbf24; }
+  .ks-v-concept-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .ks-v-concept-row .ks-v-term {
+    color: #c4b5fd;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+    width: 140px;
+  }
+  .ks-v-concept-row .ks-v-def {
+    font-size: 13px;
+    color: rgba(255,255,255,0.75);
+    line-height: 1.4;
+  }
+  .ks-v-summary-box {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    padding: 20px;
+    font-size: 15px;
+    line-height: 1.65;
+    color: #e0d9ff;
+    font-style: italic;
+  }
+  .ks-v-hashtags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .ks-v-hashtag {
+    background: rgba(167,139,250,0.15);
+    color: #a78bfa;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 4px;
+  }
+  .ks-v-cta {
+    margin-top: auto;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .ks-v-swipe {
+    margin-top: auto;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .ks-v-dots {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .ks-v-dots span {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.25);
+  }
+  .ks-v-dots span.active { background: #a78bfa; }
+
+  /* ── Bold Editorial theme ── */
+  .ks-editorial {
+    width: 540px; height: 540px;
+    background: #F5F0E8;
+    color: #1A1814;
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  .ks-e-header {
+    background: #1A1814;
+    padding: 36px 44px 28px;
+    color: white;
+    flex-shrink: 0;
+  }
+  .ks-e-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    opacity: 0.45;
+  }
+  .ks-e-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 36px;
+    font-style: italic;
+    line-height: 1.2;
+    margin-top: 8px;
+  }
+  .ks-e-hook {
+    font-size: 18px;
+    font-style: italic;
+    line-height: 1.4;
+    color: rgba(255,255,255,0.8);
+    margin-top: 10px;
+  }
+  .ks-e-body {
+    padding: 28px 44px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow: hidden;
+  }
+  .ks-e-tag {
+    display: inline-flex;
+    background: #1A1814;
+    color: white;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 2px;
+    align-self: flex-start;
+  }
+  .ks-e-accent {
+    width: 36px;
+    height: 4px;
+    background: #B05A3F;
+    border-radius: 2px;
+  }
+  .ks-e-chip {
+    font-size: 15px;
+    line-height: 1.5;
+    color: #2d2d2d;
+    padding: 8px 0;
+    border-bottom: 1px solid #E8E1D2;
+  }
+  .ks-e-concept-row {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .ks-e-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: #B05A3F;
+    font-weight: 600;
+    flex-shrink: 0;
+    padding-top: 1px;
+    width: 28px;
+  }
+  .ks-e-term { font-size: 15px; font-weight: 700; color: #1A1814; }
+  .ks-e-def  { font-size: 13px; color: #6E6450; line-height: 1.4; }
+  .ks-e-summary-box {
+    border-left: 3px solid #B05A3F;
+    padding: 14px 18px;
+    font-size: 14px;
+    line-height: 1.65;
+    color: #2d2d2d;
+    background: rgba(176,90,63,0.06);
+  }
+  .ks-e-hashtags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .ks-e-hashtag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #B05A3F;
+  }
+  .ks-e-footer {
+    padding: 14px 44px 20px;
+    border-top: 2px solid #1A1814;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #6E6450;
+    display: flex;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .ks-e-swipe {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #9B9078;
+  }
+  .ks-e-cta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #6E6450;
+  }
+
+  /* Theme visibility toggle */
+  [data-konten-theme="vibrant"] .ks-editorial { display: none; }
+  [data-konten-theme="editorial"] .ks-vibrant  { display: none; }
+
+  /* ── Welcome context panel ── */
+  #context-panel {
+    padding: 28px 28px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .ctx-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .ctx-desc {
+    font-size: 13px;
+    color: var(--dim);
+    line-height: 1.75;
+    max-width: 580px;
+  }
+  .ctx-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    max-width: 780px;
+  }
+  @media (max-width: 600px) { .ctx-cards { grid-template-columns: 1fr; } }
+  .ctx-card {
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .ctx-card-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .ctx-card-name {
+    font-family: 'Instrument Serif', serif;
+    font-size: 15px;
+    color: var(--ink);
+  }
+  .ctx-card-desc {
+    font-size: 11.5px;
+    color: var(--dim);
+    line-height: 1.6;
+  }
+  .ctx-tip {
+    font-size: 11.5px;
+    color: var(--mute);
+    font-style: italic;
+    letter-spacing: 0.02em;
+  }
+
+  #main-wrap { display: none; flex-direction: column; }
+
+  /* ── Responsive ── */
+  @media (max-width: 880px) {
+    .mast { padding: 18px 20px 12px; }
+    .stage { padding: 16px 14px 40px; }
+    .letterhead { grid-template-columns: 1fr; gap: 8px; padding: 18px 22px; }
+    .lh-right { text-align: left; }
+    .composer { padding: 18px 22px; flex-direction: column; }
+    .pipeline { flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px 22px; }
+    .pl-label, .pl-elapsed { border: none; padding: 0; margin: 0; }
+    .pl-flow { flex-wrap: wrap; }
+    .cornell, .summary { grid-template-columns: 1fr; }
+    .cornell::before, .cornell::after, .summary::before, .summary::after { display: none; }
+    .col-cue { border-bottom: 1px solid var(--rule); padding: 22px; }
+    .col-notes { padding: 22px; }
+    .sum-lbl { padding: 0 22px 12px; flex-direction: row; gap: 10px; align-items: baseline; }
+    .sum-text { padding: 0 22px; }
+    .sum-text::before { display: none; }
+    .empty-h { font-size: 30px; }
+    .foot { padding: 14px 22px 18px; flex-direction: column; align-items: stretch; }
+  }
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div class="header-brand">
-    <span class="header-logo">Cicero</span>
-    <span class="header-tag">STUDY</span>
+<!-- Masthead -->
+<div class="mast">
+  <div class="brand">
+    <div class="brand-mark">Cicero<span class="dot">.</span></div>
+    <div class="brand-sub">Mode Belajar · Cornell Notes</div>
   </div>
-  <a class="header-back" href="/">← Kembali ke CassanovaL</a>
-</div>
-
-<div class="input-bar">
-  <div class="input-wrap">
-    <div class="input-label">Topik Pelajaran</div>
-    <input id="topic-input" type="text" placeholder="mis. Fotosintesis, Revolusi Industri, Hukum Newton..." />
-  </div>
-  <button id="btn-generate">BELAJAR →</button>
-</div>
-
-<div class="agent-strip">
-  <div class="agent-pill">
-    <div class="dot" id="dot-MateriAgent"></div>
-    <span class="agent-pname">MateriAgent</span>
-    <span class="agent-pstatus" id="st-MateriAgent">IDLE</span>
-  </div>
-  <span class="arrow">→</span>
-  <div class="agent-pill">
-    <div class="dot" id="dot-KonsepAgent"></div>
-    <span class="agent-pname">KonsepAgent</span>
-    <span class="agent-pstatus" id="st-KonsepAgent">IDLE</span>
-  </div>
-  <span class="arrow">→</span>
-  <div class="agent-pill">
-    <div class="dot" id="dot-RingkasanAgent"></div>
-    <span class="agent-pname">RingkasanAgent</span>
-    <span class="agent-pstatus" id="st-RingkasanAgent">IDLE</span>
+  <div class="mast-meta">
+    <span id="cur-date">—</span>
+    <span class="sep">·</span>
+    <button id="theme-toggle" class="theme-btn" title="Toggle dark mode">☾</button>
+    <span class="sep">·</span>
+    <a class="mast-back" href="/">← Kembali ke CassanovaL</a>
   </div>
 </div>
 
-<div class="main-wrap">
-  <div class="cornell-top">
-    <!-- Left: Key Concepts -->
-    <div class="col-cue">
-      <div class="col-header" style="color:var(--green)">
-        KONSEP KUNCI
-        <span class="agent-badge badge-konsep">AGENT 2</span>
-      </div>
-      <div class="cue-list" id="cue-list">
-        <div class="ph">Menunggu KonsepAgent...</div>
-      </div>
-    </div>
-    <!-- Right: Full Material -->
-    <div class="col-notes">
-      <div class="col-header" style="color:var(--gold)">
-        MATERI LENGKAP
-        <span class="agent-badge badge-materi">AGENT 1</span>
-      </div>
-      <div id="notes-body">
-        <div class="ph">Masukkan topik dan klik BELAJAR untuk memulai.</div>
-      </div>
-    </div>
-  </div>
+<!-- Stage -->
+<div class="stage">
+  <div class="page">
 
-  <!-- Bottom: Summary -->
-  <div class="col-summary">
-    <div class="summary-label">
-      RINGKASAN<br>
-      <span style="font-size:8px;color:var(--border);font-family:'JetBrains Mono',monospace">AGENT 3</span>
+    <!-- Letterhead -->
+    <div class="letterhead">
+      <div class="lh-left">Vol. I &nbsp;·&nbsp; <span class="lh-num" id="lh-issue">№ 001</span></div>
+      <div class="lh-mid"><span id="lh-topic">Catatan Belajar</span></div>
+      <div class="lh-right">Halaman <span class="lh-num">01</span></div>
     </div>
-    <div id="ringkasan-text">Ringkasan akan muncul setelah semua agent selesai...</div>
-  </div>
 
-  <div class="save-bar">
-    <button id="btn-save">Simpan ke Catatan</button>
+    <!-- Composer -->
+    <div class="composer">
+      <div class="composer-fld">
+        <div class="composer-label">Topik Pelajaran Hari Ini</div>
+        <input id="topic-input" type="text" placeholder="Fotosintesis, Revolusi Industri, Hukum Newton…" autocomplete="off">
+      </div>
+      <button id="btn-generate">
+        <span>Belajar</span>
+        <span class="arrow-i">→</span>
+      </button>
+    </div>
+
+    <!-- Pipeline -->
+    <div class="pipeline">
+      <span class="pl-label">Pipeline</span>
+      <div class="pl-flow">
+        <div class="pl-step" id="step-MateriAgent">
+          <div class="pl-num"><span>1</span></div>
+          <div>
+            <div class="pl-name">MateriAgent</div>
+            <div class="pl-status" id="st-MateriAgent">Menunggu</div>
+          </div>
+        </div>
+        <div class="pl-arrow"></div>
+        <div class="pl-step" id="step-KonsepAgent">
+          <div class="pl-num"><span>2</span></div>
+          <div>
+            <div class="pl-name">KonsepAgent</div>
+            <div class="pl-status" id="st-KonsepAgent">Menunggu</div>
+          </div>
+        </div>
+        <div class="pl-arrow"></div>
+        <div class="pl-step" id="step-RingkasanAgent">
+          <div class="pl-num"><span>3</span></div>
+          <div>
+            <div class="pl-name">RingkasanAgent</div>
+            <div class="pl-status" id="st-RingkasanAgent">Menunggu</div>
+          </div>
+        </div>
+      </div>
+      <span class="pl-elapsed" id="elapsed">00:00</span>
+    </div>
+
+    <!-- Welcome context panel (hidden once session starts) -->
+    <div id="context-panel">
+      <div class="ctx-title">Belajar dengan Metode Cornell</div>
+      <div class="ctx-desc">
+        Cicero memecah topik apa pun menjadi tiga lapisan pengetahuan menggunakan
+        metode catatan Cornell — struktur yang terbukti meningkatkan retensi dan
+        pemahaman jangka panjang. Tiga agent bekerja secara berurutan untuk
+        menghasilkan materi, mengekstrak konsep, lalu merangkum inti topik.
+      </div>
+      <div class="ctx-cards">
+        <div class="ctx-card">
+          <div class="ctx-card-num">Agent 1 · MateriAgent</div>
+          <div class="ctx-card-name">Materi Lengkap</div>
+          <div class="ctx-card-desc">3–5 seksi isi yang komprehensif — penjelasan bertahap dari dasar hingga nuansa topik.</div>
+        </div>
+        <div class="ctx-card">
+          <div class="ctx-card-num">Agent 2 · KonsepAgent</div>
+          <div class="ctx-card-name">Konsep Kunci</div>
+          <div class="ctx-card-desc">6–12 istilah dan definisi yang diekstrak langsung dari materi — kolom kiri Cornell.</div>
+        </div>
+        <div class="ctx-card">
+          <div class="ctx-card-num">Agent 3 · RingkasanAgent</div>
+          <div class="ctx-card-name">Ringkasan Sintesis</div>
+          <div class="ctx-card-desc">3–5 kalimat yang merangkum inti topik setelah semua materi dan konsep tersusun.</div>
+        </div>
+      </div>
+      <div class="ctx-tip">Masukkan topik di atas dan tekan BELAJAR untuk memulai sesi belajar.</div>
+    </div>
+
+    <div id="main-wrap">
+
+    <!-- Cornell -->
+    <div class="cornell" id="cornell">
+      <div class="empty" id="empty-state">
+        <svg class="empty-quill" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 21c0-7 6-13 14-15-1 5-5 12-12 14"></path>
+          <path d="M3 21l5-5"></path>
+          <path d="M14 6c2 0 5 1 7 3"></path>
+        </svg>
+        <div class="empty-h">Apa yang ingin kita pelajari hari ini?</div>
+        <div class="empty-p">Tuliskan satu topik. Tiga agen akan menyusun materi lengkap, mengangkat konsep kunci, dan menulis ringkasan padat — dalam format Cornell Notes.</div>
+        <div class="empty-chips" id="empty-chips">
+          <button class="chip" data-topic="Fotosintesis">Fotosintesis</button>
+          <button class="chip" data-topic="Revolusi Industri">Revolusi Industri</button>
+          <button class="chip" data-topic="Hukum Newton">Hukum Newton</button>
+          <button class="chip" data-topic="Teori Relativitas">Teori Relativitas</button>
+          <button class="chip" data-topic="Perang Diponegoro">Perang Diponegoro</button>
+        </div>
+        <div class="empty-quote">
+          "Historia magistra vitae est."
+          <span class="empty-quote-attr">— Marcus Tullius Cicero</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="summary" id="summary-block" style="display:none">
+      <div class="sum-lbl">
+        <span class="sum-lbl-h">Ringkasan</span>
+        <span class="sum-lbl-s">Agent 3 · RingkasanAgent</span>
+      </div>
+      <div class="sum-text" id="ringkasan-text">Ringkasan akan tersusun setelah konsep dan materi siap…</div>
+    </div>
+
+    </div><!-- /#main-wrap -->
+
+    <!-- KontenAgent carousel panel -->
+    <div id="konten-panel" data-konten-theme="vibrant">
+      <div class="konten-toolbar">
+        <span class="konten-label">Theme:</span>
+        <button id="btn-theme-v" class="konten-theme-btn active" onclick="G.setKontenTheme('vibrant')">A · Vibrant</button>
+        <button id="btn-theme-e" class="konten-theme-btn"        onclick="G.setKontenTheme('editorial')">C · Editorial</button>
+        <button id="btn-dl-png" class="btn-ghost" onclick="G.downloadPNG()">&#8675; Download PNG (4 files)</button>
+        <button id="btn-dl-pdf" class="btn-ghost" onclick="G.downloadPDF()">&#8675; Download PDF</button>
+      </div>
+      <div class="slide-row" id="slide-row"></div>
+    </div>
+
+    <!-- Footer -->
+    <div class="foot">
+      <div class="foot-meta">
+        <span id="ft-words">— kata</span>
+        <span class="sep">·</span>
+        <span id="ft-concepts">— konsep</span>
+        <span class="sep">·</span>
+        <span id="ft-time">Belum dimulai</span>
+      </div>
+      <div class="foot-actions">
+        <button class="btn-ghost foot-state-hidden" id="btn-copy">Salin</button>
+        <button class="btn-ghost foot-state-hidden" id="btn-print">Cetak</button>
+        <button class="btn-ghost foot-state-hidden" id="btn-save">Simpan ke Catatan</button>
+        <button class="btn-ghost foot-state-hidden" id="btn-konten">&#10022; Create IG Content</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
 <div id="toast"></div>
 
 <script>
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function fmtDate(d){
+    var m=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    return d.getDate()+' '+m[d.getMonth()]+' '+d.getFullYear();
+  }
+  function fmtTime(ms){
+    var s=Math.floor(ms/1000);
+    return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+  }
+
+  $('cur-date').textContent = fmtDate(new Date());
+
+  // ── Dark mode ──
+  (function(){
+    var saved = localStorage.getItem('cicero-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', saved);
+    $('theme-toggle').textContent = saved === 'dark' ? '☀' : '☾';
+  })();
+  $('theme-toggle').addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('cicero-theme', next);
+    $('theme-toggle').textContent = next === 'dark' ? '☀' : '☾';
+  });
+
+  // ── App state ──
   var G = {
     es: null,
+    elapsedTimer: null,
+    startedAt: 0,
     state: { materi: {}, konsep: {}, ringkasan: {} },
 
-    $: function(id) { return document.getElementById(id); },
-
-    toast: function(msg, dur) {
-      var t = G.$('toast');
+    toast: function(msg, dur){
+      var t = $('toast');
       t.textContent = msg;
       t.classList.add('show');
-      setTimeout(function(){ t.classList.remove('show'); }, dur || 2500);
+      setTimeout(function(){ t.classList.remove('show'); }, dur || 2200);
     },
 
-    setAgent: function(name, status) {
-      var dot = G.$('dot-' + name);
-      var st  = G.$('st-' + name);
-      if (!dot || !st) return;
-      dot.className = 'dot ' + status;
-      st.className  = 'agent-pstatus ' + status;
-      var labels = { running: 'Berjalan...', done: '✓ Selesai', '': 'IDLE' };
-      st.textContent = labels[status] !== undefined ? labels[status] : status;
+    setAgent: function(name, status){
+      var step = $('step-'+name), st = $('st-'+name);
+      if (!step||!st) return;
+      step.classList.remove('running','done');
+      if (status) step.classList.add(status);
+      var labels = { running:'Sedang berjalan…', done:'Selesai', '':'Menunggu' };
+      st.textContent = labels[status] !== undefined ? labels[status] : 'Menunggu';
     },
 
-    reset: function() {
+    reset: function(topic){
       ['MateriAgent','KonsepAgent','RingkasanAgent'].forEach(function(n){ G.setAgent(n,''); });
-      G.$('notes-body').innerHTML = '<div class="ph">Memproses...</div>';
-      G.$('cue-list').innerHTML   = '<div class="ph">Menunggu KonsepAgent...</div>';
-      G.$('ringkasan-text').textContent = 'Ringkasan akan muncul setelah semua agent selesai...';
-      G.$('ringkasan-text').classList.remove('filled');
-      G.$('btn-save').style.display = 'none';
-      G.state = { materi: {}, konsep: {}, ringkasan: {} };
+      $('lh-topic').textContent = topic || 'Catatan Belajar';
+      $('empty-state').style.display = 'none';
+      $('summary-block').style.display = 'none';
+      var html =
+        '<div class="col-cue">' +
+          '<div class="col-cap">' +
+            '<div class="col-cap-title">Konsep Kunci</div>' +
+            '<div class="agent-mark mark-konsep">Agent · 02</div>' +
+          '</div>' +
+          '<div class="cue-list" id="cue-list">' + sk(3,'cue') + '</div>' +
+        '</div>' +
+        '<div class="col-notes">' +
+          '<div class="col-notes-inner">' +
+            '<div class="col-cap">' +
+              '<div class="col-cap-title">Materi Lengkap</div>' +
+              '<div class="agent-mark mark-materi">Agent · 01</div>' +
+            '</div>' +
+            '<div id="notes-body">' + sk(2,'notes') + '</div>' +
+          '</div>' +
+        '</div>';
+      $('cornell').innerHTML = html;
+      $('ringkasan-text').textContent = 'Sedang menyiapkan ringkasan…';
+      $('ringkasan-text').classList.remove('filled');
+      ['btn-copy','btn-print','btn-save','btn-konten'].forEach(function(id){ $(id).classList.add('foot-state-hidden'); });
+      $('konten-panel').style.display = 'none';
+      G.kontenData = null;
+      $('ft-words').textContent = '— kata';
+      $('ft-concepts').textContent = '— konsep';
+      $('ft-time').textContent = 'Memproses…';
+      G.state = { materi:{}, konsep:{}, ringkasan:{} };
     },
 
-    renderMateri: function(data) {
+    renderMateri: function(data){
       G.state.materi = data;
       var sections = data.sections || [];
-      if (!sections.length) {
-        G.$('notes-body').innerHTML = '<div class="ph">Tidak ada konten.</div>';
-        return;
-      }
-      var html = sections.map(function(s) {
-        return '<div class="notes-section">'
-          + '<div class="notes-title">' + esc(s.title || '') + '</div>'
-          + '<div class="notes-content">' + esc(s.content || '') + '</div>'
-          + '</div>';
+      var body = $('notes-body');
+      if (!body) return;
+      if (!sections.length){ body.innerHTML='<div class="notes-body" style="color:var(--mute);font-style:italic">Tidak ada konten.</div>'; return; }
+      body.innerHTML = sections.map(function(s,i){
+        return '<div class="notes-section">' +
+          '<div class="notes-h"><span class="sect-n">'+String(i+1).padStart(2,'0')+'</span>'+esc(s.title||'')+'</div>' +
+          '<div class="notes-body"><p>'+esc(s.content||'').replace(/\n\n+/g,'</p><p>')+'</p></div>' +
+        '</div>';
       }).join('');
-      G.$('notes-body').innerHTML = html;
+      var words = sections.reduce(function(n,s){ return n+(s.content||'').split(/\s+/).filter(Boolean).length; },0);
+      $('ft-words').textContent = words.toLocaleString('id-ID')+' kata';
     },
 
-    renderKonsep: function(data) {
+    renderKonsep: function(data){
       G.state.konsep = data;
       var concepts = data.concepts || [];
-      if (!concepts.length) {
-        G.$('cue-list').innerHTML = '<div class="ph">Tidak ada konsep.</div>';
-        return;
-      }
-      var html = concepts.map(function(c) {
-        return '<div class="cue-item">'
-          + '<div class="cue-term">' + esc(c.term || '') + '</div>'
-          + '<div class="cue-def">'  + esc(c.definition || '') + '</div>'
-          + '</div>';
+      var cue = $('cue-list');
+      if (!cue) return;
+      if (!concepts.length){ cue.innerHTML='<div class="cue-def" style="font-style:italic;color:var(--mute)">Tidak ada konsep.</div>'; return; }
+      cue.innerHTML = concepts.map(function(c){
+        return '<div class="cue-item">' +
+          '<div class="cue-term">'+esc(c.term||'')+'</div>' +
+          '<div class="cue-def">'+esc(c.definition||'')+'</div>' +
+        '</div>';
       }).join('');
-      G.$('cue-list').innerHTML = html;
+      $('ft-concepts').textContent = concepts.length+' konsep';
     },
 
-    renderRingkasan: function(data) {
+    renderRingkasan: function(data){
       G.state.ringkasan = data;
-      var t = G.$('ringkasan-text');
+      $('summary-block').style.display = '';
+      var t = $('ringkasan-text');
       t.textContent = data.summary || '—';
       t.classList.add('filled');
-      G.$('btn-save').style.display = '';
     },
 
-    start: function(topic) {
-      if (G.es) { G.es.close(); G.es = null; }
-      G.reset();
-      G.$('btn-generate').disabled = true;
+    finish: function(){
+      if (G.elapsedTimer){ clearInterval(G.elapsedTimer); G.elapsedTimer = null; }
+      var ms = Date.now() - G.startedAt;
+      $('ft-time').textContent = 'Selesai dalam '+fmtTime(ms);
+      ['btn-copy','btn-print','btn-save','btn-konten'].forEach(function(id){ $(id).classList.remove('foot-state-hidden'); });
+      $('btn-generate').disabled = false;
+    },
 
-      var url = '/api/study/generate?topic=' + encodeURIComponent(topic);
-      G.es = new EventSource(url);
+    start: function(topic){
+      G.startedAt = Date.now();
+      G.reset(topic);
+      $('context-panel').style.display = 'none';
+      $('main-wrap').style.display = 'flex';
+      $('btn-generate').disabled = true;
+      $('elapsed').textContent = '00:00';
+      if (G.elapsedTimer) clearInterval(G.elapsedTimer);
+      G.elapsedTimer = setInterval(function(){ $('elapsed').textContent = fmtTime(Date.now()-G.startedAt); }, 250);
 
-      G.es.onmessage = function(e) {
-        var msg;
-        try { msg = JSON.parse(e.data); } catch(err) { return; }
+      if (G.es){ G.es.close(); G.es = null; }
+      G.es = new EventSource('/api/study/generate?topic='+encodeURIComponent(topic));
 
-        switch (msg.event) {
-          case 'step':
-            G.setAgent(msg.agent, msg.status);
-            break;
-          case 'materi':
-            G.renderMateri(msg.data || {});
-            break;
-          case 'konsep':
-            G.renderKonsep(msg.data || {});
-            break;
-          case 'ringkasan':
-            G.renderRingkasan(msg.data || {});
-            break;
-          case 'done':
-            G.es.close();
-            G.es = null;
-            G.$('btn-generate').disabled = false;
-            break;
+      G.es.onmessage = function(e){
+        var msg; try{ msg = JSON.parse(e.data); }catch(_){ return; }
+        switch(msg.event){
+          case 'step':      G.setAgent(msg.agent, msg.status); break;
+          case 'materi':    G.renderMateri(msg.data||{}); break;
+          case 'konsep':    G.renderKonsep(msg.data||{}); break;
+          case 'ringkasan': G.renderRingkasan(msg.data||{}); break;
+          case 'done':      G.es.close(); G.es = null; G.finish(); break;
           case 'error':
-            G.toast('Error: ' + (msg.message || 'Terjadi kesalahan'), 4000);
-            G.es.close();
-            G.es = null;
-            G.$('btn-generate').disabled = false;
+            G.toast('Galat: '+(msg.message||'gagal'), 4000);
+            G.es.close(); G.es = null;
+            $('btn-generate').disabled = false;
+            if (G.elapsedTimer){ clearInterval(G.elapsedTimer); G.elapsedTimer = null; }
             break;
         }
       };
 
-      G.es.onerror = function() {
+      G.es.onerror = function(){
         G.toast('Koneksi terputus.', 3000);
-        G.$('btn-generate').disabled = false;
-        if (G.es) { G.es.close(); G.es = null; }
+        if (G.es){ G.es.close(); G.es = null; }
+        $('btn-generate').disabled = false;
+        if (G.elapsedTimer){ clearInterval(G.elapsedTimer); G.elapsedTimer = null; }
       };
     },
 
-    save: function() {
-      var topic = G.$('topic-input').value.trim();
+    save: function(){
+      var topic = $('topic-input').value.trim();
       if (!topic) return;
-      G.$('btn-save').disabled = true;
+      var btn = $('btn-save');
+      btn.disabled = true;
       fetch('/api/study/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          topic:     topic,
-          materi:    G.state.materi,
-          konsep:    G.state.konsep,
-          ringkasan: G.state.ringkasan,
-        }),
+        body: JSON.stringify({ topic: topic, materi: G.state.materi, konsep: G.state.konsep, ringkasan: G.state.ringkasan })
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(d){ G.toast('Tersimpan: '+(d.title||topic)); btn.disabled = false; })
+      .catch(function(){ G.toast('Gagal menyimpan. Coba lagi.', 3500); btn.disabled = false; });
+    },
+
+    kontenData: null,
+
+    genKonten: function(){
+      var topic = $('topic-input').value.trim();
+      if (!topic || !G.state.ringkasan.summary) return;
+      $('btn-konten').disabled = true;
+      $('btn-konten').textContent = 'Generating…';
+      fetch('/api/study/konten', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({topic: topic, materi: G.state.materi, konsep: G.state.konsep, ringkasan: G.state.ringkasan})
       })
       .then(function(r){ return r.json(); })
       .then(function(d){
-        G.toast('Tersimpan: ' + (d.title || topic));
-        G.$('btn-save').disabled = false;
+        G.kontenData = d;
+        G.renderKonten(topic, d);
+        $('konten-panel').style.display = 'flex';
+        $('btn-konten').textContent = '✦ Create IG Content';
+        $('btn-konten').disabled = false;
+        $('konten-panel').scrollIntoView({behavior: 'smooth', block: 'nearest'});
       })
-      .catch(function(){
-        G.toast('Gagal menyimpan. Coba lagi.', 3500);
-        G.$('btn-save').disabled = false;
+      .catch(function(e){
+        G.toast('Failed to generate content: ' + e.message, 4000);
+        $('btn-konten').disabled = false;
+        $('btn-konten').textContent = '✦ Create IG Content';
       });
+    },
+
+    renderKonten: function(topic, d){
+      var row = $('slide-row');
+      row.innerHTML = '';
+      var slides = [
+        G._buildSlide1(topic, d),
+        G._buildSlide2(d),
+        G._buildSlide3(d),
+        G._buildSlide4(d),
+      ];
+      slides.forEach(function(pair, i){
+        var wrap = document.createElement('div');
+        wrap.className = 'konten-slide';
+        wrap.setAttribute('data-slide', String(i + 1));
+        wrap.innerHTML = pair;
+        row.appendChild(wrap);
+      });
+    },
+
+    _buildSlide1: function(topic, d){
+      var hook = esc(d.cover && d.cover.hook ? d.cover.hook : '');
+      var dots = [1,2,3,4].map(function(n){
+        return '<span' + (n===1?' class="active"':'') + '></span>';
+      }).join('');
+      var vibrant =
+        '<div class="ks-vibrant">' +
+          '<div class="ks-v-eyebrow">Cicero &middot; 1 / 4</div>' +
+          '<div class="ks-v-num">01</div>' +
+          '<div class="ks-v-title">' + esc(topic) + '</div>' +
+          '<div class="ks-v-divider"></div>' +
+          '<div class="ks-v-hook">' + hook + '</div>' +
+          '<div class="ks-v-swipe">swipe &rarr; to learn</div>' +
+          '<div class="ks-v-dots">' + dots + '</div>' +
+        '</div>';
+      var editorial =
+        '<div class="ks-editorial">' +
+          '<div class="ks-e-header">' +
+            '<div class="ks-e-eyebrow">Cicero &middot; 1 / 4</div>' +
+            '<div class="ks-e-title">' + esc(topic) + '</div>' +
+            '<div class="ks-e-hook">' + hook + '</div>' +
+          '</div>' +
+          '<div class="ks-e-body">' +
+            '<div class="ks-e-tag">Study Notes</div>' +
+            '<div class="ks-e-accent"></div>' +
+            '<div class="ks-e-swipe">swipe &rarr; to learn</div>' +
+          '</div>' +
+          '<div class="ks-e-footer"><span>Cicero Study</span><span>1 / 4</span></div>' +
+        '</div>';
+      return vibrant + editorial;
+    },
+
+    _buildSlide2: function(d){
+      var highlights = (d.highlights || []).slice(0, 4);
+      var vChips = highlights.map(function(h){
+        return '<div class="ks-v-chip">' + esc(h) + '</div>';
+      }).join('');
+      var eChips = highlights.map(function(h){
+        return '<div class="ks-e-chip">' + esc(h) + '</div>';
+      }).join('');
+      var vibrant =
+        '<div class="ks-vibrant">' +
+          '<div class="ks-v-eyebrow">Cicero &middot; 2 / 4</div>' +
+          '<div class="ks-v-heading">What You Need to Know</div>' +
+          '<div class="ks-v-divider"></div>' +
+          vChips +
+        '</div>';
+      var editorial =
+        '<div class="ks-editorial">' +
+          '<div class="ks-e-header">' +
+            '<div class="ks-e-eyebrow">Cicero &middot; 2 / 4</div>' +
+            '<div class="ks-e-title">Key Material</div>' +
+          '</div>' +
+          '<div class="ks-e-body">' +
+            '<div class="ks-e-tag">What You Need to Know</div>' +
+            '<div class="ks-e-accent"></div>' +
+            eChips +
+          '</div>' +
+          '<div class="ks-e-footer"><span>Cicero Study</span><span>2 / 4</span></div>' +
+        '</div>';
+      return vibrant + editorial;
+    },
+
+    _buildSlide3: function(d){
+      var concepts = (d.concepts || []).slice(0, 6);
+      var vRows = concepts.map(function(c){
+        return '<div class="ks-v-concept-row">' +
+          '<div class="ks-v-term">' + esc(c.term||'') + '</div>' +
+          '<div class="ks-v-def">' + esc(c.def||'') + '</div>' +
+        '</div>';
+      }).join('');
+      var eRows = concepts.map(function(c, i){
+        return '<div class="ks-e-concept-row">' +
+          '<div class="ks-e-num">' + String(i+1).padStart(2,'0') + '</div>' +
+          '<div><div class="ks-e-term">' + esc(c.term||'') + '</div>' +
+          '<div class="ks-e-def">' + esc(c.def||'') + '</div></div>' +
+        '</div>';
+      }).join('');
+      var vibrant =
+        '<div class="ks-vibrant">' +
+          '<div class="ks-v-eyebrow">Cicero &middot; 3 / 4</div>' +
+          '<div class="ks-v-heading">Important Terms</div>' +
+          '<div class="ks-v-divider"></div>' +
+          vRows +
+        '</div>';
+      var editorial =
+        '<div class="ks-editorial">' +
+          '<div class="ks-e-header">' +
+            '<div class="ks-e-eyebrow">Cicero &middot; 3 / 4</div>' +
+            '<div class="ks-e-title">Key Concepts</div>' +
+          '</div>' +
+          '<div class="ks-e-body">' +
+            '<div class="ks-e-tag">Important Terms</div>' +
+            '<div class="ks-e-accent"></div>' +
+            eRows +
+          '</div>' +
+          '<div class="ks-e-footer"><span>Cicero Study</span><span>3 / 4</span></div>' +
+        '</div>';
+      return vibrant + editorial;
+    },
+
+    _buildSlide4: function(d){
+      var summary = esc(d.summary || '');
+      var hashtags = (d.hashtags || []);
+      var vTags = hashtags.map(function(h){ return '<span class="ks-v-hashtag">' + esc(h) + '</span>'; }).join('');
+      var eTags = hashtags.map(function(h){ return '<span class="ks-e-hashtag">' + esc(h) + '</span>'; }).join('');
+      var vibrant =
+        '<div class="ks-vibrant">' +
+          '<div class="ks-v-eyebrow">Cicero &middot; 4 / 4</div>' +
+          '<div class="ks-v-heading">The Core Insight</div>' +
+          '<div class="ks-v-divider"></div>' +
+          '<div class="ks-v-summary-box">' + summary + '</div>' +
+          '<div class="ks-v-hashtags">' + vTags + '</div>' +
+          '<div class="ks-v-cta">Save &middot; Share &middot; Repeat</div>' +
+        '</div>';
+      var editorial =
+        '<div class="ks-editorial">' +
+          '<div class="ks-e-header">' +
+            '<div class="ks-e-eyebrow">Cicero &middot; 4 / 4</div>' +
+            '<div class="ks-e-title">Summary</div>' +
+          '</div>' +
+          '<div class="ks-e-body">' +
+            '<div class="ks-e-tag">The Core Insight</div>' +
+            '<div class="ks-e-accent"></div>' +
+            '<div class="ks-e-summary-box">' + summary + '</div>' +
+            '<div class="ks-e-hashtags">' + eTags + '</div>' +
+            '<div class="ks-e-cta">Save &middot; Share &middot; Repeat</div>' +
+          '</div>' +
+          '<div class="ks-e-footer"><span>Cicero Study</span><span>4 / 4</span></div>' +
+        '</div>';
+      return vibrant + editorial;
+    },
+
+    setKontenTheme: function(theme){
+      $('konten-panel').setAttribute('data-konten-theme', theme);
+      $('btn-theme-v').classList.toggle('active', theme === 'vibrant');
+      $('btn-theme-e').classList.toggle('active', theme === 'editorial');
+    },
+
+    downloadPNG: function(){
+      var theme = $('konten-panel').getAttribute('data-konten-theme') || 'vibrant';
+      var cls = theme === 'vibrant' ? 'ks-vibrant' : 'ks-editorial';
+      var slides = document.querySelectorAll('#slide-row .konten-slide');
+      if (!slides.length) return;
+      G.toast('Downloading 4 slides…');
+      var topic = $('topic-input').value.trim();
+      var slug = topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g,'') || 'cicero';
+      var idx = 0;
+      function next(){
+        if (idx >= slides.length) return;
+        var slide = slides[idx];
+        var el = slide.querySelector('.' + cls);
+        if (!el) { idx++; next(); return; }
+        var n = idx + 1;
+        idx++;
+        html2canvas(el, {scale: 2, useCORS: true, logging: false})
+          .then(function(canvas){
+            var a = document.createElement('a');
+            a.download = 'cicero-' + slug + '-slide-' + n + '.png';
+            a.href = canvas.toDataURL('image/png');
+            a.click();
+            next();
+          })
+          .catch(function(e){
+            console.error('html2canvas slide ' + n + ':', e);
+            next();
+          });
+      }
+      next();
+    },
+
+    downloadPDF: function(){
+      if (typeof jspdf === 'undefined' || !jspdf.jsPDF) {
+        G.toast('PDF unavailable — jsPDF not loaded', 4000);
+        return;
+      }
+      var theme = $('konten-panel').getAttribute('data-konten-theme') || 'vibrant';
+      var cls = theme === 'vibrant' ? 'ks-vibrant' : 'ks-editorial';
+      var slides = document.querySelectorAll('#slide-row .konten-slide');
+      if (!slides.length) return;
+      G.toast('Building PDF…');
+      var topic = $('topic-input').value.trim();
+      var slug = topic.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g,'') || 'cicero';
+      var els = [];
+      slides.forEach(function(slide){
+        var el = slide.querySelector('.' + cls);
+        if (el) els.push(el);
+      });
+      var pdf = new jspdf.jsPDF('p', 'px', [1080, 1080]);
+      var idx = 0;
+      function addPage(){
+        if (idx >= els.length){
+          pdf.save('cicero-' + slug + '-carousel.pdf');
+          return;
+        }
+        var el = els[idx];
+        var pageNum = idx;
+        idx++;
+        html2canvas(el, {scale: 2, useCORS: true, logging: false})
+          .then(function(canvas){
+            if (pageNum > 0) pdf.addPage([1080, 1080], 'p');
+            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, 1080, 1080);
+            addPage();
+          })
+          .catch(function(e){
+            console.error('PDF slide ' + pageNum + ':', e);
+            addPage();
+          });
+      }
+      addPage();
     },
   };
 
-  function esc(str) {
-    return String(str)
-      .replace(/&/g,'&amp;')
-      .replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;')
-      .replace(/"/g,'&quot;');
+  function sk(count, kind){
+    var out = '';
+    if (kind === 'cue'){
+      for (var i=0;i<count;i++)
+        out += '<div class="cue-item"><div class="sk" style="height:18px;width:'+(55+Math.random()*25)+'%;margin-bottom:8px"></div><div class="sk" style="height:10px;width:90%;margin-bottom:6px"></div><div class="sk" style="height:10px;width:72%"></div></div>';
+    } else {
+      for (var j=0;j<count;j++)
+        out += '<div class="notes-section"><div class="sk" style="height:24px;width:'+(40+Math.random()*30)+'%;margin-bottom:14px"></div><div class="sk" style="height:12px;width:96%;margin-bottom:8px"></div><div class="sk" style="height:12px;width:90%;margin-bottom:8px"></div><div class="sk" style="height:12px;width:82%;margin-bottom:8px"></div><div class="sk" style="height:12px;width:60%"></div></div>';
+    }
+    return out;
   }
 
-  document.getElementById('btn-generate').addEventListener('click', function() {
-    var topic = document.getElementById('topic-input').value.trim();
-    if (!topic) { G.toast('Masukkan topik terlebih dahulu.'); return; }
+  // ── Wire up ──
+  $('btn-generate').addEventListener('click', function(){
+    var topic = $('topic-input').value.trim();
+    if (!topic){ G.toast('Tuliskan topik terlebih dahulu'); $('topic-input').focus(); return; }
     G.start(topic);
   });
-
-  document.getElementById('topic-input').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') document.getElementById('btn-generate').click();
+  $('topic-input').addEventListener('keydown', function(e){
+    if (e.key === 'Enter') $('btn-generate').click();
   });
-
-  document.getElementById('btn-save').addEventListener('click', G.save);
+  document.querySelectorAll('.chip').forEach(function(c){
+    c.addEventListener('click', function(){
+      $('topic-input').value = c.getAttribute('data-topic');
+      $('btn-generate').click();
+    });
+  });
+  $('btn-save').addEventListener('click', G.save);
+  $('btn-konten').addEventListener('click', function(){ G.genKonten(); });
+  $('btn-copy').addEventListener('click', function(){
+    var topic = $('topic-input').value.trim() || 'Catatan';
+    var sections = (G.state.materi.sections||[]).map(function(s){ return s.title+'\n\n'+s.content; }).join('\n\n');
+    var concepts = (G.state.konsep.concepts||[]).map(function(c){ return '• '+c.term+' — '+c.definition; }).join('\n');
+    var out = topic+'\n\n'+sections+'\n\nKONSEP KUNCI\n'+concepts+'\n\nRINGKASAN\n'+(G.state.ringkasan.summary||'');
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(out).then(function(){ G.toast('Catatan disalin'); });
+    } else { G.toast('Catatan disalin'); }
+  });
+  $('btn-print').addEventListener('click', function(){ window.print && window.print(); });
 </script>
 </body>
 </html>
