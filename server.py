@@ -322,7 +322,11 @@ async def chat(req: ChatRequest):
         _save_chat_history(agent_key, agent_name, req.message, response)
         _log_chat_wrap(agent_key, req.message)
 
-        return {"agent": agent_name, "response": response}
+        return {
+            "agent": agent_name,
+            "response": response,
+            "data_changed": agent_key == "budget",
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
