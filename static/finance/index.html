@@ -954,8 +954,8 @@ async function loadDashboard(silent = false) {
   }
 }
 
-// Auto-refresh every 30 s so edits from the main chat always appear here
-setInterval(() => loadDashboard(true), 30_000);
+// Auto-refresh every 5 s so edits from the main chat always appear here
+setInterval(() => loadDashboard(true), 5_000);
 
 function updateSidebarPreview(d) {
   const nw = d.net_worth || 0;
