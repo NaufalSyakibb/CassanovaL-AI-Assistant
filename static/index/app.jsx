@@ -32,6 +32,7 @@ function App() {
   const [dashLoading, setDashLoading] = React.useState(true);
   const [notifs, setNotifs] = React.useState([]);
   const [notifOpen, setNotifOpen] = React.useState(false);
+  const [budgetUpdated, setBudgetUpdated] = React.useState(false);
   const briefInjectedRef = React.useRef(false);
 
   /* Theme on root */
@@ -168,6 +169,7 @@ function App() {
       } else {
         const r = await chatAPI(text, agKey);
         setMsgs(p => ({ ...p, [agKey]: [...p[agKey], { role: 'assistant', content: r.response, ts: new Date().toISOString() }] }));
+        if (r.data_changed) setBudgetUpdated(true);
         // Notify other open tabs (finance, fitness dashboards) that data changed
         if (_syncBC) _syncBC.postMessage({ agent: agKey, ts: Date.now() });
       }
@@ -207,7 +209,8 @@ function App() {
           panelOpen={panelOpen} setPanelOpen={setPanelOpen}
           notifCount={unreadCount} onBellClick={handleBellClick}/>
         {tab === 'chat'
-          ? <ChatView agKey={agKey} messages={msgs[agKey]} loading={loading} onSend={send}/>
+          ? <ChatView agKey={agKey} messages={msgs[agKey]} loading={loading} onSend={send}
+                      financeUpdated={budgetUpdated} onFinanceDismiss={() => setBudgetUpdated(false)}/>
           : tab === 'overview'
             ? <AgentOverview agKey={agKey}/>
             : <DashboardView dash={dash} setAgent={switchAgent} loading={dashLoading}/>}

@@ -162,7 +162,7 @@ function Masthead({ agKey, tab, setTab, panelOpen, setPanelOpen, notifCount = 0,
 }
 
 /* ── Chat View ────────────────────────────────────────────── */
-function ChatView({ agKey, messages, loading, onSend }) {
+function ChatView({ agKey, messages, loading, onSend, financeUpdated, onFinanceDismiss }) {
   const { AGENTS, CHIPS, renderMd, fmtTime, fmtIssue, MOCK } = window.CLData;
   const { IcoSend, IcoClip, IcoPlus, IcoReceipt, IcoMic, IcoMicOff } = window.Icons;
   const ag = AGENTS[agKey];
@@ -175,6 +175,12 @@ function ChatView({ agKey, messages, loading, onSend }) {
   const srRef = _useRef(null);
 
   _useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, loading]);
+
+  _useEffect(() => {
+    if (!financeUpdated) return;
+    const t = setTimeout(() => onFinanceDismiss?.(), 8000);
+    return () => clearTimeout(t);
+  }, [financeUpdated, onFinanceDismiss]);
 
   const send = _useCallback(() => {
     const t = val.trim(); if (!t || loading) return;
@@ -214,6 +220,13 @@ function ChatView({ agKey, messages, loading, onSend }) {
 
   return (
     <div className="chat" style={{ '--agent-hue': ag.hue }}>
+      {financeUpdated && (
+        <div className="finance-notif">
+          <span>Finance data updated —</span>
+          <a href="/finance" target="_self">open dashboard →</a>
+          <button className="finance-notif-close" onClick={onFinanceDismiss}>✕</button>
+        </div>
+      )}
       <div className="chat-scroll scroll">
         {messages.length === 0 && (
           <div className="cover">
