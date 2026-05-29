@@ -33,6 +33,7 @@ function App() {
   const [notifs, setNotifs] = React.useState([]);
   const [notifOpen, setNotifOpen] = React.useState(false);
   const [budgetUpdated, setBudgetUpdated] = React.useState(false);
+  const handleFinanceDismiss = React.useCallback(() => setBudgetUpdated(false), []);
   const briefInjectedRef = React.useRef(false);
 
   /* Theme on root */
@@ -184,7 +185,7 @@ function App() {
     if (!tweaks.useMockData) loadDash();
   }, [agKey, loadDash, tweaks.useMockData]);
 
-  const switchAgent = k => { setAgKey(k); setTab('chat'); };
+  const switchAgent = k => { setAgKey(k); setTab('chat'); setBudgetUpdated(false); };
 
   /* Bell click — open popover */
   const handleBellClick = () => setNotifOpen(p => !p);
@@ -210,7 +211,7 @@ function App() {
           notifCount={unreadCount} onBellClick={handleBellClick}/>
         {tab === 'chat'
           ? <ChatView agKey={agKey} messages={msgs[agKey]} loading={loading} onSend={send}
-                      financeUpdated={budgetUpdated} onFinanceDismiss={() => setBudgetUpdated(false)}/>
+                      financeUpdated={budgetUpdated} onFinanceDismiss={handleFinanceDismiss}/>
           : tab === 'overview'
             ? <AgentOverview agKey={agKey}/>
             : <DashboardView dash={dash} setAgent={switchAgent} loading={dashLoading}/>}
