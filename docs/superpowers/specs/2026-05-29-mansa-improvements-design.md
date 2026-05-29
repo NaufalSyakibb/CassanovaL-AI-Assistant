@@ -86,7 +86,7 @@ setInterval(() => loadDashboard(true), 5_000);
 
 When the budget agent responds to a chat message, include a `data_changed: true` flag in the response so the main frontend can surface a "Finance updated" indicator.
 
-**In `/api/chat` handler:** After the budget agent returns, check if the response text contains evidence of a tool call (or always set it for budget agent). Add to the JSON response body:
+**In `/api/chat` handler:** Always set `data_changed: true` when the budget agent handled the request (any Mansa interaction may modify budget data). Add to the JSON response body:
 
 ```json
 {
@@ -153,7 +153,7 @@ server.py returns {response: "...", data_changed: true}
 | `agents/budget_agent.py` | Model: `mistral-small-latest` → `mistral-large-latest`; `max_tokens`: 2048 → 4096; add Tool Usage Rules section to SYSTEM_PROMPT |
 | `static/finance/index.html` | Poll interval: `30_000` → `5_000` |
 | `server.py` | Add `data_changed: bool` to `/api/chat` response for budget agent |
-| `static/index/` (app.jsx or views.jsx) | Show "Finance data updated" notification when `data_changed: true` |
+| `static/index/views.jsx` | Show "Finance data updated" notification in ChatView when `data_changed: true` |
 
 No new files. No schema changes. No data migrations. Existing `data/budget.json` untouched.
 
