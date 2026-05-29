@@ -581,7 +581,17 @@ async def get_journal_dashboard():
         except:
             date_label, day_name = date_str, ""
         cat = mood_cat(mood)
-        entries.append({"date":date_str,"date_label":date_label,"day_name":day_name,"mood":mood,"mood_cat":cat,"word_count":wc,"preview":preview,"content":body})
+        # Load emotion analysis JSON if available
+        emotion_data = None
+        emotion_path = journal_dir / f"Emotion_{date_str}.json"
+        if emotion_path.exists():
+            try:
+                emotion_data = json.loads(emotion_path.read_text(encoding="utf-8"))
+                if emotion_data.get("mood_cat") in ("positive", "negative", "neutral"):
+                    cat = emotion_data["mood_cat"]
+            except Exception:
+                emotion_data = None
+        entries.append({"date":date_str,"date_label":date_label,"day_name":day_name,"mood":mood,"mood_cat":cat,"word_count":wc,"preview":preview,"content":body,"emotion":emotion_data})
         mood_history.append({"date":date_str,"mood":mood,"mood_cat":cat})
 
     today_str  = datetime.now().strftime("%Y-%m-%d")
@@ -594,6 +604,10 @@ async def get_journal_dashboard():
 
     now = datetime.now()
     cur_month = now.strftime("%Y-%m")
+    emotion_today = next(
+        (e.get("emotion") for e in entries if e["date"] == today_str and e.get("emotion")),
+        None,
+    )
     return {
         "entries": entries,
         "today": next((e for e in entries if e["date"]==today_str), None),
@@ -603,6 +617,7 @@ async def get_journal_dashboard():
         "tags": sorted(all_tags),
         "this_month_count": sum(1 for e in entries if e["date"].startswith(cur_month)),
         "current_month_label": f"{MONTH_NAMES[now.month-1]} {now.year}",
+        "emotion_today": emotion_today,
     }
 
 
