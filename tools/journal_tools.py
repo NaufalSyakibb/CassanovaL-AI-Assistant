@@ -3,8 +3,10 @@ Journaling tools for Dostoyevsky agent.
 Saves all entries to Obsidian Vault at: AI Data/Dostoyevsky Agent/
 One file per day: Journal_YYYY-MM-DD.md
 """
+import json
 import os
 import re
+import threading
 from pathlib import Path
 from datetime import datetime
 from langchain.tools import tool
@@ -101,6 +103,12 @@ def write_journal_entry(
 
         with filepath.open("a", encoding="utf-8") as f:
             f.write(entry_text)
+
+        threading.Thread(
+            target=_run_emotion_bg,
+            args=(_today(), filepath.read_text(encoding="utf-8"), journal_dir),
+            daemon=True,
+        ).start()
 
         return (
             f"✓ Entri jurnal disimpan → {JOURNAL_FOLDER}/{filename}\n"
@@ -226,6 +234,20 @@ def get_mood_history(days: int = 14) -> str:
         return f"Riwayat Mood ({len(moods)} hari):\n\n" + "\n".join(moods)
     except Exception as e:
         return f"[get_mood_history error] {e}"
+
+
+def _run_emotion_bg(date: str, content: str, journal_dir: Path) -> None:
+    try:
+        from agents.emotion_agent import run_emotion_agent
+        result = run_emotion_agent(date, content)
+        if "error" not in result:
+            out = journal_dir / f"Emotion_{date}.json"
+            out.write_text(
+                json.dumps(result, indent=2, ensure_ascii=False),
+                encoding="utf-8",
+            )
+    except Exception:
+        pass
 
 
 JOURNAL_TOOLS = [
