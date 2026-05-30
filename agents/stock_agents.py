@@ -51,9 +51,16 @@ Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
   "analyst_consensus": "rata-rata target price analis dan distribusi rekomendasi",
   "macro_context": "dampak kondisi makro saat ini terhadap saham ini",
   "current_price": 0.0,
+  "pe_ratio": null,
+  "roe_on_equity": null,
+  "price_change_1y_pct": null,
   "ohlcv": {},
   "macro_correlation": {}
 }
+
+pe_ratio: nilai trailingPE dari data (null jika tidak tersedia).
+roe_on_equity: nilai returnOnEquity dari data sebagai desimal (mis. 0.18 untuk 18%) — null jika tidak tersedia.
+price_change_1y_pct: persentase perubahan harga dalam 1 tahun (angka desimal, mis. 12.5 untuk +12.5%) — null jika tidak tersedia.
 """
 
 _NEWS_INTELLIGENCE_PROMPT = """Kamu adalah NewsIntelligence Agent — analis berita finansial yang cerdas dengan kemampuan deteksi sinyal tersembunyi.

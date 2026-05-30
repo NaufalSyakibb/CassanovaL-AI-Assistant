@@ -1293,6 +1293,8 @@ async def stock_analyze(ticker: str):
             try:
                 tech_raw = get_technical_indicators.invoke({"ticker": ticker})
                 technical_data = json.loads(tech_raw) if isinstance(tech_raw, str) else tech_raw
+                if "error" in technical_data:
+                    technical_data = {}
             except Exception:
                 technical_data = {}
             technical_analyst_data = {}
@@ -1300,17 +1302,9 @@ async def stock_analyze(ticker: str):
 
             # ── Market stats event (populates key-stats bar in terminal) ──────
             pe_raw  = deep_research_data.get("pe_ratio")
-            roe_raw = deep_research_data.get("roe")
+            roe_raw = deep_research_data.get("roe_on_equity")
             chg_1y  = deep_research_data.get("price_change_1y_pct") or 0
-            closes  = deep_research_data.get("ohlcv", {}).get("close", [])
-            rsi_val = None
-            if len(closes) >= 15:
-                delta  = [float(closes[i]) - float(closes[i-1]) for i in range(1, len(closes))]
-                gains  = [max(d, 0) for d in delta]
-                losses = [max(-d, 0) for d in delta]
-                ag = sum(gains[-14:]) / 14
-                al = sum(losses[-14:]) / 14
-                rsi_val = round(100 - 100 / (1 + ag / (al or 1e-10)), 1)
+            rsi_val = technical_data.get("rsi_14")
             yield _sse({
                 "event":    "market",
                 "price":    float(price) if isinstance(price, (int, float)) else 0,
