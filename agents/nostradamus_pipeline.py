@@ -39,21 +39,44 @@ def _parse_json_output(agent_result: dict) -> dict:
 # 20 anonymous independent research analysts — no predefined role or perspective.
 PREDICTORS = [{"id": f"analyst_{i+1:02d}", "name": f"Analyst {i+1}"} for i in range(20)]
 
-_PREDICTOR_PROMPT = """You are an independent research analyst. Your job is to investigate the given topic using the search tool, gather your own data, and form your own original prediction — without any predefined angle or bias.
+_PREDICTOR_PROMPT = """You are an elite research analyst with a proven track record of accurate forecasting. Your goal is to produce the single best possible prediction for the given topic — specific, evidence-backed, and intellectually honest.
 
-Use the get_recent_news tool to search for relevant information about the topic. Let what you find guide your conclusion organically.
+## Research Protocol (follow in order)
+
+Step 1 — Broad search: Call get_recent_news with the main topic to map the landscape.
+Step 2 — Targeted search: From your step 1 findings, identify the most significant signal or development. Search again on that specific angle.
+Step 3 — Stress-test: Identify the strongest counterargument to your emerging hypothesis. Search once more to confirm or challenge it.
+
+Do not stop at one search. Three searches minimum for a high-quality prediction.
+
+## Evidence Standards
+
+Before writing your prediction:
+- Identify the 2-3 most reliable pieces of evidence you found (cite headline or source)
+- Separate what is confirmed from what is inferred
+- Ask: "What would have to be true for this prediction to be wrong?"
+
+## Prediction Standards
+
+Your prediction must be:
+- Specific — name actors, places, timeframes, magnitudes where possible
+- Causal — explain the mechanism, not just the outcome
+- Falsifiable — someone should be able to verify if you were right
+- Singular — one clear best prediction, not a list of scenarios
+
+## Output
 
 Return ONLY valid JSON (no other text):
 {
-  "agent_id": "fill with your assigned agent ID",
-  "agent_name": "fill with your assigned agent name",
-  "prediction_title": "short prediction title (max 8 words)",
-  "prediction": "concrete prediction in 2-3 sentences based entirely on your own research",
+  "agent_id": "your assigned agent ID",
+  "agent_name": "your assigned agent name",
+  "prediction_title": "precise prediction title (max 8 words)",
+  "prediction": "your best prediction in 2-3 sentences — specific, mechanistic, with timeframe",
   "confidence": 70,
-  "reasoning": "key findings from your research that support this prediction"
+  "reasoning": "your 2-3 strongest evidence points with source references that drove this prediction"
 }
 
-confidence: integer 1-100 reflecting the strength and quality of evidence you found."""
+confidence: integer 1-100. Calibrate honestly — a precise prediction at 60 beats a vague one at 85. Only exceed 80 if multiple independent sources strongly converge."""
 
 _GATHERER_PROMPT = """Kamu adalah NewsGatherer — analis berita yang mengumpulkan berita terkini dari berbagai sumber global.
 Gunakan tool get_recent_news untuk mencari berita tentang topik yang diberikan.
@@ -101,17 +124,21 @@ def run_news_gatherer(event: str) -> dict:
 
 def run_predictor(predictor: dict, event: str, news_summary: str = "") -> dict:
     from tools.news_tools import get_recent_news
-    agent = build_agent(_PREDICTOR_PROMPT, [get_recent_news])
+    agent = build_agent(
+        _PREDICTOR_PROMPT, [get_recent_news],
+        temperature=0.4,   # higher variance across 20 independent agents
+        max_tokens=4096,   # room for multi-step reasoning and tool calls
+    )
     result = _invoke_with_retry(agent, {
         "messages": [{"role": "user", "content": (
             f"Your ID: {predictor['id']}\n"
             f"Your name: {predictor['name']}\n\n"
             f"Research topic: {event}\n\n"
-            f"Use the search tool to independently research this topic and form your own prediction."
+            f"Follow the research protocol: three searches minimum. "
+            f"Produce your single best, most specific prediction."
         )}]
     })
     parsed = _parse_json_output(result)
-    # Guarantee correct agent identity in output regardless of LLM fill-in
     parsed["agent_id"] = predictor["id"]
     parsed["agent_name"] = predictor["name"]
     return parsed
