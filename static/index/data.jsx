@@ -83,9 +83,9 @@ const AGENTS = {
   },
   nostradamus: {
     name: 'Nostradamus', sub: 'Prophetic Intelligence', hue: 'var(--hue-nostradamus)',
-    issue: 'XII.', cluster: 'research', url: '/nostradamus',
-    tagline: 'Five minds, one verdict — predicting what current events foretell.',
-    greeting: 'Name the event. Five prophets will read the signs.',
+    issue: 'XII.', cluster: 'research',
+    tagline: 'Twenty independent analysts, one council verdict — predicting what events foretell.',
+    greeting: 'Name the event. Twenty independent analysts will each research and deliver their own prediction.',
     Ico: () => { const {IcoSparkle} = window.Icons; return <IcoSparkle/>; },
   },
 };

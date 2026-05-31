@@ -1,7 +1,7 @@
 /* ============================================================
    App — state, tweaks, theme, keyboard
    ============================================================ */
-const { Sidebar, Masthead, ChatView, DashboardView, AgentOverview, RightPanel } = window.CLViews;
+const { Sidebar, Masthead, ChatView, DashboardView, AgentOverview, RightPanel, NostradamusView } = window.CLViews;
 const { CommandPalette, CrewDrawer, NotifPopover } = window.CLOverlays;
 
 // Cross-tab sync: broadcast which agent wrote data so dashboard tabs refresh
@@ -210,8 +210,10 @@ function App() {
           panelOpen={panelOpen} setPanelOpen={setPanelOpen}
           notifCount={unreadCount} onBellClick={handleBellClick}/>
         {tab === 'chat'
-          ? <ChatView agKey={agKey} messages={msgs[agKey]} loading={loading} onSend={send}
-                      financeUpdated={budgetUpdated} onFinanceDismiss={handleFinanceDismiss}/>
+          ? agKey === 'nostradamus'
+            ? <NostradamusView />
+            : <ChatView agKey={agKey} messages={msgs[agKey]} loading={loading} onSend={send}
+                        financeUpdated={budgetUpdated} onFinanceDismiss={handleFinanceDismiss}/>
           : tab === 'overview'
             ? <AgentOverview agKey={agKey}/>
             : <DashboardView dash={dash} setAgent={switchAgent} loading={dashLoading}/>}

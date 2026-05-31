@@ -1242,4 +1242,116 @@ function NewsPanel({ agHue }) {
   );
 }
 
-window.CLViews = { Sidebar, Masthead, ChatView, DashboardView, AgentOverview, RightPanel };
+/* ── Nostradamus View ───────────────────────────────────────── */
+function NostradamusView() {
+  const [event, setEvent]           = _useState('');
+  const [running, setRunning]       = _useState(false);
+  const [predictions, setPredictions] = _useState([]);
+  const [verdict, setVerdict]       = _useState(null);
+  const [logs, setLogs]             = _useState([]);
+  const scrollRef = _useRef(null);
+
+  _useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [predictions, logs, verdict]);
+
+  const run = async () => {
+    const t = event.trim();
+    if (!t || running) return;
+    setRunning(true); setPredictions([]); setVerdict(null); setLogs([]);
+    try {
+      const resp = await fetch(`/api/nostradamus/prophesy?event=${encodeURIComponent(t)}`);
+      const reader = resp.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '';
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split('\n'); buf = lines.pop();
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const d = JSON.parse(line.slice(6));
+            if (d.event === 'log')        setLogs(l => [...l, d.text]);
+            else if (d.event === 'prediction') setPredictions(p => [...p, d]);
+            else if (d.event === 'verdict')    setVerdict(d);
+          } catch {}
+        }
+      }
+    } catch (e) { setLogs(l => [...l, `Error: ${e.message}`]); }
+    setRunning(false);
+  };
+
+  const pct = predictions.length;
+
+  return (
+    <div className="nostra-view">
+      <div className="nostra-input-row">
+        <input
+          className="nostra-input"
+          placeholder="Name an event or topic to prophesy…"
+          value={event}
+          onChange={e => setEvent(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && run()}
+          disabled={running}
+        />
+        <button className="nostra-btn" onClick={run} disabled={running || !event.trim()}>
+          {running ? `Analysing… ${pct}/20` : 'Run Prophecy'}
+        </button>
+      </div>
+
+      <div className="nostra-scroll" ref={scrollRef}>
+        {logs.length > 0 && (
+          <div className="nostra-logs">
+            {logs.map((l, i) => <div key={i} className="nostra-log-line">{l}</div>)}
+          </div>
+        )}
+
+        {pct > 0 && (
+          <div className="nostra-section">
+            <div className="nostra-section-head">
+              Analyst Predictions <span className="nostra-badge">{pct} / 20</span>
+            </div>
+            <div className="nostra-grid">
+              {predictions.map((p, i) => (
+                <div key={i} className="nostra-card">
+                  <div className="nostra-card-top">
+                    <span className="nostra-card-name">{p.agent_name}</span>
+                    <span className="nostra-card-conf">{p.confidence}%</span>
+                  </div>
+                  <div className="nostra-card-title">{p.prediction_title}</div>
+                  <div className="nostra-card-body">{p.prediction}</div>
+                  {p.reasoning && <div className="nostra-card-reason">{p.reasoning}</div>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {verdict && (
+          <div className="nostra-verdict">
+            <div className="nostra-verdict-label">Council Verdict</div>
+            <div className="nostra-verdict-title">{verdict.verdict_title}</div>
+            <div className="nostra-verdict-detail">{verdict.verdict_detail}</div>
+            <div className="nostra-verdict-meta">
+              Confidence: <strong>{verdict.confidence}%</strong>
+              {verdict.endorsed_agent && <> · Endorsed: <em>{verdict.endorsed_agent}</em></>}
+            </div>
+            {verdict.dissenting_view && (
+              <div className="nostra-dissent">↗ {verdict.dissenting_view}</div>
+            )}
+          </div>
+        )}
+
+        {!running && pct === 0 && !verdict && (
+          <div className="nostra-empty">
+            <p>Enter any event or topic above. Twenty independent analysts will each conduct their own research and form their own prediction. The Council then weighs all 20 findings and issues a final verdict.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+window.CLViews = { Sidebar, Masthead, ChatView, DashboardView, AgentOverview, RightPanel, NostradamusView };
