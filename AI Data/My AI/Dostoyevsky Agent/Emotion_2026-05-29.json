@@ -1,0 +1,28 @@
+{
+  "dominant_mood": "reflective",
+  "mood_cat": "positive",
+  "emotions": [
+    {
+      "name": "gratitude",
+      "intensity": 85
+    },
+    {
+      "name": "amusement",
+      "intensity": 80
+    },
+    {
+      "name": "relief",
+      "intensity": 75
+    },
+    {
+      "name": "contentment",
+      "intensity": 70
+    },
+    {
+      "name": "regret",
+      "intensity": 40
+    }
+  ],
+  "what_happened": "Woke up late with a headache after overeating satay during Idul Adha celebrations. Received updates about family members recovering post-surgery. Visited Depok for a Star Wars event and reflected on small moments of happiness throughout the day.",
+  "summary": "The day began with physical discomfort and mild frustration but shifted toward warmth and gratitude as small, joyful moments unfolded. The emotional arc moved from initial unease to a sense of lightness and appreciation for fleeting happiness."
+}
