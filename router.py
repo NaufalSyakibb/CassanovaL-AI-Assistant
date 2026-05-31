@@ -61,7 +61,7 @@ _DEFAULT_RECURSION = 8
 
 # Agent labels and their descriptions for the classifier
 AGENT_REGISTRY = {
-    "task":     "Managing to-do lists, tasks, reminders, and deadlines",
+    "task":     "Managing to-do lists, tasks, reminders, deadlines, and personal notes — save note, write this down, jot down, keep a note, note about, remember this, material reference, meeting notes, quick capture",
     "notes":    "Belajar mata kuliah, memahami konsep kuliah, quiz, flashcard, latihan soal, persiapan ujian, outline materi, ringkasan slide kuliah, membuat catatan belajar, menyimpan materi",
     "news":     "Latest news, current events, headlines, recent updates",
     "coding":   "Programming help, code explanation, debugging, tutorials, tech questions",
