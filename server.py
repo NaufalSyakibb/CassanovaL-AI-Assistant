@@ -578,6 +578,11 @@ async def get_journal_dashboard():
         wc     = len(body.split())
         clean  = re.sub(r"[#*`>_\-]+", "", body).replace("\n"," ").strip()
         preview= clean[:160] + ("…" if len(clean)>160 else "")
+        # Fallback: extract mood from section header "· *Mood: X*" if frontmatter has none
+        if mood in ("unspecified", "—", ""):
+            mood_in_body = re.search(r"·\s*\*Mood:\s*([^*\n]+)\*", content)
+            if mood_in_body:
+                mood = mood_in_body.group(1).strip()
         try:
             dt = datetime.strptime(date_str, "%Y-%m-%d")
             date_label = f"{dt.day} {MONTH_NAMES[dt.month-1]} {dt.year}"
@@ -593,6 +598,9 @@ async def get_journal_dashboard():
                 emotion_data = json.loads(emotion_path.read_text(encoding="utf-8"))
                 if emotion_data.get("mood_cat") in ("positive", "negative", "neutral"):
                     cat = emotion_data["mood_cat"]
+                # Use dominant_mood from emotion data if mood is still unspecified
+                if mood in ("unspecified", "—", "") and emotion_data.get("dominant_mood"):
+                    mood = emotion_data["dominant_mood"]
             except Exception:
                 emotion_data = None
         entries.append({"date":date_str,"date_label":date_label,"day_name":day_name,"mood":mood,"mood_cat":cat,"word_count":wc,"preview":preview,"content":body,"emotion":emotion_data})

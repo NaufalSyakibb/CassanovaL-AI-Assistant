@@ -1,0 +1,28 @@
+{
+  "dominant_mood": "frustrated",
+  "mood_cat": "negative",
+  "emotions": [
+    {
+      "name": "frustrated",
+      "intensity": 90
+    },
+    {
+      "name": "disappointed",
+      "intensity": 85
+    },
+    {
+      "name": "resigned",
+      "intensity": 70
+    },
+    {
+      "name": "relieved",
+      "intensity": 50
+    },
+    {
+      "name": "content",
+      "intensity": 40
+    }
+  ],
+  "what_happened": "The writer woke up at 6:30 AM, prepared for a design thinking presentation with their team, only to learn the class was postponed to next week. They had worked overnight on the presentation materials. Later, they went for breakfast and a morning walk.",
+  "summary": "The day began with intense frustration and disappointment after learning their overnight efforts were rendered unnecessary, but gradually shifted toward acceptance. A morning walk and breakfast helped ease the emotional weight, allowing for a calmer resolution."
+}

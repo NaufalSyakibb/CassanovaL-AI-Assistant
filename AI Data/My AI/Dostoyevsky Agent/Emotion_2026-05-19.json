@@ -1,0 +1,28 @@
+{
+  "dominant_mood": "relieved",
+  "mood_cat": "positive",
+  "emotions": [
+    {
+      "name": "relief",
+      "intensity": 90
+    },
+    {
+      "name": "amusement",
+      "intensity": 85
+    },
+    {
+      "name": "gratitude",
+      "intensity": 75
+    },
+    {
+      "name": "fatigue",
+      "intensity": 70
+    },
+    {
+      "name": "contentment",
+      "intensity": 65
+    }
+  ],
+  "what_happened": "The writer had three deadlines due the previous day, completed them all, then took a walk with a friend and bought an americano. Despite planning to stay awake with caffeine, they fell asleep.",
+  "summary": "The day began with a mix of exhaustion and relief after meeting multiple deadlines, shifting into lightheartedness during a post-work walk. The emotional arc closed with amusement and acceptance of physical limits, balancing accomplishment with humor."
+}

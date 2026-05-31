@@ -1,0 +1,28 @@
+{
+  "dominant_mood": "reflective",
+  "mood_cat": "neutral",
+  "emotions": [
+    {
+      "name": "guilt",
+      "intensity": 60
+    },
+    {
+      "name": "efficiency",
+      "intensity": 55
+    },
+    {
+      "name": "curiosity",
+      "intensity": 50
+    },
+    {
+      "name": "emptiness",
+      "intensity": 45
+    },
+    {
+      "name": "gratitude",
+      "intensity": 40
+    }
+  ],
+  "what_happened": "The writer woke up, checked their phone, used the toilet, then worked on a side project. They mentioned forgetting to write a diary the previous day, stating nothing noteworthy happened. The exchange ended with a brief acknowledgment of the day feeling 'enough.'",
+  "summary": "The day began with a routine-driven focus on productivity, but underlying guilt and emptiness surfaced when reflecting on the previous day’s inactivity. The interaction closed with a sense of quiet acceptance, balancing efficiency with introspection."
+}

@@ -1,0 +1,28 @@
+{
+  "dominant_mood": "conflicted",
+  "mood_cat": "negative",
+  "emotions": [
+    {
+      "name": "regret",
+      "intensity": 85
+    },
+    {
+      "name": "relief",
+      "intensity": 70
+    },
+    {
+      "name": "anxiety",
+      "intensity": 65
+    },
+    {
+      "name": "excitement",
+      "intensity": 60
+    },
+    {
+      "name": "longing",
+      "intensity": 55
+    }
+  ],
+  "what_happened": "The writer woke up to the sound of Takbiran on Eid al-Adha, missed the communal prayer with their father and sister, and noted their mother and grandmother were in the hospital post-surgery. Later, they planned to travel to Depok to buy a Star Wars keychain at an event.",
+  "summary": "The day began with a mix of spiritual reverence and regret over missed family moments, compounded by concern for hospitalized relatives. A planned outing for a personal interest offered a brief emotional reprieve amid the day's heavier feelings."
+}

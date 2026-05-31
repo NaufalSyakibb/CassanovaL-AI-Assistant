@@ -1,0 +1,28 @@
+{
+  "dominant_mood": "reflective",
+  "mood_cat": "neutral",
+  "emotions": [
+    {
+      "name": "relieved",
+      "intensity": 70
+    },
+    {
+      "name": "content",
+      "intensity": 65
+    },
+    {
+      "name": "awkward",
+      "intensity": 50
+    },
+    {
+      "name": "tired",
+      "intensity": 45
+    },
+    {
+      "name": "grateful",
+      "intensity": 40
+    }
+  ],
+  "what_happened": "The writer woke up at 6:30 AM, scrolled on social media, then showered. They forgot to wash their batik suit and borrowed one from a friend named Irshad. After practicum, they had brunch with a friend, Nabil, rested in their dorm for 30 minutes, attended Friday prayers at TULT, and worked on a team assignment for a leadership class at the Open Library.",
+  "summary": "The day began with a slow, routine start but unfolded with small, meaningful interactions and tasks. The writer navigated minor inconveniences, like borrowing a batik suit, while finding comfort in moments of rest, social connection, and reflection, creating a balanced emotional rhythm."
+}

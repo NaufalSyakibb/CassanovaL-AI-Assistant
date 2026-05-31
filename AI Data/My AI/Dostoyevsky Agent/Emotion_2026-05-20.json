@@ -1,0 +1,28 @@
+{
+  "dominant_mood": "compassionate",
+  "mood_cat": "positive",
+  "emotions": [
+    {
+      "name": "compassion",
+      "intensity": 90
+    },
+    {
+      "name": "curiosity",
+      "intensity": 75
+    },
+    {
+      "name": "calm",
+      "intensity": 70
+    },
+    {
+      "name": "frustration",
+      "intensity": 40
+    },
+    {
+      "name": "concern",
+      "intensity": 60
+    }
+  ],
+  "what_happened": "The journal entry records an interaction where the writer notices the other person struggling to articulate their feelings, offering multiple gentle prompts and suggestions to help them express themselves or begin processing their emotions.",
+  "summary": "The day was marked by a deep sense of empathy and care toward someone experiencing emotional difficulty, with the writer guiding them through a tender, exploratory conversation. The emotional tone remained warm and patient, despite underlying concern for the other's state."
+}

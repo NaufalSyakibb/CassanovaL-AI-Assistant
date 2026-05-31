@@ -1,0 +1,28 @@
+{
+  "dominant_mood": "reflective",
+  "mood_cat": "positive",
+  "emotions": [
+    {
+      "name": "grateful",
+      "intensity": 90
+    },
+    {
+      "name": "content",
+      "intensity": 80
+    },
+    {
+      "name": "nostalgic",
+      "intensity": 70
+    },
+    {
+      "name": "peaceful",
+      "intensity": 65
+    },
+    {
+      "name": "overwhelmed",
+      "intensity": 50
+    }
+  ],
+  "what_happened": "The writer expressed gratitude for simple joys like breathing fresh air, spending time with friends, and learning new things. They also described a morning outing to a market in Bandung with friends, buying food, and reflecting on the city's romantic atmosphere. The conversation ended with a brief exchange about colors representing their feelings.",
+  "summary": "The day began with a strong sense of gratitude and warmth, fueled by small but meaningful moments shared with friends. However, as reflections deepened, a mix of contentment and subtle overwhelm emerged, hinting at unspoken layers beneath the surface."
+}
