@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import json
 import sys
 import io
@@ -128,6 +129,18 @@ async def _lifespan(app):
     scheduler.start()
     app.state.scheduler = scheduler
 
+    # Sync FoodSummary markdown → food_log.json (background — non-blocking)
+    def _sync():
+        try:
+            _sync_food_logs_from_md()
+        except Exception as e:
+            print(f"[Startup] Food sync failed: {e}")
+        try:
+            _sync_cicero_notes()
+        except Exception as e:
+            print(f"[Startup] Cicero notes sync failed: {e}")
+    threading.Thread(target=_sync, daemon=True).start()
+
     # Pre-warm router + Alfred agent in background (eliminates first-open cold start)
     def _prewarm():
         try:
@@ -174,19 +187,19 @@ class FitnessRecommendRequest(BaseModel):
 
 # ─── Receipt Scanner ─────────────────────────────────────────────────────────
 
-RECEIPT_PROMPT = """Kamu adalah sistem pembaca struk/bukti transaksi keuangan.
-Analisis gambar ini dan ekstrak informasi transaksi.
+RECEIPT_PROMPT = """You are a financial receipt/transaction reader system.
+Analyze this image and extract the transaction information.
 
-Kembalikan HANYA JSON dengan format berikut (tanpa penjelasan apapun):
-{"type":"expense","amount":50000,"category":"food","description":"Makan siang di warung","date":"2025-01-15"}
+Return ONLY JSON in the following format (no explanation):
+{"type":"expense","amount":50000,"category":"food","description":"Lunch at local restaurant","date":"2025-01-15"}
 
-Aturan:
-- type: "expense" untuk pengeluaran, "income" untuk pemasukan (hampir semua struk = expense)
-- amount: angka saja tanpa titik/koma/simbol mata uang
+Rules:
+- type: "expense" for spending, "income" for income (almost all receipts = expense)
+- amount: number only, no dots/commas/currency symbols
 - category expense: food, transport, shopping, entertainment, bills, health, education, other
 - category income: salary, freelance, business, investment, gift, other
-- description: nama toko / deskripsi singkat apa yang dibeli
-- date: format YYYY-MM-DD jika terlihat di struk, atau null jika tidak ada
+- description: store name / brief description of what was purchased
+- date: format YYYY-MM-DD if visible on the receipt, or null if not present
 """
 
 @app.post("/api/budget/scan-receipt")
@@ -244,6 +257,7 @@ _AGENT_FILENAMES = {
     "fitness":  "lavoisier",
     "journal":  "dostoyevsky",
     "davinci":  "davinci",
+    "euler":    "euler",
 }
 
 
@@ -285,10 +299,185 @@ _DATA_DIR = Path(__file__).resolve().parent / "data"
 _DATA_DIR.mkdir(exist_ok=True)
 _WRAP_LOG_PATH = _DATA_DIR / "chat_log.json"
 
+
+# ─── Food-Log Sync (FoodSummary markdown → food_log.json) ────────────────────
+
+def _parse_food_summary_file(filepath: Path) -> dict | None:
+    """Parse a FoodSummary_YYYY-MM-DD.md file.
+    Returns {date, items: [{food, amount, calories, protein_g, carbs_g, fiber_g, fat_g, meal_time}]}.
+    """
+    try:
+        content = filepath.read_text(encoding="utf-8")
+    except Exception:
+        return None
+
+    stem = filepath.stem  # "FoodSummary_2026-05-20"
+    date_str = stem.replace("FoodSummary_", "")
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", date_str):
+        return None
+
+    def _parse_num(s: str) -> float:
+        try:
+            return float(re.sub(r"[^\d.]", "", s.replace(",", ".")))
+        except Exception:
+            return 0.0
+
+    items = []
+    current_meal = "lainnya"
+    in_table = False
+
+    for line in content.split("\n"):
+        # Detect meal section headers (e.g. "## 🍽️ Makan siang")
+        header_match = re.match(r"^##\s+[^\w]*(.+)$", line)
+        if header_match:
+            raw_hdr = header_match.group(1).strip()
+            # Strip emoji and clean up
+            current_meal = re.sub(r"[^\w\s]", "", raw_hdr).strip().lower() or "lainnya"
+            in_table = False
+            continue
+
+        # Skip table header rows
+        if re.match(r"^\|\s*(Makanan|Food|Nama)", line, re.IGNORECASE):
+            in_table = True
+            continue
+        # Skip separator rows
+        if re.match(r"^\|[-| ]+\|", line):
+            continue
+
+        # Parse data rows
+        if in_table and line.startswith("|"):
+            cells = [c.strip() for c in line.split("|")[1:-1]]
+            if len(cells) >= 7 and cells[0]:
+                food = cells[0]
+                amount = cells[1]
+                # columns: Makanan|Porsi|Protein|Karbo|Serat|Lemak|Kalori
+                uid = hashlib.md5(f"{date_str}-{food}-{amount}".encode()).hexdigest()[:6]
+                items.append({
+                    "id":        uid,
+                    "food":      food,
+                    "amount":    amount,
+                    "calories":  _parse_num(cells[6]),
+                    "protein_g": _parse_num(cells[2]),
+                    "carbs_g":   _parse_num(cells[3]),
+                    "fiber_g":   _parse_num(cells[4]),
+                    "fat_g":     _parse_num(cells[5]),
+                    "meal_time": current_meal,
+                    "logged_at": "00:00",
+                })
+
+    return {"date": date_str, "items": items}
+
+
+def _lavoiser_dirs() -> list[Path]:
+    """Return every Lavoiser Agent data directory to scan for FoodSummary history.
+
+    Includes the active vault folder (My AI/Lavoiser Agent) plus the legacy
+    ``AI Data/Lavoiser Agent`` folder so previously-consumed food history that
+    predates the My AI vault is also backfilled into food_log.json.
+    """
+    candidates = []
+    vault = os.getenv("OBSIDIAN_VAULT_PATH", "").strip()
+    if vault:
+        candidates.append(Path(vault) / "Lavoiser Agent")
+    root = Path(__file__).parent / "AI Data"
+    candidates.append(root / "My AI" / "Lavoiser Agent")  # active vault default
+    candidates.append(root / "Lavoiser Agent")            # legacy history
+
+    # De-duplicate by resolved path while preserving scan order
+    seen, dirs = set(), []
+    for d in candidates:
+        key = str(d.resolve()) if d.exists() else str(d)
+        if key not in seen:
+            seen.add(key)
+            dirs.append(d)
+    return dirs
+
+
+def _sync_food_logs_from_md() -> int:
+    """Merge FoodSummary markdown files into food_log.json for any missing dates.
+
+    Scans both the active vault and the legacy AI Data/Lavoiser Agent folder.
+    Existing days in food_log.json are never overwritten. Returns new days added.
+    """
+    food_log_path = _DATA_DIR / "food_log.json"
+    try:
+        food_log: dict = json.loads(food_log_path.read_text(encoding="utf-8"))
+    except Exception:
+        food_log = {}
+
+    added = 0
+    for lavoiser_dir in _lavoiser_dirs():
+        if not lavoiser_dir.exists():
+            continue
+        for f in sorted(lavoiser_dir.glob("FoodSummary_*.md")):
+            result = _parse_food_summary_file(f)
+            if result and result["date"] not in food_log and result["items"]:
+                food_log[result["date"]] = result["items"]
+                added += 1
+
+    if added > 0:
+        food_log_path.write_text(
+            json.dumps(food_log, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        print(f"[FoodSync] Synced {added} new day(s) from FoodSummary markdown files.")
+
+    return added
+
+
+def _sync_cicero_notes() -> int:
+    """Sync Notes_*.md files from Cicero Agent folder into notes.json.
+    Returns number of new notes added.
+    """
+    vault = os.getenv("OBSIDIAN_VAULT_PATH", "").strip()
+    cicero_dir = (Path(vault) / "Cicero Agent") if vault \
+                 else (Path(__file__).parent / "AI Data" / "My AI" / "Cicero Agent")
+    if not cicero_dir.exists():
+        return 0
+
+    notes_path = _DATA_DIR / "notes.json"
+    try:
+        notes: list = json.loads(notes_path.read_text(encoding="utf-8"))
+    except Exception:
+        notes = []
+
+    existing_ids = {n.get("id", "") for n in notes}
+    added = 0
+
+    for f in sorted(cicero_dir.glob("Notes_*.md")):
+        note_id = f"cicero-{f.stem}"
+        if note_id in existing_ids:
+            continue
+        try:
+            content = f.read_text(encoding="utf-8")
+            # Extract date from stem like "Notes_2026-05-13"
+            date_str = f.stem.replace("Notes_", "")
+            title_match = re.search(r"^#\s+(.+)$", content, re.MULTILINE)
+            title = title_match.group(1).strip() if title_match else f"Cicero Notes — {date_str}"
+            notes.append({
+                "id": note_id,
+                "title": title,
+                "content": content,
+                "tags": ["cicero", "notes", date_str],
+                "created_at": f"{date_str} 00:00",
+                "updated_at": f"{date_str} 00:00",
+            })
+            existing_ids.add(note_id)
+            added += 1
+        except Exception:
+            continue
+
+    if added > 0:
+        notes_path.write_text(
+            json.dumps(notes, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        print(f"[CiceroSync] Added {added} note(s) from Cicero Agent folder.")
+
+    return added
+
 def _log_chat_wrap(agent_key: str, user_msg: str):
     """Append one entry to data/chat_log.json for Monthly Wrap tracking."""
     try:
-        if agent_key not in ("news", "coding", "schedule", "fitness", "journal", "budget", "task"):
+        if agent_key not in ("news", "coding", "schedule", "fitness", "journal", "budget", "task", "euler"):
             return
         log: list = []
         if _WRAP_LOG_PATH.exists():
@@ -549,7 +738,7 @@ async def get_journal_dashboard():
     NEGATIVE    = {"sad","sedih","anxious","cemas","stressed","stress","kecewa","lelah","tired","bad","buruk","down","frustrated","marah","angry","worried","khawatir","berat","burnout"}
 
     vault = os.getenv("OBSIDIAN_VAULT_PATH","").strip()
-    journal_dir = Path(vault) / "Dostoyevsky Agent" if vault else Path("AI Data") / "Dostoyevsky Agent"
+    journal_dir = Path(vault) / "Dostoyevsky Agent" if vault else Path("AI Data") / "My AI" / "Dostoyevsky Agent"
 
     if not journal_dir.exists():
         return {"entries":[],"today":None,"streak":0,"total_entries":0,"mood_history":[],"tags":[],"this_month_count":0,"current_month_label":""}
@@ -574,15 +763,20 @@ async def get_journal_dashboard():
         tags   = [t.strip() for t in tags_m.group(1).split(",") if t.strip()] if tags_m else []
         all_tags.update(tags)
         body   = re.sub(r"^---.*?---\s*", "", content, flags=re.DOTALL).strip()
-        body   = re.sub(r"^# .*\n", "", body).strip()
-        wc     = len(body.split())
-        clean  = re.sub(r"[#*`>_\-]+", "", body).replace("\n"," ").strip()
+        body   = re.sub(r"^# [^\n]*\n", "", body).strip()
+        # Reflecta journals conversationally, so the real history lives in the
+        # "**Kamu:** / **Journal:**" dialogue sections. Keep them (the previous
+        # filter discarded every "**Kamu:**" block, leaving entries near-empty).
+        # Strip only the Obsidian nav line so the conversation stays intact.
+        body   = re.sub(r"^\s*\[\[Home\]\].*$", "", body, flags=re.MULTILINE).strip()
+        # Word count / preview ignore the speaker labels for a clean reading.
+        _speaker = r"\*\*(?:Kamu|Journal|Reflecta)\:\*\*"
+        wc     = len(re.sub(_speaker, "", body).split())
+        clean  = re.sub(r"^#+\s*\d{1,2}:\d{2}.*$", "", body, flags=re.MULTILINE)  # drop "## HH:MM · JOURNAL" headers
+        clean  = re.sub(_speaker, " ", clean)
+        clean  = re.sub(r"[#*`>_\-]+", " ", clean).replace("\n", " ").strip()
+        clean  = re.sub(r"\s+", " ", clean)
         preview= clean[:160] + ("…" if len(clean)>160 else "")
-        # Fallback: extract mood from section header "· *Mood: X*" if frontmatter has none
-        if mood in ("unspecified", "—", ""):
-            mood_in_body = re.search(r"·\s*\*Mood:\s*([^*\n]+)\*", content)
-            if mood_in_body:
-                mood = mood_in_body.group(1).strip()
         try:
             dt = datetime.strptime(date_str, "%Y-%m-%d")
             date_label = f"{dt.day} {MONTH_NAMES[dt.month-1]} {dt.year}"
@@ -598,9 +792,6 @@ async def get_journal_dashboard():
                 emotion_data = json.loads(emotion_path.read_text(encoding="utf-8"))
                 if emotion_data.get("mood_cat") in ("positive", "negative", "neutral"):
                     cat = emotion_data["mood_cat"]
-                # Use dominant_mood from emotion data if mood is still unspecified
-                if mood in ("unspecified", "—", "") and emotion_data.get("dominant_mood"):
-                    mood = emotion_data["dominant_mood"]
             except Exception:
                 emotion_data = None
         entries.append({"date":date_str,"date_label":date_label,"day_name":day_name,"mood":mood,"mood_cat":cat,"word_count":wc,"preview":preview,"content":body,"emotion":emotion_data})
@@ -631,6 +822,147 @@ async def get_journal_dashboard():
         "current_month_label": f"{MONTH_NAMES[now.month-1]} {now.year}",
         "emotion_today": emotion_today,
     }
+
+
+# Gap (seconds) between two saved turns that splits them into separate
+# conversations. Reflecta sessions are short; a fresh sit-down hours later is
+# a new conversation worth reopening on its own.
+_CONVO_GAP_SECONDS = 3 * 60 * 60  # 3 hours
+
+
+def _parse_chat_history_md(text: str) -> list[dict]:
+    """Parse a `My AI/<agent>.md` conversation log into individual turns.
+
+    Each turn looks like:
+
+        ## 2026-04-30 08:50:32
+
+        **You:** <user text...>
+
+        **journal:** <agent text...>
+
+        ---
+
+    Returns a list of {timestamp, time, user, agent} dicts, oldest first.
+    """
+    import re
+
+    turns: list[dict] = []
+    # Split on the `## <timestamp>` headers, keeping the timestamp. Only real
+    # timestamp headers split turns, so `## Heading` lines inside a reply (and
+    # `---` rules / `**Bold:**` markers in long answers) stay intact.
+    blocks = re.split(r"\n##\s+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s*\n", "\n" + text)
+    # blocks[0] is the file header/preamble; then alternating ts, body, ts, body…
+    for i in range(1, len(blocks) - 1, 2):
+        ts_raw = blocks[i].strip()
+        # Drop the trailing turn separator so it isn't captured into the reply.
+        body = re.sub(r"\n+-{3,}\s*$", "", blocks[i + 1].strip())
+        # User text: everything after **You:** up to the agent's label line.
+        um = re.search(r"\*\*You:\*\*\s*(.*?)(?=\n\*\*[^\n*:]+:\*\*\s|\Z)", body, re.S)
+        # Agent text: from the first non-"You" label line to the end of the
+        # block (already trimmed of the separator), preserving inner markdown.
+        am = re.search(r"\n\*\*(?!You:)[^\n*:]+:\*\*\s*(.*)\Z", body, re.S)
+        user_txt = (um.group(1).strip() if um else "")
+        agent_txt = (am.group(1).strip() if am else "")
+        if not user_txt and not agent_txt:
+            continue
+        try:
+            dt = datetime.strptime(ts_raw, "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            continue
+        turns.append({
+            "timestamp": ts_raw,
+            "epoch": dt.timestamp(),
+            "time": dt.strftime("%H:%M"),
+            "date_label": dt.strftime("%d %b %Y"),
+            "user": user_txt,
+            "agent": agent_txt,
+        })
+    return turns
+
+
+def _group_turns_into_conversations(turns: list[dict]) -> list[dict]:
+    """Group consecutive turns into conversations using a time-gap heuristic."""
+    convos: list[dict] = []
+    current: list[dict] = []
+    prev_epoch = None
+    for t in turns:
+        if prev_epoch is not None and (t["epoch"] - prev_epoch) > _CONVO_GAP_SECONDS:
+            convos.append(current)
+            current = []
+        current.append(t)
+        prev_epoch = t["epoch"]
+    if current:
+        convos.append(current)
+
+    result: list[dict] = []
+    for idx, group in enumerate(convos):
+        messages: list[dict] = []
+        for t in group:
+            if t["user"]:
+                messages.append({"role": "user", "text": t["user"], "time": t["time"]})
+            if t["agent"]:
+                messages.append({"role": "agent", "text": t["agent"], "time": t["time"]})
+        first = group[0]
+        last = group[-1]
+        # Title = the opening user line, trimmed to a readable length.
+        title = first["user"] or first["agent"] or "Conversation"
+        title = " ".join(title.split())
+        if len(title) > 64:
+            title = title[:63].rstrip() + "…"
+        result.append({
+            "id": first["timestamp"],
+            "started_at": first["timestamp"],
+            "ended_at": last["timestamp"],
+            "date_label": first["date_label"],
+            "time": first["time"],
+            "title": title,
+            "turn_count": len(group),
+            "messages": messages,
+        })
+    # Newest conversation first.
+    result.reverse()
+    return result
+
+
+def _conversations_for_agent(agent_key: str) -> dict:
+    """Read the durable per-agent chat log written by `_save_chat_history`
+    (`My AI/<agent>.md`) and group its timestamped turns into reopenable
+    conversations. Shared by every agent page's history view."""
+    filename = _AGENT_FILENAMES.get(agent_key, agent_key.lower())
+    filepath = _my_ai_dir() / f"{filename}.md"
+    if not filepath.exists():
+        return {"agent": agent_key, "conversations": [], "total": 0}
+    try:
+        text = filepath.read_text(encoding="utf-8")
+    except Exception as e:
+        return {"agent": agent_key, "conversations": [], "total": 0, "error": str(e)}
+
+    conversations = _group_turns_into_conversations(_parse_chat_history_md(text))
+    return {
+        "agent": agent_key,
+        "conversations": conversations,
+        "total": len(conversations),
+    }
+
+
+# Agent keys that have a durable chat log (and therefore reopenable history).
+_HISTORY_AGENTS = set(_AGENT_FILENAMES.keys())
+
+
+@app.get("/api/conversations/{agent_key}")
+async def get_agent_conversations(agent_key: str):
+    """Generic conversation history for any chat agent (task, coding, budget,
+    fitness, schedule, notes, news, journal, davinci, …)."""
+    if agent_key not in _HISTORY_AGENTS:
+        raise HTTPException(status_code=404, detail=f"Unknown agent: {agent_key}")
+    return _conversations_for_agent(agent_key)
+
+
+@app.get("/api/journal/conversations")
+async def get_journal_conversations():
+    """Back-compat alias for the journal page's history view."""
+    return _conversations_for_agent("journal")
 
 
 @app.get("/api/productivity/dashboard")
@@ -785,6 +1117,24 @@ async def get_fitness_dashboard():
     for f in food_frequency:
         f["avg_cal"] = round(f["total_cal"] / f["count"]) if f["count"] else 0
 
+    # ── Streak (consecutive days with data ending at today) ─────────────────────
+    streak_days = 0
+    for i in range(30):
+        d = (today - _td(days=i)).strftime("%Y-%m-%d")
+        if raw.get(d):
+            streak_days += 1
+        else:
+            break
+
+    # ── Recent logs — last 10 food items across all days ─────────────────────
+    recent_logs: list = []
+    for day in sorted(raw.keys(), reverse=True):
+        for e in raw[day]:
+            recent_logs.append({**e, "date": day})
+        if len(recent_logs) >= 10:
+            break
+    recent_logs = recent_logs[:10]
+
     return {
         "today":           today_str,
         "today_label":     today.strftime("%A, %d %B %Y"),
@@ -796,7 +1146,22 @@ async def get_fitness_dashboard():
         "food_frequency":  food_frequency,
         "total_days":      len([d for d in raw if raw[d]]),
         "total_entries":   sum(len(v) for v in raw.values()),
+        # AgentOverview-compatible flat aliases
+        "today_calories":  today_totals["calories"],
+        "today_protein":   today_totals["protein_g"],
+        "streak_days":     streak_days,
+        "calorie_target":  2000,
+        "protein_target":  160,
+        "recent_logs":     recent_logs,
     }
+
+
+@app.post("/api/sync/food-logs")
+async def sync_food_logs():
+    """Sync FoodSummary markdown files into food_log.json for missing dates."""
+    loop = asyncio.get_running_loop()
+    added = await loop.run_in_executor(None, _sync_food_logs_from_md)
+    return {"synced_days": added, "message": f"Added {added} new day(s) to food_log.json"}
 
 
 @app.post("/api/fitness/recommend")
@@ -817,26 +1182,26 @@ async def fitness_recommend(body: FitnessRecommendRequest):
             entry_count += 1
 
     top_foods    = sorted(freq.items(), key=lambda x: x[1], reverse=True)[:12]
-    top_food_str = ", ".join(f"{n} ({c}x)" for n, c in top_foods) or "belum ada data"
+    top_food_str = ", ".join(f"{n} ({c}x)" for n, c in top_foods) or "no data yet"
     avg_cal      = round(cal_total / max(len([d for d in raw if raw[d]]), 1))
 
-    prompt = f"""Kamu adalah Lavoisier, AI nutrition coach personal.
+    prompt = f"""You are Lavoisier, a personal AI nutrition coach.
 
-DATA POLA MAKAN PENGGUNA:
-- Makanan paling sering dikonsumsi: {top_food_str}
-- Rata-rata kalori per hari: {avg_cal} kkal
-- Bahan / makanan yang tersedia: {ingredients if ingredients else "bebas, gunakan bahan umum"}
+USER EATING PATTERN DATA:
+- Most frequently consumed foods: {top_food_str}
+- Average daily calories: {avg_cal} kcal
+- Available ingredients / foods: {ingredients if ingredients else "open, use common ingredients"}
 
-TUGAS: Buat TEPAT 3 rekomendasi menu sehat yang praktis. Balas HANYA dengan JSON array valid (tanpa teks lain):
+TASK: Create EXACTLY 3 practical healthy meal recommendations. Reply ONLY with a valid JSON array (no other text):
 [
   {{
-    "name": "Nama Menu",
-    "description": "Deskripsi singkat menggugah selera",
-    "meal_type": "sarapan",
-    "ingredients": ["100g dada ayam", "2 butir telur", "1 sdt minyak zaitun"],
-    "steps": ["Panaskan wajan…", "Masukkan ayam…", "Sajikan dengan…"],
+    "name": "Meal Name",
+    "description": "Short appetizing description",
+    "meal_type": "breakfast",
+    "ingredients": ["100g chicken breast", "2 eggs", "1 tsp olive oil"],
+    "steps": ["Heat the pan…", "Add chicken…", "Serve with…"],
     "macros": {{"calories": 420, "protein_g": 35, "carbs_g": 40, "fat_g": 10, "fiber_g": 4}},
-    "why": "Alasan singkat kenapa menu ini cocok untuk pola makanmu"
+    "why": "Brief reason why this meal suits your eating pattern"
   }}
 ]"""
 
@@ -1044,60 +1409,60 @@ async def get_monthly_wrap(month: str = None):
             return r.choices[0].message.content.strip()
 
         sys_base = (
-            "Kamu adalah narrator CassanovaL Monthly Wrap. "
-            "Tulis 2 kalimat yang personal, hangat, sedikit puitis dalam Bahasa Indonesia. "
-            "Gunakan data yang diberikan. Jangan bullet point, cukup prosa pendek."
+            "You are the CassanovaL Monthly Wrap narrator. "
+            "Write 2 sentences that are personal, warm, and slightly poetic in English. "
+            "Use the provided data. No bullet points — just short prose."
         )
 
         # Run narratives concurrently
         def _lavoisier_narr():
             if not food_d.get("total_entries"):
-                return "Belum ada log makanan bulan ini. Mulai catat makanmu!"
+                return "No food logs this month. Start tracking your meals!"
             return _narrative(sys_base,
-                f"Lavoisier bulan {month_label}: {food_d['total_entries']} kali makan, "
-                f"makanan terfavorit: {food_d.get('top_food','—')}, "
-                f"total kalori: {food_d.get('total_calories',0)} kkal, "
-                f"{food_d.get('days_logged',0)} hari tercatat.")
+                f"Lavoisier {month_label}: {food_d['total_entries']} meals logged, "
+                f"top food: {food_d.get('top_food','—')}, "
+                f"total calories: {food_d.get('total_calories',0)} kcal, "
+                f"{food_d.get('days_logged',0)} days recorded.")
 
         def _mansa_narr():
             if not mansa_d.get("transaction_count"):
-                return "Belum ada transaksi bulan ini. Mulai catat keuanganmu!"
+                return "No transactions this month. Start tracking your finances!"
             return _narrative(sys_base,
-                f"Mansa bulan {month_label}: pengeluaran Rp{mansa_d.get('total_expense',0):,}, "
-                f"pemasukan Rp{mansa_d.get('total_income',0):,}, "
-                f"kategori terbesar: {mansa_d.get('top_category','—')}, "
-                f"{mansa_d.get('transaction_count',0)} transaksi.")
+                f"Mansa {month_label}: expenses Rp{mansa_d.get('total_expense',0):,}, "
+                f"income Rp{mansa_d.get('total_income',0):,}, "
+                f"top category: {mansa_d.get('top_category','—')}, "
+                f"{mansa_d.get('transaction_count',0)} transactions.")
 
         def _dostoy_narr():
             if not dostoy_d.get("entry_count"):
-                return "Belum ada jurnal bulan ini. Tulis sesuatu untuk Dostoyevsky!"
+                return "No journal entries this month. Write something for Dostoyevsky!"
             preview = dostoy_d.get("content_preview", "")[:3000]
             return _narrative(
-                sys_base + " Analisis mood dan emosi dari potongan jurnal berikut.",
-                f"Jurnal Dostoyevsky bulan {month_label} ({dostoy_d['entry_count']} entri):\n\n{preview}")
+                sys_base + " Analyze the mood and emotions from the following journal excerpt.",
+                f"Dostoyevsky journal {month_label} ({dostoy_d['entry_count']} entries):\n\n{preview}")
 
         def _miyamoto_narr():
             if not miyamoto_d.get("connected") or not miyamoto_d.get("event_count"):
-                return "Kalender belum tersambung atau belum ada event bulan ini."
+                return "Calendar not connected or no events this month."
             return _narrative(sys_base,
-                f"Miyamoto bulan {month_label}: {miyamoto_d['event_count']} event, "
-                f"total {miyamoto_d.get('total_hours',0)} jam, "
-                f"hari tersibuk: {miyamoto_d.get('busiest_day','—')} "
-                f"dengan {miyamoto_d.get('busiest_count',0)} event.")
+                f"Miyamoto {month_label}: {miyamoto_d['event_count']} events, "
+                f"total {miyamoto_d.get('total_hours',0)} hours, "
+                f"busiest day: {miyamoto_d.get('busiest_day','—')} "
+                f"with {miyamoto_d.get('busiest_count',0)} events.")
 
         def _najwa_narr():
             if not najwa_d.get("session_count"):
-                return "Belum ada sesi berita tercatat. Mulai chat dengan Najwa!"
+                return "No news sessions recorded. Start chatting with Najwa!"
             return _narrative(sys_base,
-                f"Najwa bulan {month_label}: {najwa_d['session_count']} sesi berita. "
-                f"Topik yang dibahas: {'; '.join(najwa_d.get('previews',[])[:5])}")
+                f"Najwa {month_label}: {najwa_d['session_count']} news sessions. "
+                f"Topics covered: {'; '.join(najwa_d.get('previews',[])[:5])}")
 
         def _linus_narr():
             if not linus_d.get("session_count"):
-                return "Belum ada sesi coding tercatat. Mulai belajar kode dengan Linus!"
+                return "No coding sessions recorded. Start learning code with Linus!"
             return _narrative(sys_base,
-                f"Linus bulan {month_label}: {linus_d['session_count']} sesi coding. "
-                f"Yang dipelajari: {'; '.join(linus_d.get('previews',[])[:5])}")
+                f"Linus {month_label}: {linus_d['session_count']} coding sessions. "
+                f"Topics covered: {'; '.join(linus_d.get('previews',[])[:5])}")
 
         narr_results = await asyncio.gather(
             loop.run_in_executor(None, _lavoisier_narr),
@@ -1135,7 +1500,7 @@ async def get_budget_summary():
         monthly = [t for t in data if t.get("date", "").startswith(current_month)]
         monthly_income = sum(t["amount"] for t in monthly if t["type"] == "income")
         monthly_expense = sum(t["amount"] for t in monthly if t["type"] == "expense")
-        recent = sorted(data, key=lambda x: x.get("date", ""), reverse=True)[:5]
+        recent = sorted(data, key=lambda x: (x.get("created_at") or (x.get("date", "") + " 00:00")), reverse=True)[:5]
         return {
             "balance": total_income - total_expense,
             "total_income": total_income,
@@ -1246,11 +1611,259 @@ async def get_finance_dashboard():
         "accounts":         accounts,
         "investments":      inv_out,
         "budget_goals":     goals_out,
-        "recent_transactions": sorted(transactions, key=lambda x: x.get("date",""), reverse=True)[:50],
+        "recent_transactions": sorted(transactions, key=lambda x: (x.get("created_at") or (x.get("date","") + " 00:00")), reverse=True)[:50],
         "recurring":        rec_out,
         "cash_flow":        cash_flow,
         "cat_expense":      cat_expense,
     }
+
+
+# ─── Finance CRUD (deterministic, no LLM) ─────────────────────────────────────
+# These power the Mansa dashboard forms directly, mirroring the budget agent tools
+# but without depending on natural-language parsing.
+
+class TransactionRequest(BaseModel):
+    type: str                      # "income" | "expense"
+    amount: float
+    category: str = "other"
+    description: str = ""
+    date: str = ""
+    account: str = ""
+
+
+class AccountRequest(BaseModel):
+    name: str
+    account_type: str
+    balance: float = 0.0
+    currency: str = "IDR"
+
+
+class BalanceUpdateRequest(BaseModel):
+    account_name: str
+    new_balance: float
+
+
+class BudgetGoalRequest(BaseModel):
+    category: str
+    monthly_limit: float
+    month: str = ""
+
+
+class InvestmentRequest(BaseModel):
+    ticker: str
+    name: str
+    inv_type: str
+    quantity: float
+    buy_price: float
+    currency: str = "IDR"
+
+
+class PriceUpdateRequest(BaseModel):
+    ticker: str
+    current_price: float
+
+
+class RecurringRequest(BaseModel):
+    description: str
+    amount: float
+    category: str = "bills"
+    frequency: str = "monthly"
+    next_date: str
+    account: str = ""
+
+
+def _budget_tool_result(tool, **kwargs):
+    """Invoke a LangChain budget tool and return its string result, raising on failure."""
+    try:
+        return tool.invoke(kwargs)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/finance/transaction")
+async def finance_add_transaction(req: TransactionRequest):
+    from tools.budget_tools import add_income, add_expense
+    if req.amount <= 0:
+        raise HTTPException(status_code=422, detail="Jumlah harus lebih dari 0.")
+    tool = add_income if req.type == "income" else add_expense
+    msg = _budget_tool_result(
+        tool, amount=req.amount, category=req.category,
+        description=req.description, date=req.date, account=req.account,
+    )
+    return {"ok": True, "message": msg}
+
+
+@app.delete("/api/finance/transaction/{txid}")
+async def finance_delete_transaction(txid: str):
+    from tools.budget_tools import delete_transaction
+    msg = _budget_tool_result(delete_transaction, transaction_id=txid)
+    if "tidak ditemukan" in msg.lower():
+        raise HTTPException(status_code=404, detail=msg)
+    return {"ok": True, "message": msg}
+
+
+@app.post("/api/finance/account")
+async def finance_add_account(req: AccountRequest):
+    from tools.budget_tools import add_account
+    msg = _budget_tool_result(
+        add_account, name=req.name, account_type=req.account_type,
+        balance=req.balance, currency=req.currency,
+    )
+    return {"ok": True, "message": msg}
+
+
+@app.post("/api/finance/account/balance")
+async def finance_update_balance(req: BalanceUpdateRequest):
+    from tools.budget_tools import update_account_balance
+    msg = _budget_tool_result(
+        update_account_balance, account_name=req.account_name, new_balance=req.new_balance,
+    )
+    if "tidak ditemukan" in msg.lower():
+        raise HTTPException(status_code=404, detail=msg)
+    return {"ok": True, "message": msg}
+
+
+@app.delete("/api/finance/account/{account_id}")
+async def finance_delete_account(account_id: str):
+    from tools.budget_tools import delete_account
+    if not delete_account(account_id):
+        raise HTTPException(status_code=404, detail="Rekening tidak ditemukan.")
+    return {"ok": True}
+
+
+@app.post("/api/finance/budget-goal")
+async def finance_set_budget_goal(req: BudgetGoalRequest):
+    from tools.budget_tools import set_budget_goal
+    msg = _budget_tool_result(
+        set_budget_goal, category=req.category,
+        monthly_limit=req.monthly_limit, month=req.month,
+    )
+    return {"ok": True, "message": msg}
+
+
+@app.delete("/api/finance/budget-goal/{goal_id}")
+async def finance_delete_budget_goal(goal_id: str):
+    from tools.budget_tools import delete_budget_goal
+    if not delete_budget_goal(goal_id):
+        raise HTTPException(status_code=404, detail="Budget goal tidak ditemukan.")
+    return {"ok": True}
+
+
+@app.post("/api/finance/investment")
+async def finance_add_investment(req: InvestmentRequest):
+    from tools.budget_tools import add_investment
+    msg = _budget_tool_result(
+        add_investment, ticker=req.ticker, name=req.name, inv_type=req.inv_type,
+        quantity=req.quantity, buy_price=req.buy_price, currency=req.currency,
+    )
+    return {"ok": True, "message": msg}
+
+
+@app.post("/api/finance/investment/price")
+async def finance_update_price(req: PriceUpdateRequest):
+    from tools.budget_tools import update_investment_price
+    msg = _budget_tool_result(
+        update_investment_price, ticker=req.ticker, current_price=req.current_price,
+    )
+    if "tidak ditemukan" in msg.lower():
+        raise HTTPException(status_code=404, detail=msg)
+    return {"ok": True, "message": msg}
+
+
+@app.delete("/api/finance/investment/{investment_id}")
+async def finance_delete_investment(investment_id: str):
+    from tools.budget_tools import delete_investment
+    if not delete_investment(investment_id):
+        raise HTTPException(status_code=404, detail="Investasi tidak ditemukan.")
+    return {"ok": True}
+
+
+@app.post("/api/finance/recurring")
+async def finance_add_recurring(req: RecurringRequest):
+    from tools.budget_tools import add_recurring
+    msg = _budget_tool_result(
+        add_recurring, description=req.description, amount=req.amount,
+        category=req.category, frequency=req.frequency,
+        next_date=req.next_date, account=req.account,
+    )
+    return {"ok": True, "message": msg}
+
+
+@app.delete("/api/finance/recurring/{recurring_id}")
+async def finance_delete_recurring(recurring_id: str):
+    from tools.budget_tools import delete_recurring
+    if not delete_recurring(recurring_id):
+        raise HTTPException(status_code=404, detail="Tagihan tidak ditemukan.")
+    return {"ok": True}
+
+
+@app.get("/api/finance/advice")
+async def finance_advice():
+    """Finan Smart AI — personalized financial advice generated from the user's
+    own budget/income/expense data (mirrors the reference repo's headline feature)."""
+    try:
+        raw = json.loads((_DATA_DIR / "budget.json").read_text(encoding="utf-8"))
+    except Exception:
+        raw = {}
+
+    transactions = raw.get("transactions", [])
+    goals        = raw.get("budget_goals", [])
+    now          = datetime.now()
+    cur_month    = now.strftime("%Y-%m")
+    month_txs    = [t for t in transactions if t.get("date", "").startswith(cur_month)]
+    income       = sum(t["amount"] for t in month_txs if t["type"] == "income")
+    expense      = sum(t["amount"] for t in month_txs if t["type"] == "expense")
+    total_budget = sum(g.get("monthly_limit", 0) for g in goals if g.get("month") == cur_month)
+
+    cat_expense: dict = {}
+    for t in month_txs:
+        if t["type"] == "expense":
+            c = t.get("category", "other")
+            cat_expense[c] = cat_expense.get(c, 0) + t["amount"]
+    top_cat = max(cat_expense, key=cat_expense.get) if cat_expense else "—"
+
+    if not month_txs and not goals:
+        return {
+            "advice": "Belum ada data keuangan bulan ini. Mulai catat pemasukan dan pengeluaranmu agar Mansa bisa memberi saran yang relevan.",
+            "income": income, "expense": expense, "total_budget": total_budget, "ai": False,
+        }
+
+    fallback = (
+        f"Bulan ini kamu {'surplus' if income >= expense else 'defisit'} "
+        f"Rp{abs(income - expense):,.0f}. Pengeluaran terbesar di kategori '{top_cat}' — "
+        f"{'pertahankan disiplin ini' if income >= expense else 'pertimbangkan untuk menekannya agar arus kas kembali sehat'}."
+    )
+
+    api_key = os.getenv("MISTRAL_API_KEY", "")
+    if not api_key:
+        return {"advice": fallback, "income": income, "expense": expense,
+                "total_budget": total_budget, "ai": False}
+
+    try:
+        from mistralai import Mistral
+        client = Mistral(api_key=api_key)
+        user_prompt = (
+            f"Data keuangan bulan ini (Rupiah):\n"
+            f"- Total budget goals: Rp{total_budget:,.0f}\n"
+            f"- Pemasukan: Rp{income:,.0f}\n"
+            f"- Pengeluaran: Rp{expense:,.0f}\n"
+            f"- Kategori pengeluaran terbesar: {top_cat}\n"
+            f"Berikan saran keuangan yang spesifik dan actionable dalam 2 kalimat."
+        )
+        resp = client.chat.complete(
+            model="mistral-large-latest",
+            messages=[
+                {"role": "system", "content": "Kamu Mansa Musa, CFO pribadi yang bijak dan ringkas. Jawab dalam Bahasa Indonesia, 2 kalimat, tanpa bullet."},
+                {"role": "user", "content": user_prompt},
+            ],
+            max_tokens=180, temperature=0.7,
+        )
+        advice = resp.choices[0].message.content.strip()
+        return {"advice": advice, "income": income, "expense": expense,
+                "total_budget": total_budget, "ai": True}
+    except Exception:
+        return {"advice": fallback, "income": income, "expense": expense,
+                "total_budget": total_budget, "ai": False}
 
 
 # ─── Stock Terminal ───────────────────────────────────────────────────────────
@@ -1787,6 +2400,38 @@ async def get_news_feed():
     return data
 
 
+# ─── Orwell Writing Workshop Endpoints ───────────────────────────────────────
+
+class OrwellAnalyzeRequest(BaseModel):
+    text: str
+
+class OrwellRewriteRequest(BaseModel):
+    text: str
+    substitutions: list
+
+@app.post("/api/orwell/analyze")
+async def orwell_analyze(req: OrwellAnalyzeRequest):
+    text = req.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Text required")
+    if len(text) > 5000:
+        raise HTTPException(status_code=400, detail="Text too long (max 5000 chars)")
+    loop = asyncio.get_running_loop()
+    from agents.orwell_pipeline import run_word_analyst
+    result = await loop.run_in_executor(None, run_word_analyst, text)
+    return result
+
+@app.post("/api/orwell/rewrite")
+async def orwell_rewrite(req: OrwellRewriteRequest):
+    text = req.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Text required")
+    loop = asyncio.get_running_loop()
+    from agents.orwell_pipeline import run_paragraph_rewriter
+    result = await loop.run_in_executor(None, run_paragraph_rewriter, text, req.substitutions)
+    return result
+
+
 # ─── CrewAI Multi-Agent Endpoints ────────────────────────────────────────────
 
 _crew_jobs: dict = {}  # job_id → job state dict
@@ -2143,6 +2788,15 @@ async def serve_news():
     return JSONResponse({"error": "News page not found"}, status_code=404)
 
 
+@app.get("/orwell", include_in_schema=False)
+@app.get("/orwell/", include_in_schema=False)
+async def serve_orwell():
+    p = Path("static/orwell/index.html")
+    if p.exists():
+        return FileResponse(str(p), headers={"Cache-Control": "no-cache"})
+    return JSONResponse({"error": "Orwell page not found"}, status_code=404)
+
+
 @app.get("/journal", include_in_schema=False)
 @app.get("/journal/", include_in_schema=False)
 async def serve_journal():
@@ -2159,6 +2813,15 @@ async def serve_wrap():
     if p.exists():
         return FileResponse(str(p), headers={"Cache-Control": "no-cache"})
     return JSONResponse({"error": "Wrap page not found"}, status_code=404)
+
+
+@app.get("/euler", include_in_schema=False)
+@app.get("/euler/", include_in_schema=False)
+async def serve_euler():
+    p = Path("static/euler/index.html")
+    if p.exists():
+        return FileResponse(str(p), headers={"Cache-Control": "no-cache"})
+    return JSONResponse({"error": "Euler page not found"}, status_code=404)
 
 
 @app.get("/alfred", include_in_schema=False)
@@ -2296,6 +2959,68 @@ async def get_alfred_dashboard():
     }
 
 
+@app.get("/api/history/{agent_key}")
+async def get_agent_history(agent_key: str):
+    """Return the full chat history for a given agent."""
+    from router import AGENT_REGISTRY
+    if agent_key not in AGENT_REGISTRY:
+        raise HTTPException(status_code=404, detail=f"Unknown agent: {agent_key}")
+    supervisor = get_supervisor()
+    messages = supervisor.get_history(agent_key)
+    return {"agent": agent_key, "messages": messages, "total": len(messages)}
+
+
+def _agent_files_dir(agent: str) -> Path | None:
+    """Return the directory containing markdown log files for an agent page."""
+    vault = os.getenv("OBSIDIAN_VAULT_PATH", "").strip()
+    base = Path(vault) if vault else (Path(__file__).parent / "AI Data")
+    my_ai = base / "My AI"
+
+    _map = {
+        "fitness":     (my_ai / "Lavoiser Agent",    "FoodSummary_*.md"),
+        "coding":      (my_ai / "Linus Agent",       "Code_*.md"),
+        "journal":     (my_ai / "Dostoyevsky Agent", "ChatLog_*.md"),
+        "notes":       (my_ai / "Cicero Agent",      "Notes_*.md"),
+        "davinci":     (my_ai / "AI Chat History",   "*.md"),
+        "nostradamus": (base / "Nostradamus Agent",  "prophecy_*.md"),
+        "news":        (base / "Najwa Agent",        "News_*.md"),
+        "finance":     (my_ai / "Mansa Agent",       None),  # multi-pattern
+        "alfred":      (my_ai / "Alfred Agent",      "Tasks_*.md"),
+    }
+    return _map.get(agent)
+
+
+@app.get("/api/files/{agent}")
+async def list_agent_files(agent: str):
+    """List all markdown log files for an agent page dashboard."""
+    entry = _agent_files_dir(agent)
+    if entry is None:
+        raise HTTPException(status_code=404, detail=f"No file mapping for agent: {agent}")
+
+    folder, pattern = entry
+    if not folder.exists():
+        return {"agent": agent, "files": []}
+
+    if agent == "finance":
+        files = sorted(
+            list(folder.glob("Budget_*.md")) + list(folder.glob("Financial_*.md")),
+            key=lambda f: f.name,
+            reverse=True,
+        )
+    else:
+        files = sorted(folder.glob(pattern), key=lambda f: f.name, reverse=True)
+
+    result = []
+    for f in files:
+        try:
+            content = f.read_text(encoding="utf-8")
+        except Exception:
+            content = ""
+        result.append({"name": f.name, "content": content})
+
+    return {"agent": agent, "files": result, "total": len(result)}
+
+
 @app.get("/finance", include_in_schema=False)
 @app.get("/finance/", include_in_schema=False)
 async def serve_finance():
@@ -2312,6 +3037,130 @@ async def serve_pixel():
     if p.exists():
         return FileResponse(str(p), headers={"Cache-Control": "no-cache"})
     return JSONResponse({"error": "Pixel page not found"}, status_code=404)
+
+
+# ─── Hub Real-Time Endpoints ──────────────────────────────────────────────────
+
+_HUB_AGENTS = [
+    ("Alfred",       "Alfred Agent",                  "#4ac86a", "Tasks"),
+    ("Cicero",       "Cicero Agent",                  "#5bc8f5", "Notes"),
+    ("Najwa",        "Najwa Agent",                   "#f5d048", "News"),
+    ("Linus",        "Linus Agent",                   "#c180ff", "Coding"),
+    ("CalCore",      "CalCore Agent",                 "#4ac8c0", "Schedule"),
+    ("Mansa",        "Mansa Agent",                   "#f5d048", "Finance"),
+    ("Lavoiser",     "Lavoiser Agent",                "#ff6b6b", "Fitness"),
+    ("Ferry",        "Ferry Agent",                   "#5bc8f5", "Research"),
+    ("Da Vinci",     "Da Vinci Agent",                "#f97316", "Creative"),
+    ("Dostoyevsky",  "Dostoyevsky Agent",             "#c084fc", "Journal"),
+    ("DataAnalyst",  "DataAnalyst Agent",             "#4ac86a", "Data"),
+]
+
+
+def _hub_vault_base() -> Path:
+    vault = os.getenv("OBSIDIAN_VAULT_PATH", "").strip()
+    return Path(vault) if vault else (Path(__file__).parent / "AI Data" / "My AI")
+
+
+@app.get("/api/hub/stats")
+async def get_hub_stats():
+    """Per-agent file counts and today's activity for the Hub page."""
+    base = _hub_vault_base()
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    agents_out = []
+    total_files = 0
+    active_today = 0
+
+    for display, folder, color, role in _HUB_AGENTS:
+        agent_dir = base / folder
+        if not agent_dir.exists():
+            agents_out.append({
+                "name": display, "role": role, "color": color,
+                "file_count": 0, "today_count": 0,
+                "latest_date": None, "latest_file": None, "active_today": False,
+            })
+            continue
+
+        md_files = [f for f in agent_dir.iterdir() if f.suffix == ".md"]
+        file_count = len(md_files)
+        total_files += file_count
+
+        latest_date = None
+        latest_file = None
+        if md_files:
+            latest = max(md_files, key=lambda f: f.stat().st_mtime)
+            latest_file = latest.name
+            dm = re.search(r"(\d{4}-\d{2}-\d{2})", latest.name)
+            latest_date = dm.group(1) if dm else \
+                datetime.fromtimestamp(latest.stat().st_mtime).strftime("%Y-%m-%d")
+
+        today_count = len([f for f in md_files if today_str in f.name])
+        is_active = latest_date == today_str
+        if is_active:
+            active_today += 1
+
+        agents_out.append({
+            "name": display, "role": role, "color": color,
+            "file_count": file_count, "today_count": today_count,
+            "latest_date": latest_date, "latest_file": latest_file,
+            "active_today": is_active,
+        })
+
+    agents_out.sort(key=lambda a: a["latest_date"] or "", reverse=True)
+    return {
+        "agents": agents_out,
+        "total_files": total_files,
+        "active_today": active_today,
+        "total_agents": len([a for a in agents_out if a["file_count"] > 0]),
+        "today": today_str,
+        "timestamp": datetime.now().isoformat(),
+    }
+
+
+@app.get("/api/hub/history")
+async def get_hub_history(limit: int = 25):
+    """Recent conversation feed across all agents."""
+    base = _hub_vault_base()
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    entries = []
+
+    for display, folder, color, role in _HUB_AGENTS:
+        agent_dir = base / folder
+        if not agent_dir.exists():
+            continue
+
+        md_files = sorted(agent_dir.glob("*.md"), key=lambda f: f.stat().st_mtime, reverse=True)[:5]
+        for f in md_files:
+            try:
+                content = f.read_text(encoding="utf-8", errors="replace")
+                dm = re.search(r"date:\s*(\d{4}-\d{2}-\d{2})", content)
+                date_str = dm.group(1) if dm else re.search(r"(\d{4}-\d{2}-\d{2})", f.name)
+                if hasattr(date_str, "group"):
+                    date_str = date_str.group(1)
+                elif date_str is None:
+                    date_str = datetime.fromtimestamp(f.stat().st_mtime).strftime("%Y-%m-%d")
+
+                for m in re.finditer(
+                    r"^## (\d{2}:\d{2}) · .+\n+\*\*Kamu:\*\* (.{1,200})",
+                    content, re.MULTILINE
+                ):
+                    time_str = m.group(1)
+                    preview = m.group(2).strip()
+                    entries.append({
+                        "agent": display, "role": role, "color": color,
+                        "date": date_str, "time": time_str,
+                        "ts": f"{date_str}T{time_str}:00",
+                        "preview": preview,
+                        "is_today": date_str == today_str,
+                    })
+            except Exception:
+                continue
+
+    entries.sort(key=lambda e: e["ts"], reverse=True)
+    return {
+        "history": entries[:limit],
+        "total": len(entries),
+        "timestamp": datetime.now().isoformat(),
+    }
 
 
 @app.get("/hub", include_in_schema=False)

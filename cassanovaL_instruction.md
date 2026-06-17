@@ -412,6 +412,33 @@ Jika `platforms` null, default ke `["youtube", "tiktok", "facebook", "instagram"
 
 ---
 
+## Pola Data & History (Update 2026-06-17)
+
+Tiga pola berikut baru ditambahkan/diperbaiki dan berguna sebagai contoh saat membuat agent baru yang punya "history".
+
+### 1. Mansa — urutkan transaksi terbaru dengan `created_at`
+Setiap transaksi disimpan dengan `created_at = "YYYY-MM-DD HH:MM"` (lihat `add_income`/`add_expense` di `tools/budget_tools.py`). Endpoint `GET /api/finance/dashboard` dan `GET /api/budget/summary` mengurutkan `recent_transactions` berdasarkan `created_at`, **bukan** `date` saja:
+
+```python
+key=lambda x: (x.get("created_at") or (x.get("date", "") + " 00:00"))
+```
+
+> Pelajaran: kalau mengurutkan "yang terbaru", pakai timestamp lengkap (tanggal **+ jam**). Mengurutkan dengan tanggal saja membuat entri baru di hari yang sama tenggelam karena `sorted()` Python bersifat *stable*. Dashboard `/finance` juga auto-refresh tiap 5 detik (`setInterval(loadDashboard, 5000)`).
+
+### 2. Lavoisier — backfill history dari file markdown ke JSON
+`tools/food_tools.py` menyimpan log ke `data/food_log.json` dan me-mirror tiap hari ke `FoodSummary_YYYY-MM-DD.md` di folder Lavoiser Agent. Untuk memunculkan history lama, `server.py` punya `_sync_food_logs_from_md()` yang membaca balik file markdown ke `food_log.json` untuk tanggal yang belum ada. `_lavoiser_dirs()` memindai **dua** folder: vault aktif (`AI Data/My AI/Lavoiser Agent`) dan folder lama (`AI Data/Lavoiser Agent`). Sync dipanggil non-blocking saat startup dan via `POST /api/sync/food-logs`.
+
+> Pelajaran: untuk agent dengan mirror markdown ↔ JSON, sediakan sync dua arah dan pindai semua lokasi history (lama + baru). Jangan timpa hari yang sudah ada.
+
+### 3. Dostoyevsky — kembalikan history percakapan
+Reflecta menulis jurnal secara percakapan (`**Kamu:** / **Journal:**`) ke `Journal_YYYY-MM-DD.md` di `<OBSIDIAN_VAULT_PATH>/Dostoyevsky Agent`. Dua tempat memunculkan history:
+- **Chat agent** (`agents/dostyevsky_agent.py`): **Phase 0** memanggil `list_journal_entries` + `get_mood_history` sekali di awal sesi, lalu `read_journal_entry`/`search_journal` saat perlu.
+- **Dashboard** (`GET /api/journal/dashboard`): mempertahankan isi percakapan sebagai body entri; label pembicara dan header `## HH:MM · JOURNAL` hanya dibersihkan untuk preview/word-count.
+
+> Pelajaran: kalau agent journaling-mu menyimpan dialog, jangan buang baris user saat menampilkan history — itu justru isi jurnalnya. Suruh agent memuat history di awal sesi agar terasa berkesinambungan.
+
+---
+
 ## Referensi File
 
 | File | Fungsi |

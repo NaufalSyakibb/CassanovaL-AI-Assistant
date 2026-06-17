@@ -61,6 +61,46 @@ A supervisor router reads your message and automatically sends it to the right c
 
 ---
 
+## 1.1 Recent Updates (Changelog)
+
+### 2026-06-17 — History & latest-transaction fixes
+
+**Mansa (Finance) — "Transaksi Terakhir" now shows the true latest entry.**
+- `recent_transactions` in `GET /api/finance/dashboard` and `GET /api/budget/summary`
+  is now sorted by **`created_at`** (date **+ time**), with a `date + " 00:00"`
+  fallback for legacy rows, instead of by `date` alone.
+- *Why:* sorting by day-granularity `date` plus Python's stable sort pushed a
+  just-added transaction to the bottom of its same-day group, so the newest
+  entry did not appear first. Each transaction already carries
+  `created_at = "YYYY-MM-DD HH:MM"` (set in `add_income` / `add_expense`).
+- The dashboard already auto-refreshes every 5 s (`setInterval(loadDashboard, 5000)`
+  in `static/finance/index.html`) and after each Mansa chat reply, so the
+  "Transaksi Terakhir" list updates without a manual reload.
+
+**Lavoisier (Fitness) — previously-consumed food history is backfilled.**
+- `_sync_food_logs_from_md()` in `server.py` now scans **both** the active vault
+  folder (`<vault>/Lavoiser Agent`, i.e. `AI Data/My AI/Lavoiser Agent`) **and**
+  the legacy `AI Data/Lavoiser Agent/` folder (helper: `_lavoiser_dirs()`).
+- It parses every `FoodSummary_YYYY-MM-DD.md` and merges any **missing** day into
+  `data/food_log.json` (existing days are never overwritten). This backfilled the
+  older Apr–early-May history that the old single-folder sync had skipped.
+
+**Dostoyevsky (Journal) — history is returned in both the dashboard and chat.**
+- *Dashboard* (`GET /api/journal/dashboard`): Reflecta journals
+  **conversationally** (`**Kamu:** / **Journal:**` dialogue). The dashboard used to
+  discard every `**Kamu:**` section, leaving entries showing ~5 words. It now keeps
+  the conversation as the entry body; speaker labels and `## HH:MM · JOURNAL`
+  timestamp headers are stripped only for the preview/word-count.
+- *Chat agent* (`agents/dostyevsky_agent.py`): a new **Phase 0** instructs Reflecta
+  to call `list_journal_entries` + `get_mood_history` once at session start (and
+  `read_journal_entry` / `search_journal` on demand) so it recalls past entries.
+  The tool list in the prompt was corrected to the real tool names.
+- Journal data lives in `<OBSIDIAN_VAULT_PATH>/Dostoyevsky Agent`
+  (= `AI Data/My AI/Dostoyevsky Agent`), one `Journal_YYYY-MM-DD.md` per day plus
+  `Emotion_YYYY-MM-DD.json` from the background emotion agent.
+
+---
+
 ## 2. Architecture — The Big Picture
 
 ### Chat Agent Flow
@@ -519,7 +559,7 @@ A 4-phase autonomous deep-research agent. Runs layered searches, cross-reference
 ### davinci_agent.py + journal_agent.py
 **Da Vinci** — creative thinking, brainstorming, lateral thinking exercises. Pure LLM reasoning, no external tools.
 
-**Dostoyevsky** — personal journaling. Tools: `create_journal_entry`, `read_journal`, `search_journal`. Data store: `AI Data/Dostoyevsky Agent/`.
+**Dostoyevsky** (Reflecta) — personal journaling. Tools: `write_journal_entry`, `read_journal_entry`, `list_journal_entries`, `search_journal`, `get_mood_history` (+ habit/obsidian/autoresearch tools). Data store: `<OBSIDIAN_VAULT_PATH>/Dostoyevsky Agent/` (= `AI Data/My AI/Dostoyevsky Agent/`), one `Journal_YYYY-MM-DD.md` per day. Loads recent history at session start (Phase 0) so it can reference past entries. See the [Changelog](#11-recent-updates-changelog).
 
 ---
 
@@ -996,6 +1036,8 @@ A **standalone HTML page** served at `/finance`. Matches the main app's Paper & 
 
 **Chat panel:** Sends to `/api/chat` with `agent: 'budget'`. After each Mansa reply, `loadDashboard()` is called to refresh all displayed data.
 
+**Auto-refresh:** `setInterval(() => loadDashboard(true), 5000)` polls the dashboard every 5 s (silent; a JSON signature diff skips re-render when nothing changed), so transactions added from anywhere appear within ~5 s. The **"Transaksi Terakhir"** card (`recent_transactions`, top 8) is ordered by `created_at` (date + time) server-side, so the most recently added transaction always shows first.
+
 **Chart.js theming:** `getCSSVar()` reads current theme tokens at render time; `updateChartTheme()` called on theme toggle to update chart colors without recreating the canvas.
 
 ---
@@ -1019,14 +1061,14 @@ Response: { "agent": "task", "response": "Done! Added 'buy milk'..." }
 ```
 
 ### GET /api/budget/summary
-Returns current balance, monthly totals, and recent transactions. Handles both old flat-list format and new dict format (backward-compatible).
+Returns current balance, monthly totals, and recent transactions. Handles both old flat-list format and new dict format (backward-compatible). `recent_transactions` is sorted by `created_at` (date + time) descending, so the latest entry is first.
 ```json
 { "balance": 4500000, "total_income": 5000000, "total_expense": 500000,
   "monthly_income": 5000000, "monthly_expense": 500000, "recent_transactions": [...] }
 ```
 
 ### GET /api/finance/dashboard
-Rich data payload for the Finance Dashboard page at `/finance`.
+Rich data payload for the Finance Dashboard page at `/finance`. `recent_transactions` (top 50) is sorted by `created_at` (date + time) descending so the newest transaction is first.
 ```json
 {
   "net_worth": 18500000, "total_assets": 22000000, "total_liabilities": 3500000,
