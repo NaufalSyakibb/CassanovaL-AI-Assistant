@@ -111,8 +111,8 @@ def write_journal_entry(
         ).start()
 
         return (
-            f"✓ Entri jurnal disimpan → {JOURNAL_FOLDER}/{filename}\n"
-            f"  Bagian: '{section_title}'"
+            f"✓ Journal entry saved → {JOURNAL_FOLDER}/{filename}\n"
+            f"  Section: '{section_title}'"
             + (f" | Mood: {mood}" if mood else "")
         )
     except Exception as e:
@@ -132,10 +132,10 @@ def read_journal_entry(date_str: str = "") -> str:
         filepath = journal_dir / f"Journal_{date}.md"
 
         if not filepath.exists():
-            return f"Tidak ada entri jurnal untuk {date}. Mau mulai menulis sekarang?"
+            return f"No journal entry found for {date}. Want to start writing now?"
 
         content = filepath.read_text(encoding="utf-8")
-        return f"[JURNAL: {date}]\n\n{content}"
+        return f"[JOURNAL: {date}]\n\n{content}"
     except Exception as e:
         return f"[read_journal_entry error] {e}"
 
@@ -152,7 +152,7 @@ def list_journal_entries(days: int = 7) -> str:
         files = sorted(journal_dir.glob("Journal_*.md"), reverse=True)[: min(days, 30)]
 
         if not files:
-            return "Belum ada entri jurnal sama sekali. Yuk mulai menulis hari ini! 📔"
+            return "No journal entries yet. Start writing today! 📔"
 
         lines = []
         for f in files:
@@ -197,9 +197,9 @@ def search_journal(query: str) -> str:
                 results.append(f"📔 {date}\n   ...{snippet}...")
 
         if not results:
-            return f"Tidak ada entri jurnal yang mengandung '{query}'."
+            return f"No journal entries found containing '{query}'."
         return (
-            f"Ditemukan {len(results)} entri untuk '{query}':\n\n"
+            f"Found {len(results)} entries for '{query}':\n\n"
             + "\n\n".join(results[:8])
         )
     except Exception as e:

@@ -511,6 +511,14 @@ function escAttr(s){return esc(s)}
 // ── Init ───────────────────────────────────────────────────────────────────
 fetchNews();
 startTimer();
+
+// BroadcastChannel: refresh immediately when the hub's Najwa agent responds
+if (typeof BroadcastChannel !== 'undefined') {
+  const _newsBC = new BroadcastChannel('cassanoval-sync');
+  _newsBC.onmessage = (e) => {
+    if (e.data?.agent === 'news') { clearInterval(timer); fetchNews(); startTimer(); }
+  };
+}
 </script>
 </body>
 </html>

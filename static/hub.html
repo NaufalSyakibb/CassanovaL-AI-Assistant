@@ -177,6 +177,97 @@ body::before {
 }
 .hub-footer span { color: var(--accent); }
 
+/* ── Live Stats Strip ── */
+.live-strip {
+  display: flex; align-items: stretch; gap: 0;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+}
+.live-strip::-webkit-scrollbar { height: 2px; }
+.stat-block {
+  flex: 1; min-width: 120px;
+  padding: 16px 20px;
+  border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 5px;
+}
+.stat-block:last-child { border-right: none; }
+.stat-label {
+  font-size: 9px; color: var(--dim2); text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+.stat-value {
+  font-size: 26px; font-weight: 700; color: var(--accent);
+  line-height: 1; letter-spacing: -0.02em;
+}
+.stat-sub { font-size: 10px; color: var(--dim); }
+
+/* ── Agent Activity Bar ── */
+.agent-activity-section {
+  padding: 28px 32px 16px; max-width: 1080px; margin: 0 auto;
+}
+.activity-agents {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px;
+}
+.agent-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 12px; font-size: 10px;
+  border: 1px solid var(--line); background: var(--panel);
+  transition: border-color 0.15s;
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.agent-pill.active { border-color: var(--pill-color, var(--accent)); }
+.agent-pill-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--pill-color, var(--dim2));
+}
+.agent-pill.active .agent-pill-dot { animation: blink 1s step-start infinite; }
+.agent-pill-name { color: var(--text); }
+.agent-pill-count { color: var(--dim2); }
+.agent-pill.active .agent-pill-count { color: var(--pill-color, var(--accent)); }
+
+/* ── Activity Feed ── */
+.feed-section { padding: 8px 32px 32px; max-width: 1080px; margin: 0 auto; }
+.feed-list { display: flex; flex-direction: column; gap: 0; margin-top: 14px; }
+.feed-entry {
+  display: grid;
+  grid-template-columns: 80px 90px 1fr;
+  align-items: start;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.feed-entry:first-child { border-top: 1px solid var(--line); }
+.feed-time { font-size: 10px; color: var(--dim2); padding-top: 2px; }
+.feed-agent {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--entry-color, var(--accent));
+  padding-top: 2px;
+}
+.feed-role { font-size: 9px; color: var(--dim2); font-weight: 400; margin-left: 4px; }
+.feed-preview { font-size: 12px; color: var(--dim); line-height: 1.55; }
+.feed-today-badge {
+  display: inline-block; font-size: 8px; text-transform: uppercase;
+  letter-spacing: 0.1em; padding: 1px 5px; background: rgba(74,200,106,0.1);
+  border: 1px solid rgba(74,200,106,0.25); color: var(--ok);
+  vertical-align: middle; margin-left: 6px;
+}
+.feed-skeleton {
+  height: 38px; background: var(--panel); border-bottom: 1px solid var(--line);
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+@keyframes shimmer {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+.feed-load-more {
+  display: block; width: 100%; margin-top: 14px;
+  padding: 8px; background: none; border: 1px solid var(--line);
+  color: var(--dim2); font-family: inherit; font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.feed-load-more:hover { border-color: var(--accent); color: var(--accent); }
+
 /* ── Animations ── */
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
@@ -208,6 +299,38 @@ body::before {
     <span>System Online · localhost:8000</span>
   </div>
 </section>
+
+<!-- Live Stats Strip -->
+<div class="live-strip" id="liveStrip">
+  <div class="stat-block">
+    <div class="stat-label">Active Today</div>
+    <div class="stat-value" id="statActive">—</div>
+    <div class="stat-sub">agents with sessions</div>
+  </div>
+  <div class="stat-block">
+    <div class="stat-label">Total Files</div>
+    <div class="stat-value" id="statFiles">—</div>
+    <div class="stat-sub">across all agents</div>
+  </div>
+  <div class="stat-block">
+    <div class="stat-label">Today's Logs</div>
+    <div class="stat-value" id="statToday">—</div>
+    <div class="stat-sub">new entries today</div>
+  </div>
+  <div class="stat-block">
+    <div class="stat-label">Last Update</div>
+    <div class="stat-value" id="statTime" style="font-size:16px">—</div>
+    <div class="stat-sub">auto-refresh 30s</div>
+  </div>
+</div>
+
+<!-- Agent Activity Pills -->
+<div class="agent-activity-section">
+  <div class="section-label">Agent Status — Live</div>
+  <div class="activity-agents" id="agentPills">
+    <div class="agent-pill" style="opacity:0.4">Loading…</div>
+  </div>
+</div>
 
 <!-- Main Pages -->
 <div class="grid-section">
@@ -246,7 +369,7 @@ body::before {
 
 <!-- Chat Agents -->
 <div class="grid-section">
-  <div class="section-label">Chat Agents — 10 Specialists</div>
+  <div class="section-label">Chat Agents — 11 Specialists</div>
   <div class="agent-grid">
 
     <a class="agent-sc" href="/?agent=task" style="--sc-color:#4ac86a">
@@ -309,6 +432,12 @@ body::before {
       <div class="agent-sc-role">Journal</div>
     </a>
 
+    <a class="agent-sc" href="/euler" style="--sc-color:#5a6cb0">
+      <div class="agent-sc-ph"><div class="agent-sc-ph-dot"></div></div>
+      <div class="agent-sc-name">Euler</div>
+      <div class="agent-sc-role">Mathematics</div>
+    </a>
+
   </div>
 </div>
 
@@ -358,6 +487,19 @@ body::before {
   </p>
 </div>
 
+<!-- Activity Feed -->
+<div class="feed-section">
+  <div class="section-label">Recent Activity — All Agents</div>
+  <div class="feed-list" id="feedList">
+    <div class="feed-skeleton"></div>
+    <div class="feed-skeleton" style="opacity:0.7"></div>
+    <div class="feed-skeleton" style="opacity:0.5"></div>
+  </div>
+  <button class="feed-load-more" id="feedMore" onclick="loadMoreHistory()" style="display:none">
+    Load more
+  </button>
+</div>
+
 <!-- Footer -->
 <footer class="hub-footer">
   <span>CassanovaL</span> · Personal AI Multi-Agent System · Powered by Mistral AI + LangChain
@@ -370,6 +512,116 @@ document.querySelectorAll('[data-sprite]').forEach(function(cv) {
     PixelSprites.render(cv, cv.dataset.sprite, parseInt(cv.dataset.scale) || 3);
   }
 });
+
+// ── Real-time Hub Data ────────────────────────────────────────────────────────
+
+var _historyAll = [];
+var _historyShown = 15;
+
+function fmtTime(ts) {
+  try {
+    var d = new Date(ts.replace('T', ' '));
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' +
+      String(d.getDate()).padStart(2,'0') + ' ' + ts.slice(11,16);
+  } catch(e) { return ts.slice(0,16); }
+}
+
+function relDate(dateStr) {
+  var today = new Date().toISOString().slice(0,10);
+  var yest  = new Date(Date.now()-86400000).toISOString().slice(0,10);
+  if (dateStr === today) return 'Today';
+  if (dateStr === yest)  return 'Yesterday';
+  return dateStr;
+}
+
+function renderStats(data) {
+  document.getElementById('statActive').textContent = data.active_today;
+  document.getElementById('statFiles').textContent  = data.total_files;
+
+  var todayTotal = 0;
+  (data.agents || []).forEach(function(a) { todayTotal += a.today_count || 0; });
+  document.getElementById('statToday').textContent = todayTotal;
+
+  var now = new Date();
+  document.getElementById('statTime').textContent =
+    String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+}
+
+function renderPills(data) {
+  var container = document.getElementById('agentPills');
+  var html = '';
+  (data.agents || []).forEach(function(a) {
+    if (a.file_count === 0) return;
+    var active = a.active_today ? 'active' : '';
+    html += '<div class="agent-pill ' + active + '" style="--pill-color:' + a.color + '">' +
+      '<div class="agent-pill-dot"></div>' +
+      '<span class="agent-pill-name">' + a.name + '</span>' +
+      '<span class="agent-pill-role" style="font-size:9px;color:var(--dim2);margin-left:2px">' + a.role + '</span>' +
+      '<span class="agent-pill-count">' + a.file_count + '</span>' +
+    '</div>';
+  });
+  container.innerHTML = html || '<span style="font-size:11px;color:var(--dim2)">No agent data found.</span>';
+}
+
+function renderFeed(entries) {
+  var container = document.getElementById('feedList');
+  if (!entries || entries.length === 0) {
+    container.innerHTML = '<div style="font-size:11px;color:var(--dim2);padding:16px 0">No activity yet.</div>';
+    return;
+  }
+  var html = '';
+  entries.forEach(function(e) {
+    var todayBadge = e.is_today
+      ? '<span class="feed-today-badge">Today</span>' : '';
+    var timeLabel = relDate(e.date) + ' ' + e.time;
+    html += '<div class="feed-entry" style="--entry-color:' + e.color + '">' +
+      '<div class="feed-time">' + timeLabel + '</div>' +
+      '<div class="feed-agent">' + e.agent + '<span class="feed-role">' + e.role + '</span>' + todayBadge + '</div>' +
+      '<div class="feed-preview">' + escHtml(e.preview) + '</div>' +
+    '</div>';
+  });
+  container.innerHTML = html;
+
+  var btn = document.getElementById('feedMore');
+  btn.style.display = (_historyAll.length > _historyShown) ? 'block' : 'none';
+}
+
+function escHtml(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function loadMoreHistory() {
+  _historyShown += 15;
+  renderFeed(_historyAll.slice(0, _historyShown));
+}
+
+async function fetchStats() {
+  try {
+    var r = await fetch('/api/hub/stats');
+    if (!r.ok) return;
+    var data = await r.json();
+    renderStats(data);
+    renderPills(data);
+  } catch(e) {}
+}
+
+async function fetchHistory() {
+  try {
+    var r = await fetch('/api/hub/history?limit=60');
+    if (!r.ok) return;
+    var data = await r.json();
+    _historyAll = data.history || [];
+    renderFeed(_historyAll.slice(0, _historyShown));
+  } catch(e) {}
+}
+
+function refresh() {
+  fetchStats();
+  fetchHistory();
+}
+
+refresh();
+setInterval(refresh, 30000);
 </script>
 </body>
 </html>

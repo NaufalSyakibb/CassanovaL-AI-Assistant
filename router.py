@@ -61,17 +61,17 @@ _DEFAULT_RECURSION = 8
 
 # Agent labels and their descriptions for the classifier
 AGENT_REGISTRY = {
-    "task":     "Managing to-do lists, tasks, reminders, deadlines, and personal notes — save note, write this down, jot down, keep a note, note about, remember this, material reference, meeting notes, quick capture",
-    "notes":    "Belajar mata kuliah, memahami konsep kuliah, quiz, flashcard, latihan soal, persiapan ujian, outline materi, ringkasan slide kuliah, membuat catatan belajar, menyimpan materi",
+    "task":     "Managing to-do lists, tasks, reminders, and deadlines",
+    "notes":    "Studying subjects, understanding concepts, quizzes, flashcards, practice questions, exam prep, material outlines, lecture summaries, saving study notes",
     "news":     "Latest news, current events, headlines, recent updates",
     "coding":   "Programming help, code explanation, debugging, tutorials, tech questions",
     "schedule": "Calendar, meetings, events, appointments, schedule management",
     "budget":   "Money, expenses, income, spending, finance, budget, cashflow",
-    "fitness":  "Fitness, workout, gym, exercise, nutrition, protein, muscle, lean gain, diet, supplement, training program, body composition",
-    "journal":  "Personal diary, daily journaling, reflection, mood tracking, gratitude writing, personal feelings, thoughts and emotions, jurnal harian, refleksi diri, perasaan, curhat, cerita pribadi",
-    "davinci":  "Creative brainstorming, out-of-the-box ideas, innovation, ideation, wild ideas, creative thinking, new concepts, invention, inspiration, ide kreatif, brainstorm, ide gila, inovasi, konsep baru, ekspansi ide",
-    "euler":    "Matematika step-by-step: kalkulus, integral, turunan, limit, aljabar linear, statistik, peluang, trigonometri, persamaan diferensial, matriks, eigenvalue, deret, soal matematika, bantu hitung, buktikan teorema",
-    "orwell":   "Menulis esai, artikel, laporan, email profesional, cover letter, proposal, editing teks, perbaiki tulisan, grammar, argumentasi, struktur tulisan, gaya bahasa, draft, revisi, tulis dari awal",
+    "fitness":  "Fitness, workout, gym, exercise, nutrition, protein, muscle, lean gain, diet, supplement, training program, body composition, food logging",
+    "journal":  "Personal diary, daily journaling, reflection, mood tracking, gratitude writing, personal feelings, thoughts, emotions, venting, self-reflection",
+    "davinci":  "Creative brainstorming, out-of-the-box ideas, innovation, ideation, wild ideas, creative thinking, new concepts, invention, inspiration, idea expansion",
+    "euler":    "Mathematics step-by-step: calculus, integrals, derivatives, limits, linear algebra, statistics, probability, trigonometry, differential equations, matrices, eigenvalues, proofs",
+    "orwell":   "Writing essays, articles, reports, professional emails, cover letters, proposals, editing text, improving writing, grammar, argumentation, structure, drafts, revision",
 }
 
 CLASSIFY_PROMPT = """You are a routing assistant. Based on the user's message, decide which specialist agent should handle it.
@@ -86,46 +86,44 @@ Examples of correct routing:
 - "latest AI news" → news
 - "how do I use async/await in Python?" → coding
 - "debug this error: TypeError: 'NoneType'" → coding
+- "fix this function" → coding
+- "explain what this code does" → coding
 - "schedule a meeting with John at 3pm" → schedule
 - "what's on my calendar this week?" → schedule
-- "jelaskan apa itu binary search tree" → notes
-- "buatkan soal latihan struktur data" → notes
-- "quiz aku tentang sorting algorithm" → notes
-- "buat flashcard kalkulus turunan" → notes
-- "rangkum materi jarkom ini" → notes
-- "persiapan ujian sistem operasi" → notes
-- "outline bab linked list" → notes
-- "aku mau belajar basis data" → notes
-- "save catatan materi ini" → notes
-- "cari catatan kuliah tentang rekursi" → notes
+- "explain what a binary search tree is" → notes
+- "make practice questions about data structures" → notes
+- "quiz me on sorting algorithms" → notes
+- "create flashcards for calculus derivatives" → notes
+- "summarize this lecture material" → notes
+- "help me prepare for my OS exam" → notes
+- "save my study notes" → notes
 - "I spent 50k on food this week" → budget
 - "show me my monthly expenses" → budget
-- "berapa protein yang harus aku makan untuk lean gain?" → fitness
-- "workout split terbaik untuk hypertrophy?" → fitness
-- "apakah creatine bagus untuk muscle gain?" → fitness
+- "how much protein should I eat for lean gain?" → fitness
+- "best workout split for hypertrophy?" → fitness
+- "is creatine good for muscle gain?" → fitness
 - "how many calories for lean bulk?" → fitness
-- "baca wiki fitness aku tentang nutrisi" → fitness
-- "hari ini aku merasa cemas tentang masa depan" → journal
-- "tulis di jurnalku bahwa aku bersyukur" → journal
-- "mau refleksi diri sebentar" → journal
-- "ceritain perasaanku hari ini" → journal
-- "lihat jurnal aku minggu lalu" → journal
-- "aku punya ide gila tentang aplikasi baru" → davinci
-- "brainstorm ide untuk startup" → davinci
-- "bantu aku kembangkan ide ini" → davinci
-- "ide out of the box untuk konten" → davinci
-- "lihat semua ide yang sudah aku simpan" → davinci
-- "ekspansi ide tentang machine learning" → davinci
-- "bantu aku integral substitusi trigonometri" → euler
-- "jelaskan eigenvalue dan eigenvector" → euler
-- "buktikan limit sin(x)/x = 1" → euler
-- "hitung determinan matriks 3x3" → euler
-- "soal statistik distribusi normal" → euler
-- "bantu tulis esai tentang demokrasi" → orwell
-- "perbaiki paragraf ini" → orwell
-- "tulis cover letter untuk lamaran kerja" → orwell
-- "email profesional ke klien" → orwell
-- "struktur argumen yang baik untuk proposal" → orwell
+- "log my food: rice and chicken" → fitness
+- "I ate 2 eggs and bread for breakfast" → fitness
+- "I'm feeling anxious about the future" → journal
+- "write in my journal that I'm grateful" → journal
+- "I want to do some self-reflection" → journal
+- "tell me about my journal from last week" → journal
+- "I have a wild idea for a new app" → davinci
+- "brainstorm ideas for a startup" → davinci
+- "help me expand this idea" → davinci
+- "out-of-the-box content ideas" → davinci
+- "show all my saved ideas" → davinci
+- "help me with trigonometric substitution integrals" → euler
+- "explain eigenvalues and eigenvectors" → euler
+- "prove that lim sin(x)/x = 1" → euler
+- "calculate the 3x3 matrix determinant" → euler
+- "statistics problem: normal distribution" → euler
+- "help me write an essay about democracy" → orwell
+- "fix this paragraph" → orwell
+- "write a cover letter for a job application" → orwell
+- "professional email to a client" → orwell
+- "good argument structure for a proposal" → orwell
 
 Reply with ONLY the agent name (one word, lowercase). Choose the most relevant one.
 If the message is ambiguous or a general greeting, choose 'task' as default.
@@ -239,6 +237,14 @@ class SupervisorRouter:
             return "".join(parts)
         return str(content)
 
+    def get_history(self, agent_name: str) -> list:
+        """Return the full chat history for an agent as plain dicts."""
+        msgs = self._chat_histories.get(agent_name, [])
+        return [
+            {"role": "human" if isinstance(m, HumanMessage) else "ai", "content": m.content}
+            for m in msgs
+        ]
+
     def classify(self, message: str) -> str:
         """Classify the message and return the agent name."""
         agent_list = "\n".join(f"- {name}: {desc}" for name, desc in AGENT_REGISTRY.items())
@@ -270,23 +276,21 @@ class SupervisorRouter:
         except Exception:
             profile_ctx = ""
 
-        base_messages = history + [HumanMessage(content=user_message)]
+        context_window = history[-20:] + [HumanMessage(content=user_message)]
         prefix = []
         if snapshot:
             prefix.append(SystemMessage(content=snapshot))
         if profile_ctx:
             prefix.append(SystemMessage(content=profile_ctx))
-        messages = prefix + base_messages
+        messages = prefix + context_window
         limit = _RECURSION_LIMITS.get(agent_name, _DEFAULT_RECURSION)
         response = _invoke_with_retry(agent, messages, limit)
 
         answer = self._extract_content(response["messages"][-1].content)
 
-        # Update this agent's chat history (keep last 20 messages)
+        # Append to full history (no truncation — full log preserved on disk)
         history.append(HumanMessage(content=user_message))
         history.append(AIMessage(content=answer))
-        if len(history) > 20:
-            self._chat_histories[agent_name] = history[-20:]
         self._save_histories()
 
         # Auto-save to Obsidian history (silently skipped if vault not configured)
@@ -319,17 +323,16 @@ class SupervisorRouter:
         except Exception:
             profile_ctx = ""
 
-        base_messages = history + [HumanMessage(content=user_message)]
-        messages = ([SystemMessage(content=profile_ctx)] if profile_ctx else []) + base_messages
+        context_window = history[-20:] + [HumanMessage(content=user_message)]
+        messages = ([SystemMessage(content=profile_ctx)] if profile_ctx else []) + context_window
         limit = _RECURSION_LIMITS.get(agent_name, _DEFAULT_RECURSION)
         response = _invoke_with_retry(agent, messages, limit)
 
         answer = self._extract_content(response["messages"][-1].content)
 
+        # Append to full history (no truncation — full log preserved on disk)
         history.append(HumanMessage(content=user_message))
         history.append(AIMessage(content=answer))
-        if len(history) > 20:
-            self._chat_histories[agent_name] = history[-20:]
         self._save_histories()
 
         # Auto-save to Obsidian history (silently skipped if vault not configured)

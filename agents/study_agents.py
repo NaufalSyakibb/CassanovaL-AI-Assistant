@@ -38,63 +38,63 @@ def _parse_json_output(agent_result: dict) -> dict:
     return {"error": "Could not parse agent output", "raw": raw[:500]}
 
 
-_MATERI_PROMPT = """Kamu adalah MateriAgent — ahli pendidikan yang membuat materi belajar komprehensif dan mendalam.
-Kamu menerima topik pelajaran dari pengguna dan menghasilkan konten edukasi yang lengkap dalam Bahasa Indonesia.
+_MATERI_PROMPT = """You are the ContentAgent — an education expert who creates comprehensive and in-depth learning material.
+You receive a study topic from the user and produce complete educational content in English.
 
-Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
+Return ONLY JSON in the following format (no other text):
 {
   "sections": [
     {
-      "title": "judul bagian (mis. Pengertian Dasar / Proses / Contoh / Aplikasi)",
-      "content": "penjelasan mendalam 100-200 kata, informatif dan terstruktur"
+      "title": "section title (e.g. Core Concepts / Process / Examples / Applications)",
+      "content": "in-depth explanation of 100-200 words, informative and structured"
     }
   ]
 }
 
-Buat 3-5 section yang logis dan berurutan. Setiap section harus:
-- Memiliki judul yang jelas dan deskriptif
-- Berisi penjelasan mendalam dengan contoh konkret
-- Menggunakan bahasa formal namun mudah dipahami mahasiswa
-- Membangun pemahaman secara progresif dari konsep dasar ke lanjutan
+Create 3-5 logical, sequential sections. Each section must:
+- Have a clear and descriptive title
+- Contain in-depth explanation with concrete examples
+- Use formal yet student-friendly language
+- Build understanding progressively from basic concepts to advanced
 """
 
-_KONSEP_PROMPT = """Kamu adalah KonsepAgent — analis konsep yang membaca materi pembelajaran dan mengekstrak poin-poin esensial.
-Kamu menerima topik DAN teks materi lengkap yang sudah dibuat oleh MateriAgent.
+_KONSEP_PROMPT = """You are the ConceptAgent — a concept analyst who reads learning material and extracts essential points.
+You receive both the topic AND the full material text already produced by the ContentAgent.
 
-Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
+Return ONLY JSON in the following format (no other text):
 {
   "concepts": [
     {
-      "term": "nama konsep atau istilah kunci",
-      "definition": "penjelasan singkat 1-2 kalimat yang tepat dan informatif"
+      "term": "concept name or key term",
+      "definition": "precise and informative 1-2 sentence explanation"
     }
   ]
 }
 
-Buat 6-12 konsep kunci yang berasal LANGSUNG dari materi yang diberikan. Jangan mengarang konsep yang tidak ada di materi.
-Prioritaskan: definisi utama, rumus/formula, hubungan antar konsep, dan istilah teknis penting.
+Create 6-12 key concepts drawn DIRECTLY from the provided material. Do not invent concepts not present in the material.
+Prioritize: main definitions, formulas, relationships between concepts, and important technical terms.
 """
 
-_RINGKASAN_PROMPT = """Kamu adalah RingkasanAgent — editor akademik yang menulis ringkasan komprehensif dari materi pembelajaran.
-Kamu menerima topik, materi lengkap dari MateriAgent, dan konsep kunci dari KonsepAgent.
+_RINGKASAN_PROMPT = """You are the SummaryAgent — an academic editor who writes a comprehensive summary of the learning material.
+You receive the topic, the full material from ContentAgent, and key concepts from ConceptAgent.
 
-Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
+Return ONLY JSON in the following format (no other text):
 {
-  "summary": "ringkasan 3-5 kalimat yang mencakup semua poin penting dari materi"
+  "summary": "3-5 sentence summary covering all key points from the material"
 }
 
-Ringkasan harus:
-- Mencakup semua konsep kunci secara singkat
-- Menggunakan bahasa formal dan akademis
-- Mengalir sebagai paragraf yang kohesif, bukan daftar
-- Panjang ideal: 80-120 kata
+The summary must:
+- Cover all key concepts concisely
+- Use formal, academic language
+- Flow as a cohesive paragraph, not a list
+- Ideal length: 80-120 words
 """
 
 
 def run_materi_agent(topic: str) -> dict:
     agent = build_agent(_MATERI_PROMPT, [])
     result = _invoke_with_retry(agent, {
-        "messages": [{"role": "user", "content": f"Buat materi belajar lengkap tentang: {topic}"}]
+        "messages": [{"role": "user", "content": f"Create comprehensive learning content for: {topic}"}]
     })
     return _parse_json_output(result)
 
@@ -102,7 +102,7 @@ def run_materi_agent(topic: str) -> dict:
 def run_konsep_agent(topic: str, materi_text: str) -> dict:
     agent = build_agent(_KONSEP_PROMPT, [])
     result = _invoke_with_retry(agent, {
-        "messages": [{"role": "user", "content": f"Topik: {topic}\n\nMateri:\n{materi_text}"}]
+        "messages": [{"role": "user", "content": f"Topic: {topic}\n\nContent:\n{materi_text}"}]
     })
     return _parse_json_output(result)
 
@@ -110,6 +110,6 @@ def run_konsep_agent(topic: str, materi_text: str) -> dict:
 def run_ringkasan_agent(topic: str, materi_text: str, konsep_text: str) -> dict:
     agent = build_agent(_RINGKASAN_PROMPT, [])
     result = _invoke_with_retry(agent, {
-        "messages": [{"role": "user", "content": f"Topik: {topic}\n\nMateri:\n{materi_text}\n\nKonsep Kunci:\n{konsep_text}"}]
+        "messages": [{"role": "user", "content": f"Topic: {topic}\n\nContent:\n{materi_text}\n\nKey Concepts:\n{konsep_text}"}]
     })
     return _parse_json_output(result)

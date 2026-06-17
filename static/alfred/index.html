@@ -1252,6 +1252,17 @@ async function init() {
 }
 
 init();
+
+// Auto-refresh every 30 seconds
+setInterval(init, 30000);
+
+// BroadcastChannel: refresh when the main hub or another tab sends a task message
+if (typeof BroadcastChannel !== 'undefined') {
+  const _alfredBC = new BroadcastChannel('cassanoval-sync');
+  _alfredBC.onmessage = (e) => {
+    if (e.data?.agent === 'task') init();
+  };
+}
 </script>
 <script src="/static/pixel/sprites.js"></script>
 <script>
@@ -1260,5 +1271,8 @@ init();
   if (cv && window.PixelSprites) PixelSprites.render(cv, 'alfred', 4);
 })();
 </script>
+<link rel="stylesheet" href="/static/shared/convo-history.css">
+<script src="/static/shared/convo-history.js"></script>
+<script>ConvoHistory.mount({ agent: 'task', label: 'Alfred', accent: '#3D5A80' });</script>
 </body>
 </html>

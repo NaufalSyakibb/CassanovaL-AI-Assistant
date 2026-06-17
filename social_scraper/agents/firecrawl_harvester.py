@@ -348,17 +348,17 @@ class ScraperAgent:
 # ─────────────────────────────────────────────────────────────────────────────
 
 _EXTRACT_PROMPT = """\
-Kamu adalah extractor konten tren media sosial. Berdasarkan artikel-artikel web berikut \
-tentang {platform}, ekstrak informasi trending yang paling relevan.
+You are a social media trend content extractor. Based on the following web articles \
+about {platform}, extract the most relevant trending information.
 
-Konten:
+Content:
 {content}
 
-Keluarkan sebagai daftar bullet points (maks 20 item, format: "- Topik: penjelasan singkat kenapa trending"):
-- Fokus pada: hashtag populer, nama kreator viral, event/challenge trending, berita atau isu terkini
-- Hanya sertakan informasi yang NYATA ADA dalam teks di atas
-- Abaikan: navigasi, iklan, tombol login, footer, cookie notice
-- Setiap item harus unik — jangan duplikasi topik yang sama"""
+Output as a bullet-point list (max 20 items, format: "- Topic: brief reason why it's trending"):
+- Focus on: popular hashtags, viral creator names, trending events/challenges, current news or issues
+- Only include information that ACTUALLY EXISTS in the text above
+- Ignore: navigation, ads, login buttons, footers, cookie notices
+- Each item must be unique — do not duplicate the same topic"""
 
 
 def _dedup_topics(items: list[str]) -> list[str]:

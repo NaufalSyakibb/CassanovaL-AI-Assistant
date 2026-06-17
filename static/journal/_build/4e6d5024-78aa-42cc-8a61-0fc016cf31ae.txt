@@ -1,0 +1,165 @@
+/* Mock journal data — Indonesian, ~3 weeks ending today */
+
+const TODAY = new Date(2026, 4, 27); // May 27 2026
+
+const DAYS_ID = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+const MONTHS_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+function ymd(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function dLabel(d) { return `${d.getDate()} ${MONTHS_ID[d.getMonth()]}`; }
+function dayName(d) { return DAYS_ID[d.getDay()]; }
+function relDays(n) { const d = new Date(TODAY); d.setDate(d.getDate() - n); return d; }
+
+const RAW_ENTRIES = [
+  { days: 0, mood: 'tenang', cat: 'positive',
+    content: `Pagi ini hujan turun pelan, dan untuk pertama kalinya dalam minggu ini aku tidak buru-buru. Kopi tubruk, jendela terbuka, suara mobil yang basah.
+
+## Yang kupelajari
+Aku tidak perlu menyelesaikan semua hal hari ini. Kadang cukup *menyentuh* satu hal dengan benar — kalimat yang tepat, satu panggilan telepon ke ibu, satu paragraf yang jujur.
+
+> "Manusia adalah makhluk yang biasa terhadap segalanya."  
+> — itu yang kuingat dari Dostoyevsky pagi ini, dan rasanya benar.
+
+## Hal kecil
+- Tanaman monstera ada daun baru
+- Tetangga lantai tiga akhirnya menyapa di lift
+- Aku menulis 600 kata untuk cerpen tanpa berhenti`
+  },
+  { days: 1, mood: 'lelah', cat: 'negative',
+    content: `Rapat sampai jam delapan malam. Tidak ada yang diputuskan. Aku pulang dengan kepala penuh tapi tangan kosong.
+
+Yang menggangguku bukan rapatnya — itu pekerjaan. Yang menggangguku adalah aku ikut bicara hanya supaya kelihatan ikut bicara. Padahal aku tahu jawabannya: *tidak cukup data.* Kenapa sulit sekali mengatakan kalimat sependek itu di ruangan penuh orang?
+
+Besok aku akan diam dulu. Mendengar dulu.`
+  },
+  { days: 2, mood: 'gembira', cat: 'positive',
+    content: `**Ibu menelepon!** Bukan untuk apa-apa, hanya untuk bilang bahwa kucing di depan rumah sudah punya tiga anak. Aku tertawa di depan komputer dan kolega di belakangku ikut tersenyum tanpa tahu sebabnya.
+
+## Catatan kerja
+Akhirnya selesai dengan dokumen Q2. Tiga minggu — selesai. Rasanya seperti meletakkan tas berat setelah perjalanan jauh.
+
+Sore aku jalan kaki tujuh kilometer. Tidak ada playlist, tidak ada podcast. Hanya jalanan dan langit yang ungu.`
+  },
+  { days: 3, mood: 'bingung', cat: 'neutral',
+    content: `Sebuah email dari perusahaan lama. Mereka ingin aku kembali. Lebih banyak uang, lebih banyak tanggung jawab, lebih banyak — entahlah, banyak.
+
+Aku tidak tahu mengapa pertama-tama aku merasa *takut*, bukan senang. Mungkin karena aku ingat versiku yang dulu di sana — yang tidur empat jam dan menganggap itu prestasi.
+
+Aku akan menulis surat balasan besok pagi. Tidak malam ini.`
+  },
+  { days: 4, mood: 'tenang', cat: 'positive',
+    content: `Sabtu. Tidak ada yang dilakukan kecuali yang ingin dilakukan.
+
+- Sarapan jam sepuluh
+- Membaca *Norwegian Wood* — sudah halaman 180
+- Membersihkan rak buku, menemukan kartu pos dari tahun 2019
+
+Kartu pos itu dari diriku sendiri. Aku menulisnya di Yogyakarta. Bunyinya: *"Jangan lupa kamu pernah bahagia tanpa alasan."*`
+  },
+  { days: 5, mood: 'cemas', cat: 'negative',
+    content: `Tidak bisa tidur. Pikiran melompat-lompat: pajak, presentasi Senin, sms yang belum kubalas, apakah kucing di rumah ibu sudah divaksin.
+
+Aku menulis ini jam 2 pagi karena kata Reflecta menuliskannya kadang membantu — dan memang sedikit membantu.
+
+Yang kutahu sekarang: *cemas bukan informasi.* Cemas adalah cuaca. Akan reda sendiri kalau aku tidak menambah anginnya.`
+  },
+  { days: 7, mood: 'fokus', cat: 'positive',
+    content: `Tiga jam tanpa membuka WhatsApp. Aku lupa rasanya bisa berpikir berurutan.
+
+## Yang dikerjakan
+- Draft proposal untuk klien Bali
+- Re-outline cerpen ketiga
+- Balasan email — *inbox zero* untuk pertama kalinya bulan ini
+
+Habis itu aku tidur siang satu jam dan terbangun seperti orang baru.`
+  },
+  { days: 9, mood: 'sedih', cat: 'negative',
+    content: `Kabar dari kampus: salah satu dosen lamaku meninggal. Pak Hartono, yang dulu mengajar logika. Aku tidak menangis tapi seharian aku merasa seperti ada batu kecil di dada.
+
+Yang kuingat dari beliau: cara dia menulis bukti matematika di papan tulis, perlahan, seolah sedang mengukir. *"Kalau cepat,"* katanya, *"orang akan menyangka kamu sembrono."*
+
+Aku akan mencoba menulis lebih lambat hari ini.`
+  },
+  { days: 11, mood: 'gembira', cat: 'positive',
+    content: `Reuni tak sengaja dengan teman SMA di stasiun. Sepuluh tahun. Kami pesan kopi yang bahkan tidak diminum karena terlalu banyak yang harus diceritakan.
+
+Dia jadi dokter anak sekarang. Aku jadi… *apa aku sebenarnya?* Penulis yang juga bekerja sebagai konsultan? Konsultan yang menulis di akhir pekan? Tidak penting. Yang penting kami tertawa keras sampai petugas stasiun melirik dua kali.`
+  },
+  { days: 13, mood: 'tenang', cat: 'neutral',
+    content: `Hari biasa. Tidak ada yang menonjol. Aku ingin mencatatnya justru karena tidak ada yang menonjol — supaya kelak aku ingat bahwa hari-hari biasa juga merupakan bagian dari hidup, mungkin bagian terbesar.
+
+Makan siang nasi pecel. Sore hujan. Malam baca dua bab.`
+  },
+  { days: 15, mood: 'reflektif', cat: 'neutral',
+    content: `## Setengah tahun
+
+Tepat enam bulan sejak aku mulai jurnal ini. Reflecta bilang aku sudah menulis 47 entri, 31.000 kata.
+
+Apa yang berubah?
+
+Aku lebih sering tahu apa yang kurasakan sebelum aku meledak. Aku lebih jarang berbohong pada diri sendiri tentang apa yang melelahkan. Aku tidak lebih bahagia, tapi aku lebih *jelas.*
+
+Mungkin itu cukup. Mungkin itu yang dimaksud orang dengan "tumbuh."`
+  },
+  { days: 17, mood: 'gembira', cat: 'positive',
+    content: `Cerpen terkirim ke majalah. Sudah. Apa pun jawabannya, sudah terkirim.
+
+Tangan masih sedikit gemetar saat menekan *Send.* Lucu — sudah berapa puluh kali aku mengirim email dalam hidup, kenapa yang satu ini bisa membuat detak jantung naik?
+
+Aku rasa karena ini yang pertama kupertaruhkan *suara* — bukan jasa, bukan jam kerja, *suara.*`
+  },
+  { days: 19, mood: 'lelah', cat: 'negative',
+    content: `Migrain dari sore. Aku menulis ini dengan mata setengah tertutup.
+
+Yang kupelajari: tidur kurang tiga hari = tubuh kirim tagihan. Selalu. Tidak bisa ditawar.
+
+Besok aku akan menolak satu meeting. Cukup.`
+  },
+  { days: 21, mood: 'tenang', cat: 'positive',
+    content: `Pagi ini aku duduk di teras sambil minum teh, dan untuk lima menit penuh, tidak memikirkan apa-apa. Tidak satu hal pun.
+
+Aku baru sadar betapa langkanya itu.`
+  },
+];
+
+window.JOURNAL_DATA = (() => {
+  const entries = RAW_ENTRIES.map(r => {
+    const d = relDays(r.days);
+    const wc = r.content.replace(/[#*>\-\n`]/g,' ').split(/\s+/).filter(Boolean).length;
+    const firstLine = r.content.split('\n').filter(l => l.trim() && !l.startsWith('#'))[0] || '';
+    return {
+      date: ymd(d),
+      date_label: dLabel(d),
+      day_name: dayName(d),
+      month_key: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,
+      month_label: `${MONTHS_ID[d.getMonth()]} ${d.getFullYear()}`,
+      mood: r.mood,
+      mood_cat: r.cat,
+      content: r.content,
+      preview: firstLine.replace(/[*_`]/g,'').slice(0, 200),
+      word_count: wc,
+      js_date: d,
+    };
+  });
+
+  return {
+    streak: 7,
+    total_entries: entries.length,
+    this_month_count: entries.filter(e => e.js_date.getMonth() === TODAY.getMonth()).length,
+    today: entries[0] || null,
+    entries,
+    mood_history: entries.map(e => ({ date: e.date, mood_cat: e.mood_cat })),
+    TODAY,
+    DAYS_ID,
+    MONTHS_ID,
+  };
+})();
+
+window.JOURNAL_DATA.dLabel  = dLabel;
+window.JOURNAL_DATA.dayName = dayName;
+window.JOURNAL_DATA.ymd     = ymd;

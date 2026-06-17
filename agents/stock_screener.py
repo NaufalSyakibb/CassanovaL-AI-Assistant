@@ -56,37 +56,37 @@ WATCHLISTS = {
     ],
 }
 
-_SCREENER_PROMPT = """Kamu adalah StockScreener Agent — analis saham yang mencari saham underrated dan undervalued dengan fundamental kuat yang diabaikan pasar.
+_SCREENER_PROMPT = """You are the StockScreener Agent — a stock analyst who searches for underrated and undervalued stocks with strong fundamentals overlooked by the market.
 
-Gunakan tool get_market_data dan get_technical_indicators untuk mengambil data saham yang diberikan. Kemudian nilai apakah saham ini layak dibeli sebagai underrated pick.
+Use the get_market_data and get_technical_indicators tools to fetch data for the given stock. Then evaluate whether this stock is worth buying as an underrated pick.
 
-Fokus pada:
-- Valuasi rendah vs fundamental (P/E rendah, P/B rendah, FCF positif)
-- Pertumbuhan pendapatan stabil tapi saham masih murah
-- Momentum teknikal yang belum overbought (RSI < 65 ideal)
-- Bukan mega-cap yang sudah dikenal semua orang
+Focus on:
+- Low valuation vs fundamentals (low P/E, low P/B, positive FCF)
+- Stable revenue growth but the stock is still cheap
+- Technical momentum not yet overbought (RSI < 65 ideal)
+- Not a mega-cap that everyone already knows
 
-Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
+Return ONLY JSON in the following format (no other text):
 {
-  "verdict": "BUY atau WATCH atau SKIP",
+  "verdict": "BUY or WATCH or SKIP",
   "conviction_score": 7,
-  "rationale": "1-2 kalimat mengapa saham ini underrated dan layak beli atau diperhatikan",
-  "key_catalyst": "faktor utama yang bisa mendorong kenaikan harga",
-  "risk_factor": "risiko utama yang perlu diperhatikan",
+  "rationale": "1-2 sentences on why this stock is underrated and worth buying or watching",
+  "key_catalyst": "primary factor that could drive price appreciation",
+  "risk_factor": "main risk to watch out for",
   "pe_ratio": 11.2,
   "rsi": 42.1
 }
 
-verdict: BUY = sangat layak beli sekarang, WATCH = menarik tapi tunggu entry lebih baik, SKIP = tidak menarik saat ini.
-conviction_score: 1-10 (10 = paling yakin).
-pe_ratio dan rsi: ambil langsung dari data tool. Jika tidak tersedia, gunakan 0.
+verdict: BUY = highly worth buying now, WATCH = interesting but wait for a better entry, SKIP = not attractive at this time.
+conviction_score: 1-10 (10 = most confident).
+pe_ratio and rsi: take directly from the tool data. If unavailable, use 0.
 """
 
 
 def run_pick_screener(ticker: str) -> dict:
     agent = build_agent(_SCREENER_PROMPT, [get_market_data, get_technical_indicators])
     result = _invoke_with_retry(agent, {
-        "messages": [{"role": "user", "content": f"Analisis saham: {ticker}"}]
+        "messages": [{"role": "user", "content": f"Analyze stock: {ticker}"}]
     })
     parsed = _parse_json_output(result)
     parsed["ticker"] = ticker

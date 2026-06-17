@@ -5,9 +5,9 @@ Usage:
     $env:PYTHONUTF8=1; python cli_lavoisier.py
 
 Chat naturally:
-    "catat nasi putih 200g untuk makan siang"
-    "saya tadi makan 2 butir telur goreng dan tahu 100g"
-    "berapa protein yang sudah saya makan hari ini?"
+    "log white rice 200g for lunch"
+    "I just ate 2 fried eggs and 100g tofu"
+    "how much protein have I had today?"
     "what's the nutritional value of an avocado?"
 
 Data is saved permanently to data/food_log.json.
@@ -34,11 +34,11 @@ BANNER = """
 ║  Ask about nutrition, calories, or review your day.      ║
 ║                                                          ║
 ║  Examples:                                               ║
-║   "catat nasi putih 200g makan siang"                    ║
-║   "saya makan 2 telur goreng pagi ini"                   ║
-║   "berapa kalori yang sudah saya makan?"                 ║
+║   "log white rice 200g for lunch"                        ║
+║   "I ate 2 fried eggs this morning"                      ║
+║   "how many calories have I had today?"                  ║
 ║   "what macros does chicken breast have?"                ║
-║   "show today's log" / "ringkasan hari ini"              ║
+║   "show today's log"                                     ║
 ║                                                          ║
 ║  Type 'quit' or 'exit' to stop.                          ║
 ╚══════════════════════════════════════════════════════════╝
@@ -116,7 +116,7 @@ def main():
             print("  Goodbye! Stay healthy! 🥗")
             break
 
-        if user_input.lower() in ("log", "today", "summary", "hari ini", "ringkasan"):
+        if user_input.lower() in ("log", "today", "summary"):
             _show_today_summary()
             continue
 

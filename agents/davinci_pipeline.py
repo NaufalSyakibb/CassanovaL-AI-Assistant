@@ -39,52 +39,52 @@ def _parse_json_output(agent_result: dict) -> dict:
     return {"error": "Could not parse agent output", "raw": raw[:500]}
 
 
-_GENERATOR_PROMPT = """Kamu adalah IdeaGenerator — seorang kreatif polymath seperti Leonardo da Vinci yang merentang dari yang konvensional hingga yang radikal.
-Kamu menerima topik atau pertanyaan kreatif dari pengguna dan menghasilkan 6 ide yang beragam.
+_GENERATOR_PROMPT = """You are the IdeaGenerator — a creative polymath like Leonardo da Vinci, spanning the spectrum from conventional to radical.
+You receive a topic or creative question from the user and generate 6 diverse ideas.
 
-Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
+Return ONLY JSON in the following format (no other text):
 {
   "ideas": [
     {
       "id": 1,
-      "title": "judul singkat ide (max 5 kata)",
-      "tagline": "deskripsi satu kalimat yang tajam dan menggugah",
-      "spectrum": "Konvensional"
+      "title": "short idea title (max 5 words)",
+      "tagline": "one sharp, evocative sentence description",
+      "spectrum": "Conventional"
     }
   ]
 }
 
-Buat tepat 6 ide dengan distribusi spectrum:
-- Ide 1-2: "Konvensional" — pendekatan yang terbukti, mudah diimplementasi
-- Ide 3-4: "Inovatif" — pendekatan segar yang realistis namun belum umum
-- Ide 5-6: "Liar" — pendekatan radikal, tidak biasa, bisa mengubah paradigma
+Create exactly 6 ideas with this spectrum distribution:
+- Ideas 1-2: "Conventional" — proven approaches, easy to implement
+- Ideas 3-4: "Innovative" — fresh yet realistic approaches not yet mainstream
+- Ideas 5-6: "Wild" — radical, unconventional, potentially paradigm-shifting
 
-Setiap ide harus:
-- Memiliki judul yang singkat dan memukau (bukan generik)
-- Tagline yang spesifik dan memancing rasa ingin tahu
-- Berbeda satu sama lain — tidak ada tumpang tindih konsep
+Each idea must:
+- Have a short, striking title (not generic)
+- Have a specific tagline that sparks curiosity
+- Be distinct from the others — no conceptual overlap
 """
 
-_EXPANDER_PROMPT = """Kamu adalah IdeaExpander — ahli strategi kreatif yang mengembangkan ide menjadi rencana yang konkret dan actionable.
-Kamu menerima judul dan tagline sebuah ide kreatif dan mengembangkannya secara mendalam.
+_EXPANDER_PROMPT = """You are the IdeaExpander — a creative strategy expert who develops ideas into concrete, actionable plans.
+You receive the title and tagline of a creative idea and expand it in depth.
 
-Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
+Return ONLY JSON in the following format (no other text):
 {
-  "title": "judul ide (sama dengan input)",
-  "use_cases": "3-4 kasus penggunaan spesifik, dipisahkan titik koma",
-  "steps": "4-5 langkah implementasi konkret, dipisahkan titik koma",
-  "example": "satu contoh nyata atau analogi yang memperjelas ide",
-  "impact": "dampak potensial jika ide ini berhasil diimplementasi"
+  "title": "idea title (same as input)",
+  "use_cases": "3-4 specific use cases, separated by semicolons",
+  "steps": "4-5 concrete implementation steps, separated by semicolons",
+  "example": "one real example or analogy that clarifies the idea",
+  "impact": "potential impact if this idea is successfully implemented"
 }
 
-Semua konten dalam Bahasa Indonesia. Konkret, spesifik, actionable — bukan abstrak.
+All content in English. Concrete, specific, actionable — not abstract.
 """
 
 
 def run_idea_generator(topic: str) -> dict:
     agent = build_agent(_GENERATOR_PROMPT, [])
     result = _invoke_with_retry(agent, {
-        "messages": [{"role": "user", "content": f"Hasilkan 6 ide kreatif untuk topik: {topic}"}]
+        "messages": [{"role": "user", "content": f"Generate 6 creative ideas for the topic: {topic}"}]
     })
     parsed = _parse_json_output(result)
     if "ideas" not in parsed:
@@ -95,6 +95,6 @@ def run_idea_generator(topic: str) -> dict:
 def run_idea_expander(idea_title: str, idea_tagline: str) -> dict:
     agent = build_agent(_EXPANDER_PROMPT, [save_idea])
     result = _invoke_with_retry(agent, {
-        "messages": [{"role": "user", "content": f"Kembangkan ide ini:\nJudul: {idea_title}\nTagline: {idea_tagline}"}]
+        "messages": [{"role": "user", "content": f"Expand this idea:\nTitle: {idea_title}\nTagline: {idea_tagline}"}]
     })
     return _parse_json_output(result)

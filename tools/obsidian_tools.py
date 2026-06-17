@@ -92,7 +92,7 @@ _AGENT_HISTORY_CONFIG: dict[str, tuple[str, str, str]] = {
     "notes":    ("Cicero Agent",      "Notes",     "Cicero Notes Log"),
     "coding":   ("Linus Agent",       "Code",      "Linus Code Log"),
     "schedule": ("CalCore Agent",     "Schedule",  "CalCore Schedule Log"),
-    "journal":  ("Dostoyevsky Agent", "Journal",   "Dostoyevsky Journal Log"),
+    "journal":  ("Dostoyevsky Agent", "ChatLog",   "Dostoyevsky Journal Log"),
 }
 
 

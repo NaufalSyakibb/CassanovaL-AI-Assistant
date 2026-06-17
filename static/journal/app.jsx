@@ -1,0 +1,702 @@
+/* Dostoyevsky — editorial journal redesign */
+
+const { useState, useEffect, useMemo, useRef, useLayoutEffect } = React;
+const D = window.JOURNAL_DATA;
+
+/* ─────────────────────────────────────────── tweak defaults */
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "moodWash": "soft",
+  "layout": "marginalia",
+  "accent": "#6B4D6E",
+  "showWeekStrip": true
+}/*EDITMODE-END*/;
+
+const ACCENTS = {
+  plum:   { c: '#6B4D6E', soft: 'rgba(107,77,110,0.10)', line: 'rgba(107,77,110,0.28)', ink: '#7A5780' },
+  ink:    { c: '#1A1612', soft: 'rgba(26,22,18,0.06)',  line: 'rgba(26,22,18,0.18)',   ink: '#1A1612' },
+  rust:   { c: '#9F4F3D', soft: 'rgba(159,79,61,0.10)', line: 'rgba(159,79,61,0.28)',  ink: '#A95846' },
+  forest: { c: '#3F5D45', soft: 'rgba(63,93,69,0.10)',  line: 'rgba(63,93,69,0.28)',   ink: '#4A6B50' },
+};
+
+/* ─────────────────────────────────────────── helpers */
+function hexToAlpha(hex, a) {
+  const h = hex.replace('#','');
+  const r = parseInt(h.slice(0,2),16);
+  const g = parseInt(h.slice(2,4),16);
+  const b = parseInt(h.slice(4,6),16);
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
+function fmtMonth(key) {
+  const [y,m] = key.split('-');
+  return `${D.MONTHS_ID[+m-1]} ${y}`;
+}
+function startOfWeek(d) {
+  // ID convention: week starts Monday
+  const x = new Date(d);
+  const w = x.getDay(); // 0=Sun
+  const offset = w === 0 ? -6 : 1 - w;
+  x.setDate(x.getDate() + offset);
+  return x;
+}
+function sameDay(a,b) { return a.toDateString() === b.toDateString(); }
+
+function renderMd(t, opts = {}) {
+  if (!t) return '';
+  let html = t
+    .replace(/```[\w]*\n?([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>[\s\S]*?<\/li>)/g, m => `<ul>${m}</ul>`)
+    .replace(/<\/ul>\s*<ul>/g, '')
+    .replace(/^---$/gm, '<hr/>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/\n/g, '<br/>')
+    .replace(/^(?!<[a-z])(.+)$/gm, m => m.startsWith('<') ? m : `<p>${m}</p>`);
+  // Drop cap: wrap first letter of first <p>
+  if (opts.dropCap) {
+    html = html.replace(/<p>(.)/, '<p><span class="dropcap">$1</span>');
+  }
+  return html;
+}
+
+/* ─────────────────────────────────────────── icons */
+const Icon = {
+  Sun: () => <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><circle cx="10" cy="10" r="3.4"/><path d="M10 3v1.6M10 15.4V17M3 10h1.6M15.4 10H17M5.2 5.2l1.1 1.1M13.7 13.7l1.1 1.1M5.2 14.8l1.1-1.1M13.7 6.3l1.1-1.1"/></svg>,
+  Moon: () => <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><path d="M16.5 12a6 6 0 1 1-8.5-8.5 5 5 0 0 0 8.5 8.5z"/></svg>,
+  Search: () => <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><circle cx="7.2" cy="7.2" r="4.6"/><path d="M10.6 10.6 13.5 13.5"/></svg>,
+  Send: () => <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M2 8 14 2 11 14 8 9z"/></svg>,
+  Plus: () => <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M8 3.5v9M3.5 8h9"/></svg>,
+  Sparkle: () => <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2.5l1.4 3.6L13 7.5l-3.6 1.4L8 12.5l-1.4-3.6L3 7.5l3.6-1.4z"/><path d="M13.2 12.2l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z" opacity=".6"/></svg>,
+  Arrow: () => <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"><path d="M4 8h8M9 4.5l3.5 3.5L9 11.5"/></svg>,
+  Back: () => <svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"><path d="M12 8H4M7 4.5 3.5 8 7 11.5"/></svg>,
+  History: () => <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M2.4 8a5.6 5.6 0 1 0 1.7-4"/><path d="M2.2 2.4v3.2h3.2"/><path d="M8 5.2V8l2 1.4"/></svg>,
+};
+
+/* ─────────────────────────────────────────── Sidebar */
+function Sidebar({ entries, selected, onSelect, query, setQuery, streak, today }) {
+  // Group entries by month
+  const groups = useMemo(() => {
+    const filtered = query.trim()
+      ? entries.filter(e =>
+          e.preview.toLowerCase().includes(query.toLowerCase()) ||
+          e.content.toLowerCase().includes(query.toLowerCase()) ||
+          e.mood.toLowerCase().includes(query.toLowerCase()) ||
+          e.date_label.toLowerCase().includes(query.toLowerCase()))
+      : entries;
+    const map = new Map();
+    filtered.forEach(e => {
+      if (!map.has(e.month_key)) map.set(e.month_key, []);
+      map.get(e.month_key).push(e);
+    });
+    return Array.from(map.entries());
+  }, [entries, query]);
+
+  // Week strip — Monday→Sunday around today
+  const weekStart = startOfWeek(D.TODAY);
+  const weekCells = [];
+  const moodMap = {};
+  entries.forEach(e => moodMap[e.date] = e.mood_cat);
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart); d.setDate(weekStart.getDate() + i);
+    const ds = D.ymd(d);
+    weekCells.push({
+      d, ds,
+      letter: ['M','T','W','T','F','S','S'][i], // Mon Tue Wed Thu Fri Sat Sun
+      isToday: sameDay(d, D.TODAY),
+      isFuture: d > D.TODAY,
+      mood: moodMap[ds],
+    });
+  }
+  const dayLetters = ['Mo','Tu','We','Th','Fr','Sa','Su'];
+
+  return (
+    <aside className="sidebar">
+      <div className="side-pad side-brand">
+        <div className="brand-mark">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.2">
+            <path d="M5 4h10a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4V4z"/>
+            <path d="M5 4v12a4 4 0 0 0 4 4" opacity=".5"/>
+            <path d="M9 9h6M9 12h4" strokeLinecap="round" opacity=".7"/>
+          </svg>
+        </div>
+        <div className="brand-stack">
+          <div className="brand-line serif">Dosto<em>yevsky</em></div>
+          <div className="brand-meta sc">Reflecta · personal journal</div>
+        </div>
+      </div>
+
+      <div className="streak-row side-pad">
+        <div className="streak-left">
+          <div className="streak-num serif">{streak}</div>
+          <div className="streak-label">
+            <div className="sc">day streak</div>
+            <div className="streak-sub">{D.total_entries} entries · {D.this_month_count} this month</div>
+          </div>
+        </div>
+        <div className="streak-pips" aria-hidden>
+          {Array.from({length: 7}, (_,i) => {
+            const d = new Date(D.TODAY); d.setDate(d.getDate() - (6-i));
+            const ds = D.ymd(d);
+            const cat = moodMap[ds];
+            return <span key={i} className={`pip ${cat || 'empty'}`} title={ds}></span>;
+          })}
+        </div>
+      </div>
+
+      <div className="week-strip side-pad">
+        {weekCells.map((c,i) => (
+          <button key={i}
+            disabled={!moodMap[c.ds] || c.isFuture}
+            onClick={() => moodMap[c.ds] && onSelect(c.ds)}
+            className={`week-cell ${c.isToday ? 'is-today' : ''} ${selected === c.ds ? 'is-active' : ''} ${moodMap[c.ds] ? 'has-entry' : ''} ${c.isFuture ? 'is-future' : ''}`}>
+            <div className="week-letter">{dayLetters[i]}</div>
+            <div className="week-num serif">{c.d.getDate()}</div>
+            {moodMap[c.ds] && <span className={`week-dot ${c.mood}`}></span>}
+          </button>
+        ))}
+      </div>
+
+      <div className="search-bar side-pad">
+        <span className="search-ico"><Icon.Search /></span>
+        <input
+          className="search-input"
+          placeholder="Search entries, mood, words…"
+          value={query}
+          onChange={e => setQuery(e.target.value)} />
+        {query && <button className="search-clear" onClick={() => setQuery('')}>×</button>}
+      </div>
+
+      <div className="entry-list">
+        {groups.length === 0 && (
+          <div className="entry-empty">
+            <div className="serif" style={{fontSize:'18px', marginBottom: 4}}>Nothing found</div>
+            <div className="sc">try another word</div>
+          </div>
+        )}
+        {groups.map(([key, items]) => (
+          <div className="entry-group" key={key}>
+            <div className="entry-group-head">
+              <span className="sc">{fmtMonth(key)}</span>
+              <span className="entry-group-count sc">{items.length}</span>
+            </div>
+            {items.map(e => {
+              const isActive = e.date === selected;
+              const isToday = e.date === today;
+              return (
+                <button key={e.date} className={`entry-row ${isActive ? 'active' : ''}`} onClick={() => onSelect(e.date)}>
+                  <div className={`entry-stripe ${e.mood_cat}`}></div>
+                  <div className="entry-body">
+                    <div className="entry-date-line">
+                      <span className="entry-num serif">{e.js_date.getDate()}</span>
+                      <span className="entry-day sc">{e.day_name}</span>
+                      {isToday && <span className="today-tag sc">today</span>}
+                    </div>
+                    <div className="entry-preview serif">{e.preview}</div>
+                    <div className="entry-foot">
+                      <span className={`mood-tag mood-${e.mood_cat}`}>{e.mood}</span>
+                      <span className="entry-words sc">{e.word_count} words</span>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      <div className="side-foot side-pad">
+        <a className="foot-link sc" href="#"><Icon.Back /> back to CassanovaL</a>
+      </div>
+    </aside>
+  );
+}
+
+/* ─────────────────────────────────────────── Page (entry view) */
+function Page({ entry, moodWash, layout, onAsk }) {
+  if (!entry) return <EmptyPage />;
+
+  const contentHtml = useMemo(() => renderMd(entry.content, { dropCap: true }), [entry.content]);
+  const firstChar = entry.content.replace(/^[#*>\-\s]+/,'').charAt(0);
+
+  return (
+    <div className={`page-wrap layout-${layout}`}>
+      <article className={`page ${moodWash !== 'off' ? `wash-${moodWash}` : ''} mood-${entry.mood_cat}`}>
+        <header className="page-head">
+          <div className="page-head-row">
+            <span className="sc page-head-date">
+              <span className={`mood-dot ${entry.mood_cat}`}></span>
+              {entry.day_name} · {entry.date_label}
+            </span>
+            <span className="sc page-head-meta">{entry.word_count} words · {entry.mood}</span>
+          </div>
+          <h1 className="page-title serif">
+            <span className="page-title-num">№ {String(D.entries.indexOf(entry) + 1).padStart(2,'0')}</span>
+          </h1>
+        </header>
+
+        <div className="page-body serif" data-firstchar={firstChar}>
+          <div className="page-content" dangerouslySetInnerHTML={{__html: contentHtml}} />
+        </div>
+
+        <footer className="page-foot">
+          <span className="sc">— page {D.entries.indexOf(entry) + 1} of {D.total_entries} —</span>
+        </footer>
+      </article>
+
+      {layout === 'marginalia' && <Marginalia entry={entry} onAsk={onAsk} />}
+    </div>
+  );
+}
+
+function EmptyPage() {
+  return (
+    <div className="page-wrap">
+      <div className="page-empty">
+        <div className="page-empty-mark serif">٭</div>
+        <div className="page-empty-title serif">Page waiting.</div>
+        <div className="page-empty-sub">Select an entry on the left, or start telling Reflecta below.</div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────── Marginalia */
+function Marginalia({ entry, onAsk }) {
+  const questions = useMemo(() => questionsFor(entry), [entry]);
+  const themes = useMemo(() => themesFor(entry), [entry]);
+  const related = useMemo(() => {
+    return D.entries.filter(e => e.mood_cat === entry.mood_cat && e.date !== entry.date).slice(0, 2);
+  }, [entry]);
+
+  return (
+    <aside className="margin">
+      <section className="margin-block">
+        <div className="margin-label sc">mood</div>
+        <div className="margin-mood serif">{entry.mood}</div>
+        <div className={`mood-bar ${entry.mood_cat}`}></div>
+      </section>
+
+      <section className="margin-block">
+        <div className="margin-label sc">themes</div>
+        <div className="margin-themes">
+          {themes.map(t => <span key={t} className="theme-tag serif">{t}</span>)}
+        </div>
+      </section>
+
+      <section className="margin-block margin-q">
+        <div className="margin-label sc">
+          <span className="margin-r"><Icon.Sparkle /></span>
+          reflecta asks
+        </div>
+        {questions.map((q, i) => (
+          <button key={i} className="margin-question" onClick={() => onAsk(q)}>
+            <span className="serif">{q}</span>
+            <span className="margin-q-arrow"><Icon.Arrow /></span>
+          </button>
+        ))}
+      </section>
+
+      {related.length > 0 && (
+        <section className="margin-block">
+          <div className="margin-label sc">you've written about this too</div>
+          {related.map(r => (
+            <div key={r.date} className="margin-related">
+              <div className="margin-rel-date sc">{r.date_label} · {r.mood}</div>
+              <div className="margin-rel-preview serif">{r.preview.slice(0,90)}…</div>
+            </div>
+          ))}
+        </section>
+      )}
+    </aside>
+  );
+}
+
+function questionsFor(entry) {
+  // Simple heuristics for varied AI-style follow-ups
+  const cat = entry.mood_cat;
+  const pool = {
+    positive: [
+      'What made today different from yesterday?',
+      'Which part would you want to repeat tomorrow?',
+      'Who contributed to this feeling?',
+    ],
+    negative: [
+      'What weighs more — the situation itself or how you think about it?',
+      'What small thing could you do right now?',
+      'Has this feeling recovered before? How?',
+    ],
+    neutral: [
+      'What haven\'t you said yet in this entry?',
+      'If today had one word, what would it be?',
+      'What are you actually avoiding thinking about?',
+    ],
+  };
+  return (pool[cat] || pool.neutral).slice(0, 2);
+}
+
+function themesFor(entry) {
+  // Cheap keyword pluck for demo polish
+  const t = entry.content.toLowerCase();
+  const tags = [];
+  if (/mother|family|friend|sister|brother|parent/.test(t)) tags.push('relationships');
+  if (/work|meeting|office|client|proposal|email/.test(t)) tags.push('work');
+  if (/sleep|tired|migraine|anxious|sick|pain/.test(t)) tags.push('body');
+  if (/read|book|write|story|page|chapter/.test(t)) tags.push('reading·writing');
+  if (/rain|afternoon|morning|walk|porch|nature/.test(t)) tags.push('nature');
+  if (/reflect|life|grow|clarity|meaning|purpose/.test(t)) tags.push('reflection');
+  return tags.length ? tags : ['—'];
+}
+
+/* ─────────────────────────────────────────── Composer */
+function Composer({ onSend, busy, suggestions }) {
+  const [val, setVal] = useState('');
+  const [open, setOpen] = useState(false);
+  const taRef = useRef(null);
+
+  function send() {
+    const v = val.trim();
+    if (!v || busy) return;
+    onSend(v);
+    setVal('');
+    setOpen(false);
+    if (taRef.current) taRef.current.style.height = '';
+  }
+
+  function onKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.metaKey) { e.preventDefault(); send(); }
+  }
+  function onInput(e) {
+    setVal(e.target.value);
+    const ta = e.target;
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 160) + 'px';
+  }
+
+  return (
+    <div className={`composer ${open ? 'open' : ''}`}>
+      {open && (
+        <div className="composer-chips">
+          {suggestions.map((s, i) => (
+            <button key={i} className="chip" onClick={() => { setVal(s); taRef.current?.focus(); }}>{s}</button>
+          ))}
+        </div>
+      )}
+      <div className="composer-row">
+        <div className="composer-r">
+          <Icon.Sparkle />
+        </div>
+        <textarea
+          ref={taRef}
+          className="composer-ta serif"
+          placeholder="Reflecta is listening. Tell me about your day…"
+          value={val}
+          onFocus={() => setOpen(true)}
+          onChange={onInput}
+          onKeyDown={onKey}
+          rows={1}
+        />
+        <button
+          className="composer-send"
+          disabled={!val.trim() || busy}
+          onClick={send}>
+          {busy ? <span className="dots"><span></span><span></span><span></span></span> : <Icon.Send />}
+        </button>
+      </div>
+      <div className="composer-foot sc">
+        <span>↵ send · ⇧↵ new line</span>
+        <span className="composer-foot-r">{busy ? 'Reflecta is writing…' : 'auto-saved'}</span>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────── Topbar */
+function Topbar({ theme, onTheme, entry, onNew, onHistory }) {
+  const updated = useMemo(() => new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}), [entry?.date]);
+  return (
+    <header className="topbar">
+      <div className="top-l">
+        <span className="sc top-crumb">Journal</span>
+        <span className="top-sep">/</span>
+        <span className="serif top-here">{entry ? entry.date_label : 'Empty page'}</span>
+      </div>
+      <div className="top-r">
+        <span className="sc top-saved">synced · {updated}</span>
+        <button className="icon-btn" onClick={onHistory} title="Past conversations"><Icon.History /></button>
+        <button className="icon-btn" onClick={onNew} title="New entry"><Icon.Plus /></button>
+        <button className="icon-btn" onClick={onTheme} title="Theme">
+          {theme === 'dark' ? <Icon.Sun /> : <Icon.Moon />}
+        </button>
+      </div>
+    </header>
+  );
+}
+
+/* ─────────────────────────────────────────── Reflecta drawer (chat + history) */
+function ChatDrawer({
+  messages, busy, open, onClose,
+  view, onShowHistory, onShowChat,
+  conversations, convosLoading, activeConvoId, onReopen,
+}) {
+  if (!open) return null;
+  const isHistory = view === 'history';
+  return (
+    <div className="chat-drawer">
+      <div className="chat-drawer-head">
+        <div className="chat-drawer-title">
+          {isHistory ? (
+            <>
+              <div className="sc">past conversations</div>
+              <div className="serif" style={{fontSize:'18px', color:'var(--accent)', fontStyle:'italic'}}>History</div>
+            </>
+          ) : (
+            <>
+              <div className="sc">conversation with</div>
+              <div className="serif" style={{fontSize:'18px', color:'var(--accent)', fontStyle:'italic'}}>Reflecta</div>
+            </>
+          )}
+        </div>
+        <div className="chat-drawer-actions">
+          {isHistory ? (
+            <button className="icon-btn" onClick={onShowChat} title="Back to current chat"><Icon.Back /></button>
+          ) : (
+            <button className="icon-btn" onClick={onShowHistory} title="Past conversations"><Icon.History /></button>
+          )}
+          <button className="icon-btn" onClick={onClose} title="Close">×</button>
+        </div>
+      </div>
+
+      {isHistory ? (
+        <div className="chat-drawer-body history-body">
+          {convosLoading && <div className="chat-empty sc">loading conversations…</div>}
+          {!convosLoading && conversations.length === 0 && (
+            <div className="chat-empty">
+              <div className="serif" style={{fontSize:'17px', marginBottom: 4}}>No past conversations</div>
+              <div className="sc">talk to Reflecta and they'll appear here</div>
+            </div>
+          )}
+          {!convosLoading && conversations.map(c => (
+            <button
+              key={c.id}
+              className={`convo-card ${c.id === activeConvoId ? 'is-active' : ''}`}
+              onClick={() => onReopen(c)}>
+              <div className="convo-card-top">
+                <span className="convo-card-date sc">{c.date_label} · {c.time}</span>
+                <span className="convo-card-count sc">{c.turn_count} {c.turn_count === 1 ? 'turn' : 'turns'}</span>
+              </div>
+              <div className="convo-card-title serif">{c.title}</div>
+              <span className="convo-card-reopen sc">reopen <Icon.Arrow /></span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="chat-drawer-body">
+          {messages.length === 0 && <div className="chat-empty sc">no messages yet — say something below</div>}
+          {messages.map((m, i) => (
+            <div key={i} className={`chat-msg ${m.role}`}>
+              <div className="chat-msg-author sc">{m.role === 'user' ? 'you' : 'reflecta'} · {m.time}</div>
+              <div className="chat-msg-body serif">{m.text}</div>
+            </div>
+          ))}
+          {busy && <div className="chat-msg agent"><div className="chat-msg-body"><span className="dots"><span></span><span></span><span></span></span></div></div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────── App */
+function App() {
+  const [t, setTweak] = (window.useTweaks || ((d) => [d, () => {}]))(TWEAK_DEFAULTS);
+  const [theme, setTheme] = useState(() => localStorage.getItem('dostoy-theme') || 'light');
+  const [selected, setSelected] = useState(D.entries[0]?.date || null);
+  const [query, setQuery] = useState('');
+  const [chatBusy, setChatBusy] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatView, setChatView] = useState('chat'); // 'chat' | 'history'
+  const [convos, setConvos] = useState([]);
+  const [convosLoading, setConvosLoading] = useState(false);
+  const [activeConvoId, setActiveConvoId] = useState(null);
+  const [tick, setTick] = useState(0); // bump to re-render after live data refresh
+
+  async function loadConversations() {
+    setConvosLoading(true);
+    try {
+      const res = await fetch('/api/journal/conversations', { headers: { 'Cache-Control': 'no-cache' } });
+      const data = await res.json();
+      setConvos(Array.isArray(data.conversations) ? data.conversations : []);
+    } catch (e) {
+      console.error('[journal] conversations fetch failed:', e);
+      setConvos([]);
+    } finally {
+      setConvosLoading(false);
+    }
+  }
+
+  function openHistory() {
+    setChatOpen(true);
+    setChatView('history');
+    loadConversations();
+  }
+
+  function reopenConversation(c) {
+    setChatMessages(c.messages.map(m => ({ ...m })));
+    setActiveConvoId(c.id);
+    setChatView('chat');
+  }
+
+  // BroadcastChannel: refresh when the main hub or another tab sends a journal message
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined' || !window.loadJournalData) return;
+    const bc = new BroadcastChannel('cassanoval-sync');
+    bc.onmessage = async (e) => {
+      if (e.data?.agent === 'journal') {
+        await window.loadJournalData();
+        setTick(x => x + 1);
+        if (D.today?.date) setSelected(D.today.date);
+      }
+    };
+    return () => bc.close();
+  }, []);
+
+  // Auto-refresh every 30 seconds so fresh entries appear without user action
+  useEffect(() => {
+    if (!window.loadJournalData) return;
+    const id = setInterval(async () => {
+      await window.loadJournalData();
+      setTick(x => x + 1);
+    }, 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.documentElement.style.setProperty('--accent', t.accent);
+    document.documentElement.style.setProperty('--accent-soft', hexToAlpha(t.accent, 0.10));
+    document.documentElement.style.setProperty('--accent-line', hexToAlpha(t.accent, 0.28));
+    localStorage.setItem('dostoy-theme', theme);
+  }, [theme, t.accent]);
+
+  const entry = D.entries.find(e => e.date === selected) || null;
+
+  async function askReflecta(q) {
+    const stamp = () => new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    setChatOpen(true);
+    setChatView('chat');
+    setChatMessages(m => [...m, { role: 'user', text: q, time: stamp() }]);
+    setChatBusy(true);
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: q, agent: 'journal' }),
+      });
+      const data = await res.json();
+      setChatMessages(m => [...m, { role: 'agent', text: data.response || data.detail || 'Maaf, ada kendala memproses pesanmu.', time: stamp() }]);
+      // Let the agent's file writes flush, then refresh the live journal so a
+      // newly written entry appears in the sidebar/page.
+      await new Promise(r => setTimeout(r, 700));
+      if (window.loadJournalData) {
+        await window.loadJournalData();
+        setTick(x => x + 1);
+        if (D.today && D.today.date) setSelected(D.today.date);
+      }
+      // Refresh the saved-conversation list so this turn is reopenable later.
+      loadConversations();
+    } catch (e) {
+      setChatMessages(m => [...m, { role: 'agent', text: '\u26a0 Koneksi error: ' + e.message, time: stamp() }]);
+    } finally {
+      setChatBusy(false);
+    }
+  }
+
+  return (
+    <div className="app">
+      <Sidebar
+        entries={D.entries}
+        selected={selected}
+        onSelect={d => { setSelected(d); }}
+        query={query}
+        setQuery={setQuery}
+        streak={D.streak}
+        today={D.today?.date}
+      />
+      <div className="main">
+        <Topbar
+          theme={theme}
+          onTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          entry={entry}
+          onNew={() => { setSelected(null); }}
+          onHistory={openHistory}
+        />
+        <div className="page-scroll">
+          <Page entry={entry} moodWash={t.moodWash} layout={t.layout} onAsk={askReflecta} />
+        </div>
+        <Composer
+          onSend={askReflecta}
+          busy={chatBusy}
+          suggestions={[
+            'Today I feel…',
+            '3 things I\'m grateful for',
+            'Give me an interesting prompt',
+            'What\'s my mood pattern this week?',
+          ]}
+        />
+      </div>
+
+      <ChatDrawer
+        messages={chatMessages}
+        busy={chatBusy}
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+        view={chatView}
+        onShowHistory={openHistory}
+        onShowChat={() => setChatView('chat')}
+        conversations={convos}
+        convosLoading={convosLoading}
+        activeConvoId={activeConvoId}
+        onReopen={reopenConversation}
+      />
+
+      {window.TweaksPanel && (
+        <window.TweaksPanel title="Tweaks" defaultOpen={false}>
+          <window.TweakSection title="Layout">
+            <window.TweakRadio label="Layout" value={t.layout}
+              options={['marginalia','wide']}
+              onChange={v => setTweak('layout', v)} />
+          </window.TweakSection>
+          <window.TweakSection title="Mood">
+            <window.TweakRadio label="Wash mood" value={t.moodWash}
+              options={['off','soft','bold']}
+              onChange={v => setTweak('moodWash', v)} />
+          </window.TweakSection>
+          <window.TweakSection title="Accent">
+            <window.TweakColor
+              label="Accent color"
+              value={t.accent}
+              onChange={v => setTweak('accent', v)}
+              options={['#6B4D6E','#9F4F3D','#3F5D45','#1A1612','#2F4F6B']} />
+          </window.TweakSection>
+        </window.TweaksPanel>
+      )}
+    </div>
+  );
+}
+
+function mockReply(q) {
+  const ql = q.toLowerCase();
+  if (/grateful/.test(ql)) return 'Three things today — hot coffee, a message from home, and the sentence you finally found. Should I note that?';
+  if (/prompt/.test(ql)) return 'Try this: write about one thing you avoided today, and one thing you moved toward. Just three sentences each.';
+  if (/mood|pattern/.test(ql)) return 'This week has more "calm" days than last month, but on consecutive Tuesday evenings you wrote "tired". There might be a sleep pattern there.';
+  if (/save/.test(ql)) return 'Saved. I marked it as today\'s entry. Want me to add a title?';
+  return 'I\'m listening. Tell me more — what stood out most about that moment for you?';
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);

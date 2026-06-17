@@ -627,7 +627,7 @@ def make_darwin(topic: str) -> Agent:
             "- Every factual claim must have [Ref N]\n"
             "- Min 8 references, 5+ must be primary academic sources with URLs\n"
             "- Omit 'Evidence Assessment' section in Quick and Deep modes\n"
-            "- Language: Bahasa Indonesia if topic was asked in Indonesian, English otherwise\n"
+            "- Language: English\n"
             "Save using file_writer."
         ),
         tools=[file_writer],
@@ -891,7 +891,7 @@ def make_darwin_task(
             "Rules:\n"
             "- 900–1300 words\n"
             "- Every factual claim: [Ref N]\n"
-            "- Language: Bahasa Indonesia if topic is in Indonesian, English otherwise\n"
+            "- Language: English\n"
             "Save with file_writer."
         ),
         expected_output=(
@@ -1312,10 +1312,10 @@ def make_critic_agent(topic: str) -> Agent:
             "- Missing perspectives or systematic blind spots\n"
             "- Structural breaks in reading flow\n\n"
             "Format your output:\n"
-            "## CATATAN KRITIK\n"
+            "## CRITIQUE NOTES\n"
             "[Issue N]: [location] → [problem] → [fix applied]\n\n"
             "---\n\n"
-            "## SINTESIS YANG DISEMPURNAKAN\n"
+            "## REFINED SYNTHESIS\n"
             "[Full refined synthesis with all issues corrected]\n\n"
             "Key rule: soften, do not remove. Replace 'X causes Y' with "
             "'X is associated with Y' where causation is unproven."
@@ -1345,15 +1345,15 @@ def make_writer(topic: str) -> Agent:
             "**Research Mode:** [ACADEMIC / GENERAL / HYBRID]\n"
             "**Date:** [today's date]\n"
             "**Confidence:** [High / Medium / Low] — [one-line rationale]\n\n"
-            "## Ringkasan Eksekutif\n"
+            "## Executive Summary\n"
             "[3–5 sentences answering the core question directly]\n\n"
-            "## Temuan Utama\n"
+            "## Key Findings\n"
             "[Numbered: bold claim → explanation → [Ref N]]\n\n"
             "## [Thematic sections — 2–4, based on the synthesis]\n"
             "[Flowing prose, every factual claim cited with [Ref N]]\n\n"
-            "## Pertanyaan Terbuka & Celah Riset\n"
+            "## Open Questions & Research Gaps\n"
             "[From Validator's DATA GAPS — what remains unknown or contested]\n\n"
-            "## Referensi\n"
+            "## References\n"
             "[N] Author. 'Title'. Journal/Outlet/Publisher, Year. URL: <full clickable URL>\n\n"
             "Rules:\n"
             "- 800–1200 words for the main body\n"
@@ -1363,7 +1363,7 @@ def make_writer(topic: str) -> Agent:
             "- Include any Semantic Scholar articles from [SS-N] entries in the reference list "
             "using their DOI or semanticscholar.org URL\n"
             "- Every factual claim must have [Ref N]\n"
-            "- Language: Bahasa Indonesia if topic was asked in Indonesian, English otherwise"
+            "- Language: English"
         ),
         tools=[file_writer, openlibrary_tool, semantic_scholar_tool],
         allow_delegation=False,
@@ -1559,17 +1559,17 @@ def make_critique_task_p3(topic: str, agent: Agent, synth_task: Task) -> Task:
             "- Missing perspectives or systematic blind spots\n"
             "- Structural breaks in reading flow\n\n"
             "OUTPUT FORMAT (mandatory):\n"
-            "## CATATAN KRITIK\n"
+            "## CRITIQUE NOTES\n"
             "[Issue N]: [specific location] → [problem] → [fix applied]\n\n"
             "---\n\n"
-            "## SINTESIS YANG DISEMPURNAKAN\n"
+            "## REFINED SYNTHESIS\n"
             "[Full refined synthesis with every issue corrected]\n\n"
             "Rule: soften, do not remove. "
             "'X causes Y' → 'X is associated with Y' where causation is unproven."
         ),
         expected_output=(
-            "Two sections: CATATAN KRITIK (numbered issues with fixes) "
-            "and SINTESIS YANG DISEMPURNAKAN (complete refined synthesis)."
+            "Two sections: CRITIQUE NOTES (numbered issues with fixes) "
+            "and REFINED SYNTHESIS (complete refined synthesis)."
         ),
         agent=agent,
         context=[synth_task],
@@ -1587,15 +1587,15 @@ def make_write_task(topic: str, agent: Agent, critique_task: Task) -> Task:
             "**Research Mode:** [ACADEMIC / GENERAL / HYBRID]\n"
             "**Date:** [today's date]\n"
             "**Confidence:** [High / Medium / Low] — [one-line rationale]\n\n"
-            "## Ringkasan Eksekutif\n"
+            "## Executive Summary\n"
             "[3–5 sentences directly answering the core question]\n\n"
-            "## Temuan Utama\n"
+            "## Key Findings\n"
             "[Numbered: bold claim → explanation → [Ref N]]\n\n"
             "## [2–4 thematic sections based on synthesis content]\n"
             "[Flowing prose, every factual claim cited with [Ref N]]\n\n"
-            "## Pertanyaan Terbuka & Celah Riset\n"
+            "## Open Questions & Research Gaps\n"
             "[From Validator's DATA GAPS — what remains unknown or contested]\n\n"
-            "## Referensi\n"
+            "## References\n"
             "[N] Author. 'Title'. Journal/Outlet, Year. URL: <full clickable URL>\n\n"
             "RULES:\n"
             "- 800–1200 words for the main body\n"
@@ -1603,7 +1603,7 @@ def make_write_task(topic: str, agent: Agent, critique_task: Task) -> Task:
             "- Include [OL-N] books from context using their openlibrary.org URL\n"
             "- Include [SS-N] articles from context using their DOI or semanticscholar.org URL\n"
             "- Every factual claim must have [Ref N] inline\n"
-            "- Language: Bahasa Indonesia if topic was in Indonesian, English otherwise\n"
+            "- Language: English\n"
             "Save using file_writer."
         ),
         expected_output=(

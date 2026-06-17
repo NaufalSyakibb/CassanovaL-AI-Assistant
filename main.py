@@ -38,6 +38,10 @@ BANNER = """
 """
 
 HELP_TEXT = """
+Special commands:
+  history <agent>  — show the full conversation history for an agent
+                     e.g. "history davinci", "history fitness"
+
 Example commands:
   Tasks    : "add task: beli sayuran, high priority"
              "show my pending tasks"
@@ -49,7 +53,7 @@ Example commands:
 
   News     : "what's the news today?"
              "latest tech news"
-             "berita hari ini"
+             "what happened in AI this week?"
 
   Coding   : "explain Python decorators"
              "how does useEffect work in React?"
@@ -59,14 +63,14 @@ Example commands:
              "create meeting tomorrow 10am-11am"
              "list events this week"
 
-  Budget   : "tambah pengeluaran 50000 untuk makan siang"
+  Budget   : "add expense 50000 for lunch"
              "show my monthly summary"
              "add income 5000000 salary"
 
-  Da Vinci : "aku punya ide gila tentang app baru"
-             "brainstorm ide untuk konten kreator"
-             "kembangkan ide startup yang tadi"
-             "lihat semua ide yang sudah aku simpan"
+  Da Vinci : "I have a wild idea for a new app"
+             "brainstorm ideas for a content creator"
+             "expand the startup idea from before"
+             "show all the ideas I've saved"
 """
 
 
@@ -111,6 +115,27 @@ def main():
 
         if user_input.lower() == "help":
             print(HELP_TEXT)
+            continue
+
+        if user_input.lower().startswith("history"):
+            parts = user_input.split(maxsplit=1)
+            target = parts[1].strip().lower() if len(parts) > 1 else (pinned or "")
+            if not target or target not in AGENT_ICONS:
+                print(f"\nUsage: history <agent>")
+                print(f"Available agents: {', '.join(AGENT_ICONS.keys())}\n")
+                continue
+            msgs = router.get_history(target)
+            if not msgs:
+                print(f"\nNo history for [{target}] yet.\n")
+                continue
+            icon = AGENT_ICONS.get(target, f"[ {target.upper()} ]")
+            print(f"\n{'─'*54}")
+            print(f"  Full history — {icon.strip()}  ({len(msgs)//2} exchanges)")
+            print(f"{'─'*54}")
+            for i, m in enumerate(msgs, 1):
+                label = "You" if m["role"] == "human" else icon.strip()
+                print(f"\n[{i}] {label}:\n{m['content']}")
+            print(f"\n{'─'*54}\n")
             continue
 
         try:

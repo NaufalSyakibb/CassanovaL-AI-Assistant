@@ -66,21 +66,21 @@ def detect_habits_from_journal(entry_date: str, journal_text: str) -> str:
     from langchain_mistralai import ChatMistralAI
     from langchain_core.messages import HumanMessage
 
-    prompt = f"""Analisis entri jurnal berikut dan identifikasi kebiasaan atau rutinitas yang SUDAH DILAKUKAN hari ini.
+    prompt = f"""Analyze the following journal entry and identify habits or routines that were ACTUALLY COMPLETED today.
 
-Hanya sertakan kebiasaan yang benar-benar diselesaikan, bukan yang direncanakan atau gagal.
-Untuk setiap kebiasaan, tentukan frekuensi yang tersirat dari konteks:
-- "daily" jika disebutkan sebagai rutinitas setiap hari
-- "weekly" jika mingguan
-- "occasional" jika tidak ada pola frekuensi yang jelas
+Only include habits that were genuinely completed, not planned or failed attempts.
+For each habit, determine the frequency implied by context:
+- "daily" if mentioned as an everyday routine
+- "weekly" if weekly
+- "occasional" if no clear frequency pattern is present
 
-Kembalikan HANYA JSON array. Contoh:
-[{{"name": "exercise", "display_name": "Olahraga", "frequency": "daily"}}]
+Return ONLY a JSON array. Example:
+[{{"name": "exercise", "display_name": "Exercise", "frequency": "daily"}}]
 
-Jika tidak ada kebiasaan yang terdeteksi, kembalikan: []
+If no habits are detected, return: []
 
-Tanggal: {entry_date}
-Entri jurnal:
+Date: {entry_date}
+Journal entry:
 {journal_text}"""
 
     try:

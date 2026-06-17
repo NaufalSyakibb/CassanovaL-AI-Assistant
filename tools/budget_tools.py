@@ -672,6 +672,40 @@ def get_recurring() -> str:
     return "\n".join(lines)
 
 
+# ── Plain delete helpers (used by the REST API, not exposed as agent tools) ──
+
+def _delete_by_id(collection: str, item_id: str) -> bool:
+    """Remove an item by its id from a top-level collection. Returns True if removed."""
+    data = _load()
+    items = data.get(collection, [])
+    new_items = [x for x in items if x.get("id") != item_id]
+    if len(new_items) == len(items):
+        return False
+    data[collection] = new_items
+    _save(data)
+    return True
+
+
+def delete_account(account_id: str) -> bool:
+    """Delete a financial account by id."""
+    return _delete_by_id("accounts", account_id)
+
+
+def delete_budget_goal(goal_id: str) -> bool:
+    """Delete a budget goal by id."""
+    return _delete_by_id("budget_goals", goal_id)
+
+
+def delete_investment(investment_id: str) -> bool:
+    """Delete an investment holding by id."""
+    return _delete_by_id("investments", investment_id)
+
+
+def delete_recurring(recurring_id: str) -> bool:
+    """Delete a recurring bill/subscription by id."""
+    return _delete_by_id("recurring", recurring_id)
+
+
 # ── Tool registry ─────────────────────────────────────────────────────────────
 
 BUDGET_TOOLS = [

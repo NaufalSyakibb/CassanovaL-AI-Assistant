@@ -567,6 +567,63 @@ body {
 .inline-save:disabled { opacity: 0.45; cursor: not-allowed; }
 .inline-cancel-btn { padding: 4px 8px; border-radius: 6px; border: 1px solid var(--rule); background: transparent; color: var(--ink-3); font: inherit; font-size: 11px; cursor: pointer; }
 
+/* ── Section add toggle button ── */
+.sec-add-btn {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--mansa); background: var(--mansa-soft);
+  border: 1px solid var(--mansa-line); border-radius: 7px; padding: 5px 12px;
+  cursor: pointer; transition: all 0.15s;
+}
+.sec-add-btn:hover { background: var(--mansa); color: var(--paper); }
+
+/* ── Row delete button ── */
+.row-del {
+  background: transparent; border: none; color: var(--ink-4); cursor: pointer;
+  font-size: 13px; line-height: 1; padding: 4px 6px; border-radius: 6px;
+  opacity: 0; transition: opacity 0.15s, color 0.15s, background 0.15s; justify-self: end;
+}
+.account-row:hover .row-del,
+.txn-row:hover .row-del,
+.rec-row:hover .row-del,
+.goal-row:hover .row-del,
+.portfolio-row:hover .row-del { opacity: 1; }
+.row-del:hover { color: var(--red); background: var(--clay-soft); }
+.row-edit {
+  background: transparent; border: 1px solid var(--rule); color: var(--ink-4);
+  cursor: pointer; font-size: 9px; font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase; letter-spacing: 0.08em; padding: 2px 7px;
+  border-radius: 5px; transition: all 0.15s;
+}
+.row-edit:hover { border-color: var(--mansa-line); color: var(--mansa); }
+
+/* ── Finan Smart AI advice panel ── */
+.advice-card {
+  display: flex; gap: 16px; align-items: flex-start;
+  padding: 20px 22px; border: 1px solid var(--mansa-line);
+  background: linear-gradient(135deg, var(--mansa-soft), transparent);
+  border-radius: 14px; margin-bottom: 28px;
+}
+.advice-spark {
+  flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 18px;
+  background: var(--mansa); color: var(--paper);
+}
+.advice-body { flex: 1; }
+.advice-label { color: var(--mansa); margin-bottom: 5px; display: flex; align-items: center; gap: 7px; }
+.advice-text { font-family: 'Instrument Serif', serif; font-size: 18px; line-height: 1.5; color: var(--ink); letter-spacing: -0.01em; }
+.advice-text.loading { color: var(--ink-4); font-style: italic; }
+.advice-pill { font-family: 'JetBrains Mono', monospace; font-size: 9px; padding: 1px 7px; border-radius: 100px; border: 1px solid var(--mansa-line); color: var(--mansa); }
+
+/* ── Toast ── */
+#toast-wrap { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.toast {
+  background: var(--ink); color: var(--paper); font-size: 13px; padding: 10px 18px;
+  border-radius: 100px; box-shadow: var(--shadow-3); animation: fadeUp 0.25s ease-out;
+  font-family: 'Inter', sans-serif; max-width: 80vw;
+}
+.toast.err { background: var(--red); }
+.toast.ok { background: var(--green); }
+
 /* ── Empty / loading states ── */
 .empty {
   color: var(--ink-4);
@@ -887,6 +944,58 @@ const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(
 
 const LIABILITY_TYPES = new Set(['credit_card','loan']);
 
+const EXPENSE_CATEGORIES = ['food','transport','shopping','entertainment','bills','health','education','subscriptions','savings','other'];
+const INCOME_CATEGORIES  = ['salary','freelance','business','investment','gift','other'];
+const INVESTMENT_TYPES   = ['stock','crypto','bond','reksadana','etf','other'];
+const FREQUENCY_TYPES    = ['daily','weekly','monthly','quarterly','yearly'];
+
+// ── Toast feedback ──
+function toast(msg, kind = 'ok') {
+  let wrap = document.getElementById('toast-wrap');
+  if (!wrap) { wrap = document.createElement('div'); wrap.id = 'toast-wrap'; document.body.appendChild(wrap); }
+  const t = document.createElement('div');
+  t.className = `toast ${kind}`;
+  t.textContent = msg;
+  wrap.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 300); }, 2600);
+}
+
+// ── REST helpers ──
+async function apiPost(url, body) {
+  const res = await fetch(url, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+  return data;
+}
+async function apiDelete(url) {
+  const res = await fetch(url, { method: 'DELETE' });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+  return data;
+}
+
+// Toggle a collapsible inline form by id
+function toggleForm(id, btn) {
+  const f = document.getElementById(id);
+  if (!f) return;
+  const show = f.style.display === 'none' || !f.style.display;
+  f.style.display = show ? 'block' : 'none';
+  if (show) { f.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); f.querySelector('input,select')?.focus(); }
+}
+
+// Build <option> markup from a list, optional selected value
+function optsFrom(list, sel) {
+  return list.map(v => `<option value="${v}"${v === sel ? ' selected' : ''}>${v}</option>`).join('');
+}
+// Account name <option>s from current dashboard data (with an empty default)
+function accountOptions() {
+  const accs = (_dashData?.accounts) || [];
+  return `<option value="">— tanpa rekening —</option>` + accs.map(a => `<option value="${esc(a.name)}">${esc(a.name)}</option>`).join('');
+}
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+
 // ── Theme ──
 function initTheme() {
   const saved = localStorage.getItem('cassanoval-theme') || 'light';
@@ -996,6 +1105,13 @@ function renderOverview(el, d) {
   const nw = d.net_worth || 0;
 
   el.innerHTML = `
+  <div class="advice-card">
+    <div class="advice-spark">✦</div>
+    <div class="advice-body">
+      <div class="advice-label sc">Finan Smart AI <span class="advice-pill" id="advice-pill">Mansa</span></div>
+      <div class="advice-text loading" id="advice-text">Menganalisis keuanganmu…</div>
+    </div>
+  </div>
   <div class="section">
     <div class="stats-row">
       <div class="stat">
@@ -1056,6 +1172,29 @@ function renderOverview(el, d) {
 
   initCashFlowChart(d.cash_flow || []);
   initExpensePieChart(d.cat_expense || {});
+  loadAdvice();
+}
+
+// ── Finan Smart AI advice ──
+let _adviceSig = '';
+async function loadAdvice() {
+  const txtEl = document.getElementById('advice-text');
+  const pillEl = document.getElementById('advice-pill');
+  if (!txtEl) return;
+  // Cache by data signature so we don't re-call the LLM on every auto-refresh
+  const d = _dashData || {};
+  const sig = `${d.monthly_income}|${d.monthly_expense}|${(d.budget_goals||[]).length}`;
+  if (sig === _adviceSig && !txtEl.classList.contains('loading')) return;
+  try {
+    const data = await fetch('/api/finance/advice').then(r => r.json());
+    _adviceSig = sig;
+    txtEl.classList.remove('loading');
+    txtEl.textContent = data.advice || 'Tidak ada saran saat ini.';
+    if (pillEl) pillEl.textContent = data.ai ? 'AI · Mistral' : 'Mansa';
+  } catch (e) {
+    txtEl.classList.remove('loading');
+    txtEl.textContent = 'Saran keuangan belum tersedia.';
+  }
 }
 
 function renderAccountsInline(d) {
@@ -1673,5 +1812,8 @@ function autoResize(ta) {
 initTheme();
 loadDashboard();
 </script>
+<link rel="stylesheet" href="/static/shared/convo-history.css">
+<script src="/static/shared/convo-history.js"></script>
+<script>ConvoHistory.mount({ agent: 'budget', label: 'Mansa', accent: '#CC785C' });</script>
 </body>
 </html>

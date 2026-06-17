@@ -1,132 +1,278 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Da Vinci — Ideas Lab</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400&family=Inter:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  /* ============================================================
+     THREE REFINED RENAISSANCE-PAPER DIRECTIONS
+     theme = manuscript (default) | atelier | press
+     ============================================================ */
   :root {
-    --bg:       #EDE8DF;
-    --surface:  #F3EEE5;
-    --paper:    #FAF6EE;
+    --bg:       #E7E1D4;
+    --surface:  #F1EBDF;
+    --paper:    #FBF8F1;
     --white:    #FFFFFF;
-    --ink:      #17171A;
-    --ink2:     #3B3B3F;
-    --dim:      #6B6355;
-    --gold:     #A68A3E;
-    --clay:     #CC785C;
-    --green:    #5E8A6A;
-    --red:      #A65046;
-    --border:   #C8C0B2;
-    --border2:  #D4CCBC;
-    --shadow:   rgba(23,23,26,0.06);
+    --ink:      #1A1813;
+    --ink2:     #3A352B;
+    --dim:      #756C5A;
+    --faint:    #9C9281;
+    --gold:     #9A7B33;
+    --clay:     #C16A4C;
+    --green:    #5C7E5E;
+    --red:      #A6483B;
+    --border:   #CDC4B1;
+    --border2:  #DBD2C0;
+    --hair:     #E3DACA;
+    --shadow:   rgba(26,24,19,0.07);
+
+    --serif:    'Instrument Serif', serif;
+    --serif2:   'Newsreader', serif;
+    --sans:     'Inter', sans-serif;
+    --mono:     'JetBrains Mono', monospace;
+
+    --titleFont: var(--serif);
+    --titleWeight: 400;
+    --radius:    7px;
+    --pad:       28px;
+    --gridGap:   0px;
+    --idePanelW: 326px;
+    --grain:     0.5;
   }
 
+  /* ---- ATELIER: warmer, inkier, ruled, more characterful ---- */
+  [data-theme="atelier"] {
+    --bg:       #E2D7C1;
+    --surface:  #ECE1CB;
+    --paper:    #F6EFDE;
+    --white:    #FBF6EA;
+    --ink:      #211B11;
+    --ink2:     #423829;
+    --dim:      #7A6B4F;
+    --faint:    #A2937A;
+    --gold:     #8C6A28;
+    --clay:     #B2542F;
+    --green:    #5A7647;
+    --red:      #A6432E;
+    --border:   #CBBC9D;
+    --border2:  #D7C9AC;
+    --hair:     #E0D3B8;
+    --titleFont: var(--serif2);
+    --titleWeight: 500;
+    --radius:    4px;
+    --grain:     0.85;
+  }
+
+  /* ---- PRESS: cleaner, editorial, airy, ink-on-cream ---- */
+  [data-theme="press"] {
+    --bg:       #EDE9DF;
+    --surface:  #FFFFFF;
+    --paper:    #FFFFFF;
+    --white:    #FFFFFF;
+    --ink:      #15140F;
+    --ink2:     #36342C;
+    --dim:      #6E685A;
+    --faint:    #A39C8C;
+    --gold:     #8A7320;
+    --clay:     #BC6044;
+    --green:    #4F7355;
+    --red:      #A6483B;
+    --border:   #E0DACB;
+    --border2:  #EAE4D6;
+    --hair:     #EEE9DD;
+    --titleFont: var(--serif2);
+    --titleWeight: 500;
+    --radius:    3px;
+    --pad:       40px;
+    --grain:     0.18;
+  }
+
+  html, body { height: 100%; }
   body {
     background: var(--bg);
-    font-family: 'Inter', sans-serif;
+    font-family: var(--sans);
     font-size: 13px;
     color: var(--ink);
-    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
     display: flex;
     flex-direction: column;
+    position: relative;
   }
 
-  /* ── Header ── */
+  /* faint paper grain over everything */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: var(--grain);
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  }
+
+  ::selection { background: rgba(154,123,51,0.22); }
+
+  /* ───────────────────────── Header ───────────────────────── */
   .header {
     background: var(--ink);
     color: var(--paper);
-    padding: 0 28px;
-    height: 44px;
+    padding: 0 var(--pad);
+    height: 52px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-shrink: 0;
+    position: relative;
   }
-  .header-brand { display: flex; align-items: center; gap: 10px; }
+  .header::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--clay) 0%, var(--gold) 45%, var(--green) 100%);
+    opacity: 0.85;
+  }
+  .header-brand { display: flex; align-items: baseline; gap: 12px; }
   .header-logo {
-    font-family: 'Instrument Serif', serif;
-    font-size: 20px;
+    font-family: var(--serif);
+    font-size: 24px;
+    line-height: 1;
     color: var(--paper);
-    letter-spacing: 0.02em;
+    letter-spacing: 0.01em;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    white-space: nowrap;
+  }
+  .header-brand { flex-shrink: 0; }
+  .header-logo .mark {
+    font-size: 15px;
+    color: var(--gold);
+    transform: translateY(-1px);
   }
   .header-tag {
-    font-size: 10px;
-    font-family: 'JetBrains Mono', monospace;
-    background: var(--gold);
-    color: #fff;
-    padding: 2px 8px;
-    border-radius: 20px;
-    letter-spacing: 0.1em;
+    font-size: 9px;
+    font-family: var(--mono);
+    color: #E9E0CC;
+    border: 1px solid rgba(233,224,204,0.32);
+    padding: 3px 8px 2px;
+    border-radius: 2px;
+    letter-spacing: 0.22em;
     font-weight: 500;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .header-right { display: flex; align-items: center; gap: 18px; }
+  .header-meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: rgba(233,224,204,0.55);
+    letter-spacing: 0.06em;
   }
   .header-back {
     font-size: 11px;
-    color: #888;
+    color: rgba(233,224,204,0.55);
     cursor: pointer;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     text-decoration: none;
+    transition: color 0.2s;
   }
   .header-back:hover { color: var(--paper); }
 
-  /* ── Input bar ── */
+  /* ───────────────────────── Input bar ───────────────────────── */
   .input-bar {
     background: var(--surface);
     border-bottom: 1px solid var(--border2);
-    padding: 16px 28px;
+    padding: 18px var(--pad);
     display: flex;
-    gap: 10px;
+    gap: 14px;
     align-items: flex-end;
     flex-shrink: 0;
   }
-  .input-wrap { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+  .input-wrap { flex: 1; display: flex; flex-direction: column; gap: 7px; }
   .input-label {
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 600;
     color: var(--gold);
-    letter-spacing: 0.1em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--mono);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .input-label::before {
+    content: '';
+    width: 14px; height: 1px;
+    background: var(--gold);
+    opacity: 0.6;
+  }
+  .input-field {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .input-field .quill {
+    position: absolute;
+    left: 14px;
+    font-family: var(--serif);
+    font-size: 17px;
+    color: var(--faint);
+    pointer-events: none;
   }
   #topic-input {
     width: 100%;
-    background: var(--white);
+    background: var(--paper);
     border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 10px 14px;
-    font-size: 14px;
-    font-family: 'Inter', sans-serif;
+    border-radius: var(--radius);
+    padding: 12px 16px 12px 38px;
+    font-size: 16px;
+    font-family: var(--serif2);
     color: var(--ink);
     outline: none;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s;
   }
-  #topic-input::placeholder { color: #A89F93; }
-  #topic-input:focus { border-color: var(--gold); }
+  #topic-input::placeholder { color: var(--faint); font-style: italic; }
+  #topic-input:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(154,123,51,0.10);
+  }
   #btn-generate {
-    background: var(--gold);
-    color: #fff;
+    background: var(--ink);
+    color: var(--paper);
     border: none;
-    border-radius: 6px;
-    padding: 10px 22px;
-    font-size: 13px;
+    border-radius: var(--radius);
+    padding: 13px 24px;
+    font-size: 11px;
     font-weight: 600;
     cursor: pointer;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-family: var(--mono);
     white-space: nowrap;
-    transition: opacity 0.2s;
+    transition: background 0.2s, transform 0.06s;
+    display: flex;
+    align-items: center;
+    gap: 9px;
   }
-  #btn-generate:hover { opacity: 0.88; }
-  #btn-generate:disabled { opacity: 0.45; cursor: not-allowed; }
+  #btn-generate .arr { color: var(--gold); }
+  #btn-generate:hover { background: #2a2519; }
+  #btn-generate:active { transform: translateY(1px); }
+  #btn-generate:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  /* ── Canvas ── */
+  /* ───────────────────────── Canvas ───────────────────────── */
   .canvas {
     flex: 1;
     display: grid;
-    grid-template-columns: 320px 1fr;
+    grid-template-columns: var(--idePanelW) 1fr;
     min-height: 0;
     overflow: hidden;
   }
@@ -140,94 +286,141 @@
     overflow: hidden;
   }
   .panel-header {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border2);
+    padding: 14px 18px 13px;
+    border-bottom: 1px solid var(--hair);
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-shrink: 0;
   }
   .panel-label {
-    font-size: 10px;
-    font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
-    letter-spacing: 0.12em;
+    font-size: 9px;
+    font-weight: 600;
+    font-family: var(--mono);
+    letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--dim);
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+  .panel-label .num {
+    color: var(--gold);
+    font-weight: 500;
   }
   .selection-count {
-    font-size: 10px;
-    color: var(--dim);
-    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--faint);
+    font-family: var(--mono);
+    letter-spacing: 0.06em;
   }
   #ideas-list {
     flex: 1;
     overflow-y: auto;
-    padding: 10px;
+    padding: 12px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 9px;
   }
+  #ideas-list::-webkit-scrollbar { width: 9px; }
+  #ideas-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 9px; border: 3px solid var(--paper); }
+
   .idea-card {
     background: var(--white);
     border: 1px solid var(--border2);
-    border-radius: 6px;
-    padding: 10px 12px;
+    border-radius: var(--radius);
+    padding: 13px 14px 12px;
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
+    transition: border-color 0.16s, box-shadow 0.16s, transform 0.16s;
     position: relative;
+    box-shadow: 0 1px 0 var(--shadow);
   }
-  .idea-card:hover { border-color: var(--gold); }
+  .idea-card:hover {
+    border-color: var(--gold);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px -8px rgba(26,24,19,0.30);
+  }
   .idea-card.selected {
     border-color: var(--gold);
-    background: rgba(166,138,62,0.05);
+    background: linear-gradient(180deg, rgba(154,123,51,0.07), rgba(154,123,51,0.03));
+    box-shadow: inset 3px 0 0 var(--gold);
   }
-  .idea-card.selected::before {
-    content: '✓';
-    position: absolute;
-    top: 8px;
-    right: 10px;
-    color: var(--gold);
-    font-size: 12px;
-    font-weight: 700;
+  .idea-index {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--faint);
+    letter-spacing: 0.1em;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .idea-check {
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    font-size: 9px;
+    transition: all 0.16s;
+  }
+  .idea-card.selected .idea-check {
+    background: var(--gold);
+    border-color: var(--gold);
+    color: #fff;
   }
   .idea-title {
-    font-family: 'Instrument Serif', serif;
-    font-size: 14px;
+    font-family: var(--titleFont);
+    font-weight: var(--titleWeight);
+    font-size: 19px;
+    line-height: 1.12;
     color: var(--ink);
-    margin-bottom: 3px;
-    padding-right: 18px;
+    margin-bottom: 5px;
+    letter-spacing: -0.005em;
   }
   .idea-tagline {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--dim);
     line-height: 1.5;
-    margin-bottom: 6px;
+    margin-bottom: 10px;
+    font-family: var(--serif2);
   }
   .spectrum-badge {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     font-size: 9px;
-    font-weight: 600;
-    font-family: 'JetBrains Mono', monospace;
-    padding: 2px 7px;
-    border-radius: 10px;
-    letter-spacing: 0.06em;
+    font-weight: 500;
+    font-family: var(--mono);
+    padding: 3px 9px 3px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
-  .spectrum-Konvensional { background: rgba(94,138,106,0.12); color: var(--green); }
-  .spectrum-Inovatif { background: rgba(166,138,62,0.12); color: var(--gold); }
-  .spectrum-Liar { background: rgba(204,120,92,0.18); color: var(--clay); }
+  .spectrum-badge::before {
+    content: '';
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .spectrum-Conventional { background: rgba(92,126,94,0.13); color: var(--green); }
+  .spectrum-Innovative   { background: rgba(154,123,51,0.15); color: var(--gold); }
+  .spectrum-Wild         { background: rgba(193,106,76,0.16); color: var(--clay); }
 
   .idea-skeleton {
     background: var(--surface);
-    border: 1px dashed var(--border2);
-    border-radius: 6px;
-    padding: 10px 12px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 13px 14px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     color: var(--dim);
     font-size: 11px;
     font-style: italic;
+    font-family: var(--serif2);
   }
   .dot-pulse {
     width: 7px; height: 7px;
@@ -236,126 +429,215 @@
     animation: pulse 1s ease-in-out infinite;
     flex-shrink: 0;
   }
-  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+  @keyframes pulse { 0%,100%{opacity:1; transform:scale(1)} 50%{opacity:0.3; transform:scale(0.7)} }
+
+  @keyframes riseIn {
+    from { transform: translateY(9px); }
+    to   { transform: translateY(0); }
+  }
+  .rise { animation: riseIn 0.42s cubic-bezier(0.2,0.7,0.2,1); }
+  @media (prefers-reduced-motion: reduce) { .rise { animation: none; } }
 
   .expand-bar {
-    padding: 10px;
-    border-top: 1px solid var(--border2);
+    padding: 12px;
+    border-top: 1px solid var(--hair);
     flex-shrink: 0;
+    background: var(--paper);
   }
   #btn-expand {
     width: 100%;
     background: var(--clay);
     color: #fff;
     border: none;
-    border-radius: 6px;
-    padding: 10px;
-    font-size: 13px;
+    border-radius: var(--radius);
+    padding: 12px;
+    font-size: 11px;
     font-weight: 600;
     cursor: pointer;
-    letter-spacing: 0.05em;
-    transition: opacity 0.2s;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-family: var(--mono);
+    transition: opacity 0.2s, transform 0.06s, box-shadow 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    box-shadow: 0 2px 10px -4px rgba(193,106,76,0.6);
   }
-  #btn-expand:hover { opacity: 0.88; }
-  #btn-expand:disabled { opacity: 0.35; cursor: not-allowed; }
+  #btn-expand:hover { opacity: 0.92; }
+  #btn-expand:active { transform: translateY(1px); }
+  #btn-expand:disabled { opacity: 0.34; cursor: not-allowed; box-shadow: none; }
 
   /* ── Right: Expansion panel ── */
   .expansion-panel {
-    background: var(--white);
+    background: var(--surface);
     display: flex;
     flex-direction: column;
     overflow: hidden;
   }
+  [data-theme="press"] .expansion-panel { background: var(--bg); }
   .exp-header {
-    padding: 12px 20px;
-    border-bottom: 1px solid var(--border2);
+    padding: 14px var(--pad) 13px;
+    border-bottom: 1px solid var(--hair);
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-shrink: 0;
+    background: var(--paper);
   }
   #exp-list {
     flex: 1;
     overflow-y: auto;
-    padding: 16px 20px;
+    padding: 22px var(--pad);
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 18px;
   }
+  #exp-list::-webkit-scrollbar { width: 11px; }
+  #exp-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 9px; border: 3px solid var(--surface); }
+
   .exp-card {
-    background: var(--surface);
+    background: var(--paper);
     border: 1px solid var(--border);
-    border-top: 2px solid var(--gold);
-    border-radius: 6px;
-    padding: 14px 16px;
+    border-radius: var(--radius);
+    padding: 0;
+    overflow: hidden;
+    box-shadow: 0 1px 0 var(--shadow), 0 10px 28px -22px rgba(26,24,19,0.5);
   }
+  [data-theme="press"] .exp-card {
+    box-shadow: none;
+    border: 1px solid var(--border);
+  }
+  .exp-cardhead {
+    padding: 16px 20px 14px;
+    border-bottom: 1px solid var(--hair);
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    position: relative;
+  }
+  .exp-cardhead::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--gold);
+  }
+  [data-theme="atelier"] .exp-cardhead::before { background: var(--clay); }
+  .exp-numeral {
+    font-family: var(--serif);
+    font-size: 30px;
+    line-height: 0.8;
+    color: var(--gold);
+    opacity: 0.5;
+    flex-shrink: 0;
+    width: 30px;
+  }
+  .exp-headtext { flex: 1; }
   .exp-title {
-    font-family: 'Instrument Serif', serif;
-    font-size: 17px;
+    font-family: var(--titleFont);
+    font-weight: var(--titleWeight);
+    font-size: 23px;
+    line-height: 1.1;
     color: var(--ink);
-    margin-bottom: 10px;
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
   }
-  .exp-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: flex-start; }
-  .exp-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
-  .exp-label {
-    font-size: 10px;
-    font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
-    letter-spacing: 0.08em;
-    color: var(--dim);
-    text-transform: uppercase;
-    min-width: 70px;
-    margin-top: 2px;
-  }
-  .exp-value {
+  .exp-subtag {
     font-size: 12px;
-    color: var(--ink2);
-    line-height: 1.65;
+    color: var(--dim);
+    font-family: var(--serif2);
+    font-style: italic;
   }
-  .exp-streaming {
-    background: var(--surface);
-    border: 1px dashed var(--border2);
-    border-radius: 6px;
-    padding: 14px 16px;
+  .exp-body { padding: 6px 20px 18px; }
+  .exp-row {
+    display: grid;
+    grid-template-columns: 96px 1fr;
+    gap: 14px;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--hair);
+    align-items: start;
+  }
+  .exp-row:last-child { border-bottom: none; }
+  .exp-label {
+    font-size: 9px;
+    font-weight: 600;
+    font-family: var(--mono);
+    letter-spacing: 0.12em;
+    color: var(--gold);
+    text-transform: uppercase;
+    padding-top: 3px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 7px;
+  }
+  .exp-label .gl { font-size: 12px; filter: grayscale(0.15); }
+  .exp-value {
+    font-size: 13.5px;
+    color: var(--ink2);
+    line-height: 1.62;
+    font-family: var(--serif2);
+  }
+  .exp-value b { font-weight: 600; color: var(--ink); }
+
+  .exp-streaming {
+    background: var(--paper);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    display: flex;
+    align-items: center;
+    gap: 11px;
     color: var(--dim);
     font-size: 12px;
     font-style: italic;
+    font-family: var(--serif2);
   }
 
   .btn-action {
-    background: transparent;
+    background: var(--paper);
     border: 1px solid var(--border);
     color: var(--dim);
-    border-radius: 6px;
-    padding: 7px 14px;
-    font-size: 11px;
+    border-radius: var(--radius);
+    padding: 8px 15px;
+    font-size: 10px;
+    font-family: var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     cursor: pointer;
-    transition: background 0.2s;
-    font-family: 'Inter', sans-serif;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 7px;
   }
-  .btn-action:hover { background: var(--bg); }
-  .btn-action.saved { border-color: var(--green); color: var(--green); background: rgba(94,138,106,0.06); }
+  .btn-action:hover { border-color: var(--gold); color: var(--ink); }
+  .btn-action.saved { border-color: var(--green); color: var(--green); background: rgba(92,126,94,0.07); }
 
-  /* Placeholder */
+  /* Placeholder / empty */
   .ph {
     flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--border);
-    font-size: 11px;
-    letter-spacing: 0.08em;
+    color: var(--faint);
+    font-size: 12px;
+    letter-spacing: 0.02em;
     font-style: italic;
-    min-height: 120px;
+    font-family: var(--serif2);
+    min-height: 140px;
     text-align: center;
-    padding: 20px;
+    padding: 24px;
     flex-direction: column;
-    gap: 8px;
+    gap: 14px;
   }
-  .ph-icon { font-size: 28px; opacity: 0.5; }
+  .ph-icon {
+    font-family: var(--serif);
+    font-size: 40px;
+    font-style: normal;
+    color: var(--border);
+    line-height: 1;
+  }
+  .ph-sub { line-height: 1.6; max-width: 220px; }
 
   /* Toast */
   #toast {
@@ -364,33 +646,53 @@
     right: 28px;
     background: var(--ink);
     color: var(--paper);
-    padding: 10px 16px;
-    border-radius: 6px;
+    padding: 12px 18px;
+    border-radius: var(--radius);
     font-size: 12px;
+    font-family: var(--serif2);
     opacity: 0;
+    transform: translateY(8px);
     pointer-events: none;
-    transition: opacity 0.3s;
-    z-index: 1000;
+    transition: opacity 0.3s, transform 0.3s;
+    z-index: 10000;
+    box-shadow: 0 12px 30px -10px rgba(0,0,0,0.4);
+    border-left: 2px solid var(--gold);
   }
-  #toast.show { opacity: 1; }
+  #toast.show { opacity: 1; transform: translateY(0); }
 </style>
 </head>
 <body>
 
+<template id="__bundler_thumbnail" data-bg-color="#1A1813">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#1A1813"/>
+    <text x="600" y="370" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="150" fill="#FBF8F1">✦</text>
+    <text x="600" y="500" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="92" fill="#FBF8F1">Da Vinci</text>
+    <text x="600" y="560" text-anchor="middle" font-family="monospace" font-size="26" letter-spacing="14" fill="#9A7B33">IDEAS LAB</text>
+    <rect x="430" y="600" width="340" height="3" fill="#C16A4C"/>
+  </svg>
+</template>
+
 <header class="header">
   <div class="header-brand">
-    <span class="header-logo">✦ Da Vinci</span>
-    <span class="header-tag">IDEAS LAB</span>
+    <span class="header-logo"><span class="mark">✦</span> Da Vinci</span>
+    <span class="header-tag">Ideas Lab</span>
   </div>
-  <a href="/" class="header-back">← kembali</a>
+  <div class="header-right">
+    <span class="header-meta">Studio of invention</span>
+    <a href="#" class="header-back">← back</a>
+  </div>
 </header>
 
 <div class="input-bar">
   <div class="input-wrap">
-    <div class="input-label">Topik atau pertanyaan kreatif</div>
-    <input type="text" id="topic-input" placeholder="Contoh: cara baru belajar matematika, aplikasi untuk petani, solusi macet Jakarta...">
+    <div class="input-label">Topic or creative question</div>
+    <div class="input-field">
+      <span class="quill">✒</span>
+      <input type="text" id="topic-input" placeholder="e.g. new ways to learn mathematics, an app for farmers, untangling Jakarta's traffic…">
+    </div>
   </div>
-  <button id="btn-generate">GENERATE</button>
+  <button id="btn-generate"><span>Generate</span><span class="arr">→</span></button>
 </div>
 
 <div class="canvas">
@@ -398,30 +700,30 @@
   <!-- Left: Ideas -->
   <div class="ideas-panel">
     <div class="panel-header">
-      <span class="panel-label">Ide — klik untuk pilih</span>
-      <span class="selection-count" id="sel-count">0 / 4 dipilih</span>
+      <span class="panel-label">Ideas <span class="num">— tap to select</span></span>
+      <span class="selection-count" id="sel-count">0 / 4 selected</span>
     </div>
     <div id="ideas-list">
       <div class="ph">
         <div class="ph-icon">✦</div>
-        <div>Masukkan topik dan klik GENERATE<br>untuk menghasilkan 6 ide kreatif</div>
+        <div class="ph-sub">Enter a topic and press <b>Generate</b> to spark six ideas across the spectrum.</div>
       </div>
     </div>
     <div class="expand-bar">
-      <button id="btn-expand" disabled>EKSPANSI IDE →</button>
+      <button id="btn-expand" disabled><span>Expand selected</span><span>→</span></button>
     </div>
   </div>
 
   <!-- Right: Expansion -->
   <div class="expansion-panel">
     <div class="exp-header">
-      <span class="panel-label">Ekspansi</span>
-      <button class="btn-action" id="btn-save-notes" style="display:none;" onclick="G.saveToNotes()">📝 Tambah ke Notes</button>
+      <span class="panel-label">Expansion</span>
+      <button class="btn-action" id="btn-save-notes" style="display:none;" onclick="G.saveToNotes()">＋ Save to Notes</button>
     </div>
     <div id="exp-list">
       <div class="ph">
-        <div class="ph-icon">◎</div>
-        <div>Pilih 1–4 ide di kiri<br>lalu klik EKSPANSI IDE</div>
+        <div class="ph-icon">❧</div>
+        <div class="ph-sub">Select 1–4 ideas on the left, then expand them into full concepts.</div>
       </div>
     </div>
   </div>
@@ -432,44 +734,49 @@
 
 <script>
 var G = {};
-
+G.MOCK = false;                // use real backend API
 G.es = null;
 G.expandEs = null;
+G.timers = [];
 G.ideas = [];
 G.selected = {};
 G.expansions = [];
 
 G.$ = function(id){ return document.getElementById(id); };
+G._esc = function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
 
-G._esc = function(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-};
+// allow **bold** in mock values
+G._rich = function(s){ return G._esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>'); };
 
-G.toast = function(msg) {
+G.toast = function(msg){
   var el = G.$('toast');
   el.textContent = msg;
   el.classList.add('show');
-  setTimeout(function(){ el.classList.remove('show'); }, 2500);
+  clearTimeout(G._tt);
+  G._tt = setTimeout(function(){ el.classList.remove('show'); }, 2500);
 };
 
-G.updateSelCount = function() {
+G.clearTimers = function(){ G.timers.forEach(clearTimeout); G.timers = []; };
+
+G.updateSelCount = function(){
   var n = Object.keys(G.selected).length;
-  G.$('sel-count').textContent = n + ' / 4 dipilih';
+  G.$('sel-count').textContent = n + ' / 4 selected';
   G.$('btn-expand').disabled = n === 0;
 };
 
-G.renderIdea = function(data) {
+G.romans = ['Ⅰ','Ⅱ','Ⅲ','Ⅳ','Ⅴ','Ⅵ'];
+
+G.renderIdea = function(data, idx){
   var list = G.$('ideas-list');
-  var ph = list.querySelector('.ph');
-  if (ph) ph.remove();
-  var sk = list.querySelector('.idea-skeleton');
-  if (sk) sk.remove();
+  var ph = list.querySelector('.ph'); if (ph) ph.remove();
+  var sk = list.querySelector('.idea-skeleton'); if (sk) sk.remove();
 
   G.ideas.push(data);
   var div = document.createElement('div');
-  div.className = 'idea-card';
+  div.className = 'idea-card rise';
   div.dataset.id = data.id;
   div.innerHTML =
+    '<div class="idea-index"><span>No. ' + (idx+1) + '</span><span class="idea-check">✓</span></div>' +
     '<div class="idea-title">' + G._esc(data.title) + '</div>' +
     '<div class="idea-tagline">' + G._esc(data.tagline) + '</div>' +
     '<span class="spectrum-badge spectrum-' + G._esc(data.spectrum) + '">' + G._esc(data.spectrum) + '</span>';
@@ -477,110 +784,97 @@ G.renderIdea = function(data) {
   list.appendChild(div);
 };
 
-G.selectIdea = function(card, data) {
+G.selectIdea = function(card, data){
   var id = data.id;
-  if (G.selected[id]) {
-    delete G.selected[id];
-    card.classList.remove('selected');
-  } else {
-    if (Object.keys(G.selected).length >= 4) {
-      G.toast('Maksimal 4 ide yang bisa dipilih.');
-      return;
-    }
-    G.selected[id] = true;
-    card.classList.add('selected');
+  if (G.selected[id]) { delete G.selected[id]; card.classList.remove('selected'); }
+  else {
+    if (Object.keys(G.selected).length >= 4) { G.toast('You can select up to 4 ideas.'); return; }
+    G.selected[id] = true; card.classList.add('selected');
   }
   G.updateSelCount();
 };
 
-G.addSkeleton = function() {
+G.addSkeleton = function(){
   var list = G.$('ideas-list');
   var sk = document.createElement('div');
   sk.className = 'idea-skeleton';
-  sk.innerHTML = '<div class="dot-pulse"></div><span>Menghasilkan ide...</span>';
+  sk.innerHTML = '<div class="dot-pulse"></div><span>Sketching the next idea…</span>';
   list.appendChild(sk);
 };
 
-G.generate = function(topic) {
+G.resetForGenerate = function(){
+  G.clearTimers();
   if (G.es) { G.es.close(); G.es = null; }
-  G.ideas = [];
-  G.selected = {};
-  G.expansions = [];
+  G.ideas = []; G.selected = {}; G.expansions = [];
   G.$('ideas-list').innerHTML = '';
-  G.$('exp-list').innerHTML = '<div class="ph"><div class="ph-icon">◎</div><div>Pilih 1–4 ide di kiri<br>lalu klik EKSPANSI IDE</div></div>';
+  G.$('exp-list').innerHTML = '<div class="ph"><div class="ph-icon">❧</div><div class="ph-sub">Select 1–4 ideas on the left, then expand them into full concepts.</div></div>';
   G.$('btn-expand').disabled = true;
   G.$('btn-save-notes').style.display = 'none';
   G.$('btn-generate').disabled = true;
-  G.$('btn-generate').textContent = 'GENERATING...';
+  G.$('btn-generate').querySelector('span').textContent = 'Generating';
   G.updateSelCount();
   G.addSkeleton();
-
-  var url = '/api/davinci/generate?topic=' + encodeURIComponent(topic);
-  G.es = new EventSource(url);
-
-  G.es.onmessage = function(e) {
-    try {
-      var msg = JSON.parse(e.data);
-      if (msg.event === 'idea') {
-        G.renderIdea(msg);
-        G.addSkeleton();
-      } else if (msg.event === 'ideas_done') {
-        G.es.close(); G.es = null;
-        G.$('btn-generate').disabled = false;
-        G.$('btn-generate').textContent = 'GENERATE';
-        var sk = G.$('ideas-list').querySelector('.idea-skeleton');
-        if (sk) sk.remove();
-      } else if (msg.event === 'error') {
-        G.es.close(); G.es = null;
-        G.$('btn-generate').disabled = false;
-        G.$('btn-generate').textContent = 'GENERATE';
-        G.toast('Error: ' + G._esc(msg.message));
-        var sk = G.$('ideas-list').querySelector('.idea-skeleton');
-        if (sk) sk.remove();
-      }
-    } catch(err) {}
-  };
-
-  G.es.onerror = function() {
-    G.es.close(); G.es = null;
-    G.$('btn-generate').disabled = false;
-    G.$('btn-generate').textContent = 'GENERATE';
-    G.toast('Koneksi terputus. Coba lagi.');
-    var sk = G.$('ideas-list').querySelector('.idea-skeleton');
-    if (sk) sk.remove();
-  };
 };
 
-G.renderExpansion = function(data) {
+G.finishGenerate = function(){
+  G.$('btn-generate').disabled = false;
+  G.$('btn-generate').querySelector('span').textContent = 'Generate';
+  var sk = G.$('ideas-list').querySelector('.idea-skeleton'); if (sk) sk.remove();
+};
+
+G.generate = function(topic){
+  G.resetForGenerate();
+  if (G.MOCK) return G.mockGenerate(topic);
+
+  // ---- real backend (kept intact) ----
+  var url = '/api/davinci/generate?topic=' + encodeURIComponent(topic);
+  G.es = new EventSource(url);
+  G.es.onmessage = function(e){
+    try {
+      var msg = JSON.parse(e.data);
+      if (msg.event === 'idea') { G.renderIdea(msg, G.ideas.length); G.addSkeleton(); }
+      else if (msg.event === 'ideas_done') { G.es.close(); G.es = null; G.finishGenerate(); }
+      else if (msg.event === 'error') { G.es.close(); G.es = null; G.finishGenerate(); G.toast('Error: ' + G._esc(msg.message)); }
+    } catch(err){}
+  };
+  G.es.onerror = function(){ G.es.close(); G.es = null; G.finishGenerate(); G.toast('Connection lost. Try again.'); };
+};
+
+G.renderExpansion = function(data){
   var list = G.$('exp-list');
-  var ph = list.querySelector('.ph');
-  if (ph) ph.remove();
-  list.querySelectorAll('.exp-streaming').forEach(function(sk){
-    if (sk.dataset.title === data.title) sk.remove();
-  });
+  var ph = list.querySelector('.ph'); if (ph) ph.remove();
+  list.querySelectorAll('.exp-streaming').forEach(function(sk){ if (sk.dataset.title === data.title) sk.remove(); });
 
   G.expansions.push(data);
+  var idx = G.expansions.length;
   var div = document.createElement('div');
-  div.className = 'exp-card';
+  div.className = 'exp-card rise';
 
   if (data.error) {
-    div.innerHTML =
-      '<div class="exp-title">' + G._esc(data.title) + '</div>' +
-      '<div style="color:var(--red);font-size:12px">Gagal mengembangkan ide ini: ' + G._esc(data.error) + '</div>';
-    list.appendChild(div);
-    return;
+    div.innerHTML = '<div class="exp-cardhead"><div class="exp-headtext"><div class="exp-title">' + G._esc(data.title) + '</div></div></div>' +
+      '<div class="exp-body"><div style="color:var(--red);font-size:13px;font-family:var(--serif2)">Could not expand this idea: ' + G._esc(data.error) + '</div></div>';
+    list.appendChild(div); return;
   }
 
   div.innerHTML =
-    '<div class="exp-title">' + G._esc(data.title) + '</div>' +
-    '<div class="exp-row"><span class="exp-icon">🎯</span><span class="exp-label">Use Cases</span><span class="exp-value">' + G._esc(data.use_cases||'') + '</span></div>' +
-    '<div class="exp-row"><span class="exp-icon">⚡</span><span class="exp-label">Langkah</span><span class="exp-value">' + G._esc(data.steps||'') + '</span></div>' +
-    '<div class="exp-row"><span class="exp-icon">💡</span><span class="exp-label">Contoh</span><span class="exp-value">' + G._esc(data.example||'') + '</span></div>' +
-    '<div class="exp-row"><span class="exp-icon">🔥</span><span class="exp-label">Dampak</span><span class="exp-value">' + G._esc(data.impact||'') + '</span></div>';
+    '<div class="exp-cardhead">' +
+      '<div class="exp-numeral">' + (G.romans[idx-1]||idx) + '</div>' +
+      '<div class="exp-headtext">' +
+        '<div class="exp-title">' + G._esc(data.title) + '</div>' +
+        '<div class="exp-subtag">' + G._esc(data.tagline||'') + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="exp-body">' +
+      '<div class="exp-row"><span class="exp-label"><span class="gl">◎</span>Use cases</span><span class="exp-value">' + G._rich(data.use_cases||'') + '</span></div>' +
+      '<div class="exp-row"><span class="exp-label"><span class="gl">↘</span>Steps</span><span class="exp-value">' + G._rich(data.steps||'') + '</span></div>' +
+      '<div class="exp-row"><span class="exp-label"><span class="gl">✦</span>Example</span><span class="exp-value">' + G._rich(data.example||'') + '</span></div>' +
+      '<div class="exp-row"><span class="exp-label"><span class="gl">↑</span>Impact</span><span class="exp-value">' + G._rich(data.impact||'') + '</span></div>' +
+    '</div>';
   list.appendChild(div);
 };
 
-G.expand = function() {
+G.expand = function(){
+  G.clearTimers();
   if (G.expandEs) { G.expandEs.close(); G.expandEs = null; }
   var selectedIdeas = G.ideas.filter(function(i){ return G.selected[i.id]; });
   if (!selectedIdeas.length) return;
@@ -590,86 +884,154 @@ G.expand = function() {
   G.expansions = [];
   G.$('btn-save-notes').style.display = 'none';
   G.$('btn-expand').disabled = true;
-  G.$('btn-expand').textContent = 'EXPANDING...';
+  G.$('btn-expand').querySelector('span').textContent = 'Expanding';
 
-  selectedIdeas.forEach(function(idea) {
+  selectedIdeas.forEach(function(idea){
     var sk = document.createElement('div');
     sk.className = 'exp-streaming';
     sk.dataset.title = idea.title;
-    sk.innerHTML = '<div class="dot-pulse"></div><span>Mengembangkan: ' + G._esc(idea.title) + '...</span>';
+    sk.innerHTML = '<div class="dot-pulse"></div><span>Developing “' + G._esc(idea.title) + '”…</span>';
     list.appendChild(sk);
   });
 
-  var param = encodeURIComponent(JSON.stringify(selectedIdeas.map(function(i){
-    return {title: i.title, tagline: i.tagline};
-  })));
+  if (G.MOCK) return G.mockExpand(selectedIdeas);
+
+  // ---- real backend (kept intact) ----
+  var param = encodeURIComponent(JSON.stringify(selectedIdeas.map(function(i){ return {title:i.title, tagline:i.tagline}; })));
   var url = '/api/davinci/expand?ideas=' + param;
   G.expandEs = new EventSource(url);
-
-  G.expandEs.onmessage = function(e) {
+  G.expandEs.onmessage = function(e){
     try {
       var msg = JSON.parse(e.data);
-      if (msg.event === 'expansion') {
-        G.renderExpansion(msg);
-      } else if (msg.event === 'expand_done') {
-        G.expandEs.close(); G.expandEs = null;
-        G.$('btn-expand').disabled = false;
-        G.$('btn-expand').textContent = 'EKSPANSI IDE →';
-        G.$('exp-list').querySelectorAll('.exp-streaming').forEach(function(sk){ sk.remove(); });
-        if (G.expansions.length > 0) G.$('btn-save-notes').style.display = '';
-      } else if (msg.event === 'error') {
-        G.expandEs.close(); G.expandEs = null;
-        G.$('btn-expand').disabled = false;
-        G.$('btn-expand').textContent = 'EKSPANSI IDE →';
-        G.toast('Error: ' + G._esc(msg.message));
-      }
-    } catch(err) {}
+      if (msg.event === 'expansion') { G.renderExpansion(msg); }
+      else if (msg.event === 'expand_done') { G.expandEs.close(); G.expandEs=null; G.finishExpand(); }
+      else if (msg.event === 'error') { G.expandEs.close(); G.expandEs=null; G.finishExpand(); G.toast('Error: ' + G._esc(msg.message)); }
+    } catch(err){}
   };
-
-  G.expandEs.onerror = function() {
-    G.expandEs.close(); G.expandEs = null;
-    G.$('btn-expand').disabled = false;
-    G.$('btn-expand').textContent = 'EKSPANSI IDE →';
-    G.toast('Koneksi terputus. Coba lagi.');
-  };
+  G.expandEs.onerror = function(){ G.expandEs.close(); G.expandEs=null; G.finishExpand(); G.toast('Connection lost. Try again.'); };
 };
 
-G.saveToNotes = function() {
-  var topic = G.$('topic-input').value.trim();
+G.finishExpand = function(){
+  G.$('btn-expand').disabled = false;
+  G.$('btn-expand').querySelector('span').textContent = 'Expand selected';
+  G.$('exp-list').querySelectorAll('.exp-streaming').forEach(function(sk){ sk.remove(); });
+  if (G.expansions.length > 0) G.$('btn-save-notes').style.display = '';
+};
+
+G.saveToNotes = function(){
   var validExpansions = G.expansions.filter(function(e){ return !e.error; });
   if (!validExpansions.length) return;
-
-  fetch('/api/davinci/save', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({topic: topic, expansions: validExpansions})
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(data){
-    G.toast('Disimpan ke Notes (' + data.saved + ' ide)');
-    var btn = G.$('btn-save-notes');
-    btn.textContent = '✓ Tersimpan';
-    btn.classList.add('saved');
-  })
-  .catch(function(){
-    G.toast('Gagal menyimpan ke Notes.');
-  });
+  if (G.MOCK) {
+    G.toast('Saved to Notes (' + validExpansions.length + ' ideas)');
+    var btn = G.$('btn-save-notes'); btn.textContent = '✓ Saved'; btn.classList.add('saved');
+    return;
+  }
+  var topic = G.$('topic-input').value.trim();
+  fetch('/api/davinci/save', { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({topic:topic, expansions:validExpansions}) })
+    .then(function(r){ return r.json(); })
+    .then(function(data){ G.toast('Saved to Notes (' + data.saved + ' ideas)'); var btn=G.$('btn-save-notes'); btn.textContent='✓ Saved'; btn.classList.add('saved'); })
+    .catch(function(){ G.toast('Could not save to Notes.'); });
 };
 
-document.addEventListener('DOMContentLoaded', function() {
-  G.$('btn-generate').addEventListener('click', function() {
+/* ───────────────── MOCK DATA + STREAMING (preview) ───────────────── */
+G.MOCK_IDEAS = [
+  { id:'i1', spectrum:'Conventional', title:'Spaced-Repetition Drills', tagline:'Tiny daily problem sets that resurface what you’re about to forget — right on time.' },
+  { id:'i2', spectrum:'Conventional', title:'Story-Problem Studio', tagline:'Students author the word problems instead of only solving them, trading puzzles peer-to-peer.' },
+  { id:'i3', spectrum:'Innovative', title:'Math by Movement', tagline:'Trace parabolas with your arms; motion capture turns the gym into a graphing calculator.' },
+  { id:'i4', spectrum:'Innovative', title:'The Number Garden', tagline:'A tactile board where every correct operation grows a small, evolving ecosystem.' },
+  { id:'i5', spectrum:'Wild', title:'Debugging the Universe', tagline:'Learn calculus by repairing a glitching physics simulation before it collapses.' },
+  { id:'i6', spectrum:'Wild', title:'Argue With the Answer', tagline:'An AI confidently defends wrong solutions — you only win by proving it mathematically.' }
+];
+G.MOCK_EXP = {
+  'Spaced-Repetition Drills': {
+    use_cases:'Daily warm-ups in class, exam revision, and adult learners brushing up before a course or interview.',
+    steps:'**1.** Diagnose gaps with a short placement quiz. **2.** Schedule 5-minute sets. **3.** Resurface missed items at widening intervals. **4.** Chart mastery over weeks.',
+    example:'A student keeps missing fraction division; the app quietly reintroduces it every few days until recall is effortless.',
+    impact:'Turns cramming into durable memory — **30–50%** better retention for a fraction of the study time.'
+  },
+  'Story-Problem Studio': {
+    use_cases:'Group projects, differentiated homework, and assessment that rewards reasoning over rote answers.',
+    steps:'**1.** Pick a real-world scene. **2.** Hide the math inside a story. **3.** Swap puzzles with a partner. **4.** Critique each other’s solutions.',
+    example:'A class turns a school-trip budget into a system of equations, then trades versions to solve.',
+    impact:'Authoring a problem demands deeper understanding than solving one — comprehension compounds.'
+  },
+  'Math by Movement': {
+    use_cases:'Kinesthetic learners, P.E.–math crossovers, and concepts like slope, symmetry, and trajectory.',
+    steps:'**1.** Project a coordinate grid. **2.** Track the body with a camera. **3.** Map gestures to functions. **4.** Replay the curve you drew.',
+    example:'Sweep your arm and watch a sine wave bloom on the wall, its amplitude following your reach.',
+    impact:'Embodied cognition makes abstract graphs **felt**, not just memorized — sticky and joyful.'
+  },
+  'The Number Garden': {
+    use_cases:'Early arithmetic, classroom centers, and at-home practice that doesn’t feel like practice.',
+    steps:'**1.** Plant a seed with a sum. **2.** Water it by solving. **3.** Wrong answers wilt; right ones branch. **4.** Cultivate a season-long garden.',
+    example:'A correct times-table unlocks a pollinator; the ecosystem visibly thrives on accuracy.',
+    impact:'Intrinsic motivation replaces worksheets — children practice **because they want to**.'
+  },
+  'Debugging the Universe': {
+    use_cases:'High-school calculus, intro physics, and anyone who learns best by fixing broken things.',
+    steps:'**1.** Drop into a glitching simulation. **2.** Find where the math breaks. **3.** Patch the equation. **4.** Watch reality stabilize.',
+    example:'Gravity is too strong; you adjust a derivative and the planets settle into stable orbits.',
+    impact:'Reframes calculus as a **superpower** for repairing the world, not a wall of symbols.'
+  },
+  'Argue With the Answer': {
+    use_cases:'Proof-writing, debate-style review, and building the courage to question authority with rigor.',
+    steps:'**1.** AI presents a slick wrong proof. **2.** Spot the flaw. **3.** Build a counter-argument. **4.** Force a concession.',
+    example:'The AI “proves” 2 = 1; you trace the hidden divide-by-zero and dismantle it line by line.',
+    impact:'Sharpens skepticism and proof literacy — students learn that **rigor beats confidence**.'
+  }
+};
+
+G.mockGenerate = function(topic){
+  G.MOCK_IDEAS.forEach(function(idea, i){
+    G.timers.push(setTimeout(function(){
+      G.renderIdea(idea, i);
+      if (i < G.MOCK_IDEAS.length - 1) G.addSkeleton();
+    }, 320 + i*300));
+  });
+  G.timers.push(setTimeout(G.finishGenerate, 320 + G.MOCK_IDEAS.length*300));
+};
+
+G.mockExpand = function(selectedIdeas){
+  selectedIdeas.forEach(function(idea, i){
+    G.timers.push(setTimeout(function(){
+      var e = G.MOCK_EXP[idea.title] || {};
+      G.renderExpansion({ title: idea.title, tagline: idea.tagline, use_cases:e.use_cases, steps:e.steps, example:e.example, impact:e.impact });
+    }, 520 + i*560));
+  });
+  G.timers.push(setTimeout(G.finishExpand, 520 + selectedIdeas.length*560 + 100));
+};
+
+/* ───────────────── init ───────────────── */
+document.addEventListener('DOMContentLoaded', function(){
+  var params = new URLSearchParams(location.search);
+  var theme = params.get('theme') || 'manuscript';
+  if (theme !== 'manuscript') document.documentElement.setAttribute('data-theme', theme);
+  var meta = G.$('theme-meta'); if (meta) meta.textContent = theme;
+
+  G.$('btn-generate').addEventListener('click', function(){
     var topic = G.$('topic-input').value.trim();
-    if (!topic) { G.toast('Masukkan topik terlebih dahulu.'); return; }
+    if (!topic) { G.toast('Enter a topic first.'); return; }
     G.generate(topic);
   });
+  G.$('topic-input').addEventListener('keydown', function(e){ if (e.key === 'Enter') G.$('btn-generate').click(); });
+  G.$('btn-expand').addEventListener('click', function(){ G.expand(); });
 
-  G.$('topic-input').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') G.$('btn-generate').click();
-  });
-
-  G.$('btn-expand').addEventListener('click', function() {
-    G.expand();
-  });
+  // Auto-demo so the layout reads as a finished specimen on load
+  if (params.get('demo') !== '0') {
+    G.$('topic-input').value = 'new ways to learn mathematics';
+    G.generate('new ways to learn mathematics');
+    // auto-select two ideas + expand once ideas finish streaming
+    var done = 320 + G.MOCK_IDEAS.length*300 + 150;
+    G.timers.push(setTimeout(function(){
+      ['i1','i3','i5'].forEach(function(id){
+        var card = document.querySelector('.idea-card[data-id="'+id+'"]');
+        var data = G.ideas.find(function(x){ return x.id===id; });
+        if (card && data) G.selectIdea(card, data);
+      });
+      G.expand();
+    }, done));
+  }
 });
 </script>
 </body>

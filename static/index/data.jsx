@@ -83,9 +83,9 @@ const AGENTS = {
   },
   nostradamus: {
     name: 'Nostradamus', sub: 'Prophetic Intelligence', hue: 'var(--hue-nostradamus)',
-    issue: 'XII.', cluster: 'research',
-    tagline: 'Twenty independent analysts, one council verdict — predicting what events foretell.',
-    greeting: 'Name the event. Twenty independent analysts will each research and deliver their own prediction.',
+    issue: 'XII.', cluster: 'research', url: '/nostradamus',
+    tagline: 'Five minds, one verdict — predicting what current events foretell.',
+    greeting: 'Name the event. Five prophets will read the signs.',
     Ico: () => { const {IcoSparkle} = window.Icons; return <IcoSparkle/>; },
   },
 };
@@ -101,16 +101,16 @@ const CLUSTER_ORDER = ['all', 'personal', 'research', 'academic'];
 
 const CHIPS = {
   task:     ['Add a task', 'List pending', 'Mark complete', 'Clear done'],
-  notes:    ['Jelaskan konsep', 'Buat soal latihan', 'Buat flashcard', 'Ringkasan materi'],
-  news:     ['Briefing hari ini', 'World news', 'Tech & AI', 'Indonesia today'],
+  notes:    ['Explain concept', 'Practice questions', 'Make flashcards', 'Summarize material'],
+  news:     ["Today's briefing", 'World news', 'Tech & AI', 'Indonesia today'],
   coding:   ['Debug this', 'Explain code', 'Suggest fix', 'Write tests'],
   schedule: ["Today's events", 'Add event', 'This week', 'Remove event'],
   budget:   ['Add expense', 'Monthly summary', 'Add income', 'This month'],
   fitness:  ['Log workout', 'Track nutrition', 'My progress', 'Exercise wiki'],
   journal:  ["Today's entry", 'Reflect', 'Vent mode', 'Review the week'],
   davinci:  ['Brainstorm', 'Creative brief', 'Remix an idea', 'Random prompt'],
-  euler:    ['Jelaskan integral', 'Soal kalkulus', 'Aljabar linear', 'Statistik & peluang'],
-  orwell:   ['Tulis esai', 'Perbaiki teks ini', 'Cover letter', 'Email profesional'],
+  euler:    ['Explain integrals', 'Calculus problems', 'Linear algebra', 'Statistics & probability'],
+  orwell:   ['Write an essay', 'Improve this text', 'Cover letter', 'Professional email'],
 };
 
 /* ── Formatters ──────────────────────────────────────────── */
@@ -167,6 +167,7 @@ const newsFeedAPI       = () => apiFetch('/api/news/feed');
 const journalDashAPI    = () => apiFetch('/api/journal/dashboard');
 const intelligenceAPI        = () => apiFetch('/api/alfred/intelligence');
 const refreshIntelligenceAPI = () => fetch('/api/alfred/intelligence/refresh', { method: 'POST' }).then(r => r.json());
+const historyAPI = (agent) => apiFetch(`/api/history/${agent}`);
 
 const SCRAPER_PLATFORMS = [
   { key: 'youtube',    label: 'YouTube' },
@@ -183,34 +184,28 @@ const SCRAPER_PLATFORMS = [
   { key: 'soundcloud', label: 'SoundCloud' },
 ];
 
-/* Mock data — used when API offline so the design looks alive */
+/* Mock data — used when API offline so the design looks alive.
+   Values reflect the real agent data found in AI Data/My AI/. */
 const MOCK = {
-  tStats: { pending: 7, high_priority: 2, completed_today: 4 },
-  tasks: [
-    { id:1, title:'Draft the Q2 research memo',    status:'pending', priority:'high' },
-    { id:2, title:'Review Cicero\'s latest note',   status:'pending', priority:'medium' },
-    { id:3, title:'Reply to scheduling request',    status:'pending', priority:'high' },
-    { id:4, title:'Refactor data-analyst pipeline', status:'pending', priority:'low' },
-    { id:5, title:'Re-read Dostoyevsky entry',      status:'pending', priority:'medium' },
-    { id:6, title:'Prepare weekly briefing',        status:'pending', priority:'low' },
-  ],
+  tStats: { pending: 0, high_priority: 0, completed_today: 0 },
+  tasks: [],
   notes: [
-    { id:1, title:'On the architecture of attention', updated_at: new Date(Date.now() - 3600e3).toISOString() },
-    { id:2, title:'Fragments — early April',           updated_at: new Date(Date.now() - 86400e3).toISOString() },
-    { id:3, title:'Reading list, Q2',                  updated_at: new Date(Date.now() - 2*86400e3).toISOString() },
-    { id:4, title:'Letter to J., unsent',              updated_at: new Date(Date.now() - 4*86400e3).toISOString() },
+    { id:1, title:'Soal kalkulus — integral substitusi trigonometri', updated_at: new Date(Date.now() - 86400e3).toISOString() },
+    { id:2, title:'Java OOP — AkunBank, Produk, enkapsulasi',         updated_at: new Date(Date.now() - 2*86400e3).toISOString() },
+    { id:3, title:'Second Brain — Cornell Method',                    updated_at: new Date(Date.now() - 4*86400e3).toISOString() },
+    { id:4, title:'Personal Finance concepts',                        updated_at: new Date(Date.now() - 6*86400e3).toISOString() },
   ],
-  notesTotal: 48,
+  notesTotal: 12,
   budget: {
-    balance: 18_450_000,
-    monthly_income: 22_000_000,
-    monthly_expense: 7_320_000,
+    balance: 4_000_000,
+    monthly_income: 2_700_000,
+    monthly_expense: 128_000,
     recent_transactions: [
-      { description:'Monthly salary',        category:'Income',     amount: 22_000_000, type:'income',  date: new Date().toISOString() },
-      { description:'Rent, April',           category:'Housing',    amount:  4_500_000, type:'expense', date: new Date(Date.now() - 2*86400e3).toISOString() },
-      { description:'Groceries — Market 99', category:'Food',       amount:    620_000, type:'expense', date: new Date(Date.now() - 3*86400e3).toISOString() },
-      { description:'Book: "Seeing Like a State"', category:'Books', amount:     315_000, type:'expense', date: new Date(Date.now() - 5*86400e3).toISOString() },
-      { description:'Client retainer',       category:'Income',     amount:  5_200_000, type:'income',  date: new Date(Date.now() - 6*86400e3).toISOString() },
+      { description:'gaji bulanan',        category:'salary', amount: 2_700_000, type:'income',  date: new Date(Date.now() - 18*86400e3).toISOString() },
+      { description:'nasi kuning',         category:'food',   amount:    13_000, type:'expense', date: new Date(Date.now() - 10*86400e3).toISOString() },
+      { description:'tahu goreng',         category:'food',   amount:    10_000, type:'expense', date: new Date(Date.now() - 10*86400e3).toISOString() },
+      { description:'warteg',              category:'food',   amount:    15_000, type:'expense', date: new Date(Date.now() - 12*86400e3).toISOString() },
+      { description:'nasi ayam tahu tempe',category:'food',   amount:    20_000, type:'expense', date: new Date(Date.now() - 14*86400e3).toISOString() },
     ],
   },
 };
@@ -224,4 +219,5 @@ window.CLData = {
   uploadDAAPI, receiptAPI, crewKick, crewPoll,
   patternsAPI, contradictionsAPI, fitnessDashAPI, newsFeedAPI, journalDashAPI,
   intelligenceAPI, refreshIntelligenceAPI,
+  historyAPI,
 };

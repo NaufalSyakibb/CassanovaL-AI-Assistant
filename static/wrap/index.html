@@ -602,6 +602,18 @@ document.addEventListener('click', e => {
 const today = new Date();
 $('monthPicker').value = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
 loadMonth();
+
+// Auto-refresh every 5 minutes (wrap data is heavy; no need to poll faster)
+setInterval(loadMonth, 5 * 60 * 1000);
+
+// BroadcastChannel: reload wrap when any data-writing agent completes
+if (typeof BroadcastChannel !== 'undefined') {
+  const _wrapBC = new BroadcastChannel('cassanoval-sync');
+  const _wrapAgents = new Set(['budget', 'fitness', 'journal', 'task', 'notes']);
+  _wrapBC.onmessage = (e) => {
+    if (_wrapAgents.has(e.data?.agent)) loadMonth();
+  };
+}
 </script>
 </body>
 </html>

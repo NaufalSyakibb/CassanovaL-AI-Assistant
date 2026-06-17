@@ -5,7 +5,7 @@ Usage:
     $env:PYTHONUTF8=1; python cli_alfred.py
 
 Chat naturally:
-    "tambah task beli buku priority high"
+    "add task buy books tomorrow, high priority"
     "show my pending tasks"
     "what's on my schedule today?"
     "create meeting tomorrow 10am-11am"
@@ -35,10 +35,10 @@ BANNER = """
 ║  Manage your tasks and Google Calendar from the terminal ║
 ║                                                          ║
 ║  Examples:                                               ║
-║   "tambah task beli buku esok, high priority"            ║
+║   "add task buy book tomorrow, high priority"            ║
 ║   "show my pending tasks"                                ║
-║   "apa yang harus dikerjakan hari ini?"                  ║
-║   "create meeting besok 10am-11am"                       ║
+║   "what do I need to get done today?"                    ║
+║   "create meeting tomorrow 10am-11am"                    ║
 ║   "mark task [id] done"                                  ║
 ║   "what's on my schedule this week?"                     ║
 ║                                                          ║

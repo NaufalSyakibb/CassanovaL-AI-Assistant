@@ -133,6 +133,7 @@ function Masthead({ agKey, tab, setTab, panelOpen, setPanelOpen, notifCount = 0,
             <button className={`tab ${tab==='chat'?'active':''}`} onClick={()=>setTab('chat')}>Dialogue</button>
             <button className={`tab ${tab==='overview'?'active':''}`} onClick={()=>setTab('overview')}>Overview</button>
             <button className={`tab ${tab==='ledger'?'active':''}`} onClick={()=>setTab('ledger')}>Ledger</button>
+            <button className={`tab ${tab==='history'?'active':''}`} onClick={()=>setTab('history')}>History</button>
           </nav>
         </div>
         <div className="masthead-right">
@@ -168,6 +169,7 @@ function ChatView({ agKey, messages, loading, onSend, financeUpdated, onFinanceD
   const ag = AGENTS[agKey];
   const [val, setVal] = _useState('');
   const [listening, setListening] = _useState(false);
+  const [cicerolang, setCicerolang] = _useState('id');
   const [voiceSupported] = _useState(() => !!(window.SpeechRecognition || window.webkitSpeechRecognition));
   const endRef = _useRef(null);
   const taRef = _useRef(null);
@@ -185,8 +187,9 @@ function ChatView({ agKey, messages, loading, onSend, financeUpdated, onFinanceD
   const send = _useCallback(() => {
     const t = val.trim(); if (!t || loading) return;
     setVal(''); if (taRef.current) taRef.current.style.height = 'auto';
-    onSend(t);
-  }, [val, loading, onSend]);
+    const payload = agKey === 'notes' ? `[LANG:${cicerolang}] ${t}` : t;
+    onSend(payload);
+  }, [val, loading, onSend, agKey, cicerolang]);
 
   const onKey = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
   const onInput = e => {
@@ -204,7 +207,10 @@ function ChatView({ agKey, messages, loading, onSend, financeUpdated, onFinanceD
     r.onresult = e => {
       const transcript = e.results[0][0].transcript;
       setListening(false);
-      if (transcript.trim()) onSend(transcript);
+      if (transcript.trim()) {
+        const payload = agKey === 'notes' ? `[LANG:${cicerolang}] ${transcript}` : transcript;
+        onSend(payload);
+      }
     };
     r.onerror = () => setListening(false);
     r.onend   = () => setListening(false);
@@ -245,7 +251,10 @@ function ChatView({ agKey, messages, loading, onSend, financeUpdated, onFinanceD
                   <div className="cover-side-label small-caps">Suggested openings</div>
                   <ul className="cover-side-list">
                     {(CHIPS[agKey]||[]).map((c, i) => (
-                      <li key={i} onClick={()=>onSend(c)} style={{cursor:'pointer'}}>
+                      <li key={i} onClick={() => {
+                        const payload = agKey === 'notes' ? `[LANG:${cicerolang}] ${c}` : c;
+                        onSend(payload);
+                      }} style={{cursor:'pointer'}}>
                         <span>{c}</span>
                         <span className="mono" style={{color:'var(--ink-4)'}}>→</span>
                       </li>
@@ -301,10 +310,23 @@ function ChatView({ agKey, messages, loading, onSend, financeUpdated, onFinanceD
         <div className="composer">
           <div className="prompt-row">
             {(CHIPS[agKey]||[]).map((c, i) => (
-              <button key={i} className="prompt-chip" onClick={()=>onSend(c)}>
+              <button key={i} className="prompt-chip" onClick={() => {
+                const payload = agKey === 'notes' ? `[LANG:${cicerolang}] ${c}` : c;
+                onSend(payload);
+              }}>
                 <span className="mono">/{String(i+1)}</span>{c}
               </button>
             ))}
+            {agKey === 'notes' && (
+              <button
+                className="prompt-chip"
+                title="Toggle response language"
+                onClick={() => setCicerolang(l => l === 'id' ? 'en' : 'id')}
+                style={{ marginLeft: 'auto', fontWeight: 600, letterSpacing: '0.03em' }}
+              >
+                {cicerolang === 'id' ? '🇮🇩 Indonesia' : '🇬🇧 English'}
+              </button>
+            )}
           </div>
           <div className="composer-box">
             {agKey === 'budget' && (
@@ -657,31 +679,36 @@ function IntelligenceDashboard() {
 }
 
 /* ── Agent Overview Tab ───────────────────────────────────── */
-function AgentOverview({ agKey }) {
-  const { AGENTS, fmtMoney, fmtDate, fitnessDashAPI, journalDashAPI, tasksAPI, patternsAPI } = window.CLData;
+function AgentOverview({ agKey, refreshTick = 0 }) {
+  const { AGENTS, fmtMoney, fmtDate, fitnessDashAPI, journalDashAPI, tasksAPI, patternsAPI, notesAPI, budgetAPI } = window.CLData;
   const ag = AGENTS[agKey];
   const [data, setData] = _useState(null);
   const [loading, setLoading] = _useState(true);
+  const [justRefreshed, setJustRefreshed] = _useState(false);
 
+  const _fetchMap = {
+    task:    () => tasksAPI(),
+    fitness: () => fitnessDashAPI(),
+    journal: () => journalDashAPI(),
+    budget:  () => (budgetAPI || window.CLData.budgetAPI)(),
+    notes:   () => (notesAPI  || window.CLData.notesAPI)(),
+  };
+
+  // Re-fetch on agent switch OR when a chat just completed (refreshTick changes)
   _useEffect(() => {
+    const isSwitch = true;
     setData(null); setLoading(true);
-    const fetch = {
-      task:    () => tasksAPI(),
-      fitness: () => fitnessDashAPI(),
-      journal: () => journalDashAPI(),
-      budget:  () => window.CLData.budgetAPI ? window.CLData.budgetAPI() : Promise.resolve(null),
-    }[agKey] || (() => Promise.resolve(null));
+    const fetchFn = _fetchMap[agKey] || (() => Promise.resolve(null));
+    fetchFn().then(d => {
+      setData(d);
+      setLoading(false);
+      if (refreshTick > 0) { setJustRefreshed(true); setTimeout(() => setJustRefreshed(false), 2000); }
+    }).catch(() => setLoading(false));
+  }, [agKey, refreshTick]);
 
-    fetch().then(d => { setData(d); setLoading(false); }).catch(() => setLoading(false));
-  }, [agKey]);
-
+  // 30-second background poll
   _useEffect(() => {
-    const fetchFn = {
-      task:    () => tasksAPI(),
-      fitness: () => fitnessDashAPI(),
-      journal: () => journalDashAPI(),
-      budget:  () => window.CLData.budgetAPI ? window.CLData.budgetAPI() : Promise.resolve(null),
-    }[agKey];
+    const fetchFn = _fetchMap[agKey];
     if (!fetchFn) return;
     const id = setInterval(() => {
       fetchFn().then(d => { if (d) setData(d); }).catch(() => {});
@@ -689,11 +716,37 @@ function AgentOverview({ agKey }) {
     return () => clearInterval(id);
   }, [agKey]);
 
+  // BroadcastChannel: refresh when another tab's chat writes data for this agent
+  _useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return;
+    const fetchFn = _fetchMap[agKey];
+    if (!fetchFn) return;
+    const bc = new BroadcastChannel('cassanoval-sync');
+    bc.onmessage = (e) => {
+      if (e.data?.agent === agKey) {
+        fetchFn().then(d => { if (d) setData(d); }).catch(() => {});
+      }
+    };
+    return () => bc.close();
+  }, [agKey]);
+
   const [firstName, ...rest] = ag.name.split(' ');
 
   return (
     <div className="overview-wrap scroll">
-      <div className="overview-eyebrow small-caps">{ag.issue} · {ag.sub}</div>
+      <div className="overview-eyebrow small-caps" style={{display:'flex', alignItems:'center', gap:8}}>
+        <span>{ag.issue} · {ag.sub}</span>
+        {justRefreshed && (
+          <span style={{
+            fontSize:10, fontFamily:'Inter,sans-serif', fontWeight:500, letterSpacing:'0.06em',
+            color:'var(--agent-hue, var(--ink-3))', background:'var(--surface-2)',
+            border:'1px solid currentColor', borderRadius:20, padding:'1px 8px',
+            opacity:1, transition:'opacity 0.5s',
+          }}>
+            ↻ updated
+          </span>
+        )}
+      </div>
       <h1 className="overview-title" style={{'--agent-hue': ag.hue}}>
         {firstName}<em>{rest.length ? ' ' + rest.join(' ') : ''}</em><br/>
         <span style={{fontSize:'0.55em', color:'var(--ink-3)', fontStyle:'normal'}}>Overview</span>
@@ -805,26 +858,34 @@ function AgentOverview({ agKey }) {
           <div className="overview-grid">
             <div className="overview-card">
               <div className="overview-card-label">Entries</div>
-              <div className="overview-card-value" style={{color: ag.hue}}>{data.total ?? 0}</div>
+              <div className="overview-card-value" style={{color: ag.hue}}>{data.total_entries ?? data.total ?? 0}</div>
               <div className="overview-card-sub">in the journal</div>
             </div>
             <div className="overview-card">
               <div className="overview-card-label">This Month</div>
-              <div className="overview-card-value" style={{color: ag.hue}}>{data.this_month ?? 0}</div>
-              <div className="overview-card-sub">entries written</div>
+              <div className="overview-card-value" style={{color: ag.hue}}>{data.this_month_count ?? data.this_month ?? 0}</div>
+              <div className="overview-card-sub">{data.current_month_label || 'entries written'}</div>
+            </div>
+            <div className="overview-card">
+              <div className="overview-card-label">Streak</div>
+              <div className="overview-card-value" style={{color: ag.hue}}>{data.streak ?? 0}</div>
+              <div className="overview-card-sub">consecutive days</div>
             </div>
           </div>
-          {(data.recent || []).length > 0 && (
+          {(data.entries || data.recent || []).length > 0 && (
             <div className="overview-bar-section">
               <div className="overview-bar-section-title">Recent entries</div>
               <div className="overview-items">
-                {data.recent.slice(0, 5).map((e, i) => (
+                {(data.entries || data.recent || []).slice(0, 5).map((e, i) => (
                   <div key={i} className="overview-item">
                     <div>
-                      <div className="overview-item-title">{e.title || fmtDate(e.date)}</div>
+                      <div className="overview-item-title">{e.date_label || e.title || fmtDate(e.date)}</div>
                       {e.preview && <div className="overview-item-meta" style={{marginTop:3,maxWidth:440,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{e.preview}</div>}
                     </div>
-                    <div className="overview-item-meta">{fmtDate(e.date)}</div>
+                    <div className="overview-item-meta" style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:2}}>
+                      <span>{fmtDate(e.date)}</span>
+                      {e.mood && e.mood !== 'unspecified' && <span style={{color: e.mood_cat==='positive'?'var(--hue-miyamoto)':e.mood_cat==='negative'?'var(--hue-lavoiser)':'var(--ink-4)', fontSize:11}}>{e.mood}</span>}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -833,7 +894,101 @@ function AgentOverview({ agKey }) {
         </>
       )}
 
-      {!loading && !['task','fitness','journal'].includes(agKey) && (
+      {!loading && agKey === 'budget' && data && (
+        <>
+          <div className="overview-grid">
+            <div className="overview-card">
+              <div className="overview-card-label">Balance</div>
+              <div className="overview-card-value" style={{color: ag.hue, fontSize:'1.5rem'}}>
+                Rp {fmtMoney(data.balance ?? 0)}
+              </div>
+              <div className="overview-card-sub">current net balance</div>
+            </div>
+            <div className="overview-card">
+              <div className="overview-card-label">This Month Income</div>
+              <div className="overview-card-value" style={{color:'var(--hue-miyamoto)', fontSize:'1.5rem'}}>
+                Rp {fmtMoney(data.monthly_income ?? 0)}
+              </div>
+              <div className="overview-card-sub">earned so far</div>
+            </div>
+            <div className="overview-card">
+              <div className="overview-card-label">This Month Spent</div>
+              <div className="overview-card-value" style={{color:'var(--hue-lavoiser)', fontSize:'1.5rem'}}>
+                Rp {fmtMoney(data.monthly_expense ?? 0)}
+              </div>
+              <div className="overview-card-sub">expenses this month</div>
+            </div>
+          </div>
+          {(data.recent_transactions || []).length > 0 && (
+            <div className="overview-bar-section">
+              <div className="overview-bar-section-title">Recent transactions</div>
+              <div className="overview-items">
+                {(data.recent_transactions || []).slice(0, 8).map((tx, i) => (
+                  <div key={i} className="overview-item">
+                    <div>
+                      <div className="overview-item-title">{tx.description}</div>
+                      <div className="overview-item-meta small-caps" style={{marginTop:2}}>{tx.category}</div>
+                    </div>
+                    <div style={{textAlign:'right', minWidth:80}}>
+                      <div className="overview-item-meta" style={{
+                        color: tx.type === 'income' ? 'var(--hue-miyamoto)' : 'var(--hue-lavoiser)',
+                        fontWeight: 600, fontSize: 13,
+                      }}>
+                        {tx.type === 'income' ? '+' : '−'} Rp {fmtMoney(tx.amount)}
+                      </div>
+                      <div className="overview-item-meta" style={{color:'var(--ink-4)', marginTop:2}}>{fmtDate(tx.date)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {!loading && agKey === 'notes' && data && (
+        <>
+          <div className="overview-grid">
+            <div className="overview-card">
+              <div className="overview-card-label">Total Notes</div>
+              <div className="overview-card-value" style={{color: ag.hue}}>{data.total ?? 0}</div>
+              <div className="overview-card-sub">entries in knowledge base</div>
+            </div>
+            <div className="overview-card">
+              <div className="overview-card-label">Recent</div>
+              <div className="overview-card-value" style={{color: ag.hue}}>{(data.notes || []).length}</div>
+              <div className="overview-card-sub">most recent notes</div>
+            </div>
+          </div>
+          {(data.notes || []).length > 0 && (
+            <div className="overview-bar-section">
+              <div className="overview-bar-section-title">Knowledge base</div>
+              <div className="overview-items">
+                {(data.notes || []).map((n, i) => (
+                  <div key={i} className="overview-item">
+                    <div>
+                      <div className="overview-item-title">{n.title}</div>
+                      {(n.tags || []).length > 0 && (
+                        <div className="overview-item-meta small-caps" style={{marginTop:2}}>
+                          {n.tags.slice(0,3).join(' · ')}
+                        </div>
+                      )}
+                    </div>
+                    <div className="overview-item-meta" style={{minWidth:60, textAlign:'right'}}>{fmtDate(n.updated_at)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {(data.notes || []).length === 0 && (
+            <div className="overview-empty">
+              No notes yet. Start a session with Cicero to build your knowledge base.
+            </div>
+          )}
+        </>
+      )}
+
+      {!loading && !['task','fitness','journal','budget','notes'].includes(agKey) && (
         <div className="overview-empty">
           <p>{ag.tagline}</p>
           <p style={{marginTop:16, fontSize:14, color:'var(--ink-4)'}}>Switch to Dialogue to chat with {firstName}.</p>
@@ -1182,12 +1337,12 @@ function JournalPanel({ agHue }) {
     </div>
   );
 
-  const entries = data.recent || [];
+  const entries = data.entries || [];
   return (
     <div className="panel-section">
       <div className="panel-section-head">
         <span className="small-caps">Recent Entries</span>
-        <span className="panel-count">{data.total ?? 0} total</span>
+        <span className="panel-count">{data.total_entries ?? 0} total</span>
       </div>
       {entries.length === 0 ? (
         <div style={{padding:'14px 0', color:'var(--ink-3)', fontStyle:'italic', fontFamily:"'Instrument Serif', serif", fontSize:17}}>
@@ -1195,8 +1350,9 @@ function JournalPanel({ agHue }) {
         </div>
       ) : entries.slice(0, 5).map((e, i) => (
         <div key={i} className="panel-entry">
-          <div className="panel-entry-title">{e.title || fmtDate(e.date)}</div>
-          <div className="panel-entry-meta">{fmtDate(e.date)}{e.mood ? ' · ' + e.mood : ''}</div>
+          <div className="panel-entry-title">{e.date_label || fmtDate(e.date)}</div>
+          {e.preview && <div className="panel-entry-meta" style={{marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:220}}>{e.preview}</div>}
+          <div className="panel-entry-meta">{e.day_name ? e.day_name + ' · ' : ''}{e.mood && e.mood !== 'unspecified' ? e.mood : ''}</div>
         </div>
       ))}
     </div>
@@ -1242,116 +1398,176 @@ function NewsPanel({ agHue }) {
   );
 }
 
-/* ── Nostradamus View ───────────────────────────────────────── */
-function NostradamusView() {
-  const [event, setEvent]           = _useState('');
-  const [running, setRunning]       = _useState(false);
-  const [predictions, setPredictions] = _useState([]);
-  const [verdict, setVerdict]       = _useState(null);
-  const [logs, setLogs]             = _useState([]);
-  const scrollRef = _useRef(null);
+/* ── History View ─────────────────────────────────────────── */
+function HistoryView({ agKey }) {
+  const { AGENTS, historyAPI, renderMd, fmtTime } = window.CLData;
+  const ag = AGENTS[agKey];
+  const firstName = ag.name.split(' ')[0];
+  const lastName  = ag.name.split(' ').slice(1).join(' ');
+
+  const [msgs, setMsgs]         = _useState([]);
+  const [loading, setLoading]   = _useState(true);
+  const [error, setError]       = _useState(null);
+  const [query, setQuery]       = _useState('');
+  const [expanded, setExpanded] = _useState({});
 
   _useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [predictions, logs, verdict]);
+    setLoading(true);
+    setError(null);
+    setMsgs([]);
+    setQuery('');
+    setExpanded({});
+    historyAPI(agKey)
+      .then(data => { setMsgs(data.messages || []); setLoading(false); })
+      .catch(err => { setError(err.message); setLoading(false); });
+  }, [agKey]);
 
-  const run = async () => {
-    const t = event.trim();
-    if (!t || running) return;
-    setRunning(true); setPredictions([]); setVerdict(null); setLogs([]);
-    try {
-      const resp = await fetch(`/api/nostradamus/prophesy?event=${encodeURIComponent(t)}`);
-      const reader = resp.body.getReader();
-      const dec = new TextDecoder();
-      let buf = '';
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buf += dec.decode(value, { stream: true });
-        const lines = buf.split('\n'); buf = lines.pop();
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          try {
-            const d = JSON.parse(line.slice(6));
-            if (d.event === 'log')        setLogs(l => [...l, d.text]);
-            else if (d.event === 'prediction') setPredictions(p => [...p, d]);
-            else if (d.event === 'verdict')    setVerdict(d);
-          } catch {}
-        }
-      }
-    } catch (e) { setLogs(l => [...l, `Error: ${e.message}`]); }
-    setRunning(false);
-  };
+  /* Pair messages: human[i] + ai[i+1] */
+  const pairs = _useMemo(() => {
+    const result = [];
+    for (let i = 0; i < msgs.length; i += 2) {
+      const human = msgs[i];
+      const ai    = msgs[i + 1];
+      if (human && human.role === 'human') result.push({ idx: i / 2, human, ai });
+    }
+    return result;
+  }, [msgs]);
 
-  const pct = predictions.length;
+  const filtered = _useMemo(() => {
+    if (!query.trim()) return pairs;
+    const q = query.toLowerCase();
+    return pairs.filter(p =>
+      p.human.content.toLowerCase().includes(q) ||
+      (p.ai && p.ai.content.toLowerCase().includes(q))
+    );
+  }, [pairs, query]);
+
+  const toggleExpand = idx => setExpanded(prev => ({ ...prev, [idx]: !prev[idx] }));
+
+  const PREVIEW_LEN = 280;
+
+  if (loading) return (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'60vh', flexDirection:'column', gap:12, color:'var(--ink-3)' }}>
+      <div className="typing-dots" style={{display:'flex',gap:6}}>
+        <div className="typing-dot"/><div className="typing-dot"/><div className="typing-dot"/>
+      </div>
+      <span style={{fontFamily:"'Instrument Serif',serif",fontStyle:'italic',fontSize:17}}>Loading history…</span>
+    </div>
+  );
+
+  if (error) return (
+    <div style={{ padding:'40px 32px', color:'var(--ink-3)', fontStyle:'italic', fontFamily:"'Instrument Serif',serif", fontSize:17 }}>
+      Could not load history: {error}
+    </div>
+  );
 
   return (
-    <div className="nostra-view">
-      <div className="nostra-input-row">
-        <input
-          className="nostra-input"
-          placeholder="Name an event or topic to prophesy…"
-          value={event}
-          onChange={e => setEvent(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && run()}
-          disabled={running}
-        />
-        <button className="nostra-btn" onClick={run} disabled={running || !event.trim()}>
-          {running ? `Analysing… ${pct}/20` : 'Run Prophecy'}
-        </button>
+    <div className="chat" style={{ '--agent-hue': ag.hue }}>
+      {/* Header bar */}
+      <div style={{ padding:'20px 28px 12px', borderBottom:'1px solid var(--rule)', display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
+        <div>
+          <div style={{ fontFamily:"'Instrument Serif',serif", fontSize:22, lineHeight:1.1 }}>
+            {firstName}<em style={{fontStyle:'italic'}}>{lastName ? ' '+lastName : ''}</em>
+            <span style={{ fontFamily:'Inter,sans-serif', fontSize:13, color:'var(--ink-3)', fontWeight:400, marginLeft:10 }}>
+              Full History
+            </span>
+          </div>
+          <div className="small-caps" style={{ color:'var(--ink-3)', marginTop:4, fontSize:11 }}>
+            {pairs.length} exchange{pairs.length !== 1 ? 's' : ''} · {msgs.length} message{msgs.length !== 1 ? 's' : ''} · full archive
+          </div>
+        </div>
+        <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:8 }}>
+          <input
+            type="search"
+            placeholder="Search history…"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            style={{
+              padding:'7px 14px', border:'1px solid var(--rule)', borderRadius:8,
+              background:'var(--surface)', color:'var(--ink)', fontSize:13,
+              outline:'none', width:220,
+            }}
+          />
+          {query && (
+            <span className="small-caps" style={{ color:'var(--ink-3)', fontSize:11, whiteSpace:'nowrap' }}>
+              {filtered.length} result{filtered.length !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
       </div>
 
-      <div className="nostra-scroll" ref={scrollRef}>
-        {logs.length > 0 && (
-          <div className="nostra-logs">
-            {logs.map((l, i) => <div key={i} className="nostra-log-line">{l}</div>)}
+      {/* Exchange list */}
+      <div className="chat-scroll scroll" style={{ padding:'0 28px 40px' }}>
+        {filtered.length === 0 && (
+          <div style={{ padding:'48px 0', textAlign:'center', color:'var(--ink-3)', fontFamily:"'Instrument Serif',serif", fontStyle:'italic', fontSize:18 }}>
+            {query ? `No exchanges match "${query}"` : 'No history recorded yet.'}
           </div>
         )}
 
-        {pct > 0 && (
-          <div className="nostra-section">
-            <div className="nostra-section-head">
-              Analyst Predictions <span className="nostra-badge">{pct} / 20</span>
-            </div>
-            <div className="nostra-grid">
-              {predictions.map((p, i) => (
-                <div key={i} className="nostra-card">
-                  <div className="nostra-card-top">
-                    <span className="nostra-card-name">{p.agent_name}</span>
-                    <span className="nostra-card-conf">{p.confidence}%</span>
+        {filtered.map(({ idx, human, ai }) => {
+          const isOpen = !!expanded[idx];
+          const aiText = ai ? ai.content : '';
+          const needsCollapse = aiText.length > PREVIEW_LEN;
+          const displayAi = (needsCollapse && !isOpen) ? aiText.slice(0, PREVIEW_LEN) + '…' : aiText;
+
+          return (
+            <div key={idx} style={{
+              borderBottom: '1px solid var(--rule)',
+              padding: '20px 0',
+            }}>
+              {/* Exchange number + human message */}
+              <div style={{ display:'flex', gap:12, alignItems:'flex-start', marginBottom:10 }}>
+                <span className="mono" style={{ fontSize:11, color:'var(--ink-4)', minWidth:32, paddingTop:3 }}>
+                  #{String(idx + 1).padStart(2, '0')}
+                </span>
+                <div style={{ flex:1 }}>
+                  <div style={{ display:'flex', gap:8, alignItems:'baseline', marginBottom:4 }}>
+                    <span style={{ fontSize:12, fontWeight:600, color:'var(--ink)' }}>You</span>
+                    <span className="small-caps" style={{ fontSize:10, color:'var(--ink-4)' }}>Correspondent</span>
                   </div>
-                  <div className="nostra-card-title">{p.prediction_title}</div>
-                  <div className="nostra-card-body">{p.prediction}</div>
-                  {p.reasoning && <div className="nostra-card-reason">{p.reasoning}</div>}
+                  <div style={{ fontSize:14, color:'var(--ink-2)', lineHeight:1.55 }}>
+                    {human.content}
+                  </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+              </div>
 
-        {verdict && (
-          <div className="nostra-verdict">
-            <div className="nostra-verdict-label">Council Verdict</div>
-            <div className="nostra-verdict-title">{verdict.verdict_title}</div>
-            <div className="nostra-verdict-detail">{verdict.verdict_detail}</div>
-            <div className="nostra-verdict-meta">
-              Confidence: <strong>{verdict.confidence}%</strong>
-              {verdict.endorsed_agent && <> · Endorsed: <em>{verdict.endorsed_agent}</em></>}
+              {/* Agent reply */}
+              {ai && (
+                <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
+                  <span className="mono" style={{ fontSize:11, color:'var(--agent-hue, var(--ink-4))', minWidth:32, paddingTop:3 }}>
+                    ↳
+                  </span>
+                  <div style={{ flex:1 }}>
+                    <div style={{ display:'flex', gap:8, alignItems:'baseline', marginBottom:4 }}>
+                      <span style={{ fontSize:12, fontWeight:600, color:'var(--ink)' }}>
+                        {firstName}{lastName ? <em style={{fontStyle:'italic'}}>{' '+lastName}</em> : null}
+                      </span>
+                      <span className="small-caps" style={{ fontSize:10, color:'var(--ink-4)' }}>{ag.sub}</span>
+                    </div>
+                    <div className="msg-body" style={{ fontSize:14, lineHeight:1.6 }}
+                      dangerouslySetInnerHTML={{ __html: `<p>${renderMd(displayAi)}</p>` }}
+                    />
+                    {needsCollapse && (
+                      <button
+                        onClick={() => toggleExpand(idx)}
+                        style={{
+                          marginTop:6, background:'transparent', border:'none',
+                          color:'var(--ink-3)', fontSize:12, cursor:'pointer',
+                          padding:0, textDecoration:'underline',
+                        }}
+                      >
+                        {isOpen ? 'Show less ↑' : 'Show full reply ↓'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
-            {verdict.dissenting_view && (
-              <div className="nostra-dissent">↗ {verdict.dissenting_view}</div>
-            )}
-          </div>
-        )}
-
-        {!running && pct === 0 && !verdict && (
-          <div className="nostra-empty">
-            <p>Enter any event or topic above. Twenty independent analysts will each conduct their own research and form their own prediction. The Council then weighs all 20 findings and issues a final verdict.</p>
-          </div>
-        )}
+          );
+        })}
       </div>
     </div>
   );
 }
 
-window.CLViews = { Sidebar, Masthead, ChatView, DashboardView, AgentOverview, RightPanel, NostradamusView };
+window.CLViews = { Sidebar, Masthead, ChatView, DashboardView, AgentOverview, RightPanel, HistoryView };

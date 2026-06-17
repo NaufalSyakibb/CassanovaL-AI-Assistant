@@ -101,12 +101,12 @@ def generate_intelligence_synthesis(force: bool = False) -> dict:
             pass  # corrupt cache → regenerate
 
     # Build prompt
-    lines = ["Kamu adalah analis sistem AI. Berikut adalah data eksperimen dari semua agent milik user:\n"]
+    lines = ["You are an AI system analyst. Here is the experiment data from all of the user's agents:\n"]
     active_agents = [a for a in agents if a["experiments"]["total"] > 0]
     if not active_agents:
         # No data yet — return immediately without caching so fresh data will trigger synthesis later
         return {
-            "synthesis":    "Belum ada data eksperimen yang cukup. Gunakan CassanovaL lebih sering agar sistem dapat mulai belajar tentang preferensimu.",
+            "synthesis":    "Not enough experiment data yet. Use CassanovaL more often so the system can start learning your preferences.",
             "generated_at": None,
             "agents":       agents,
         }
@@ -115,15 +115,15 @@ def generate_intelligence_synthesis(force: bool = False) -> dict:
     for a in active_agents:
         lines += [
             f"### {a['folder']} ({a['agent_key']})",
-            f"Hipotesis saat ini: {a['hypothesis'] or '(belum ada)'}",
-            f"Eksperimen: {a['experiments']['KEEP']} KEEP, {a['experiments']['DISCARD']} DISCARD, {a['experiments']['INCONCLUSIVE']} INCONCLUSIVE\n",
+            f"Current hypothesis: {a['hypothesis'] or '(none yet)'}",
+            f"Experiments: {a['experiments']['KEEP']} KEEP, {a['experiments']['DISCARD']} DISCARD, {a['experiments']['INCONCLUSIVE']} INCONCLUSIVE\n",
         ]
     lines += [
-        "\nTulis laporan ringkas dalam Bahasa Indonesia (3–5 paragraf) yang menjawab:",
-        "1. Apa yang sudah dipelajari sistem tentang preferensi dan kebiasaan user?",
-        "2. Agent mana yang paling aktif belajar, dan mana yang paling sedikit datanya?",
-        "3. Pola apa yang muncul lintas agent (misalnya: gaya komunikasi, format respons)?",
-        "4. Area konkret mana yang butuh lebih banyak eksperimen agar sistem bisa berkembang?",
+        "\nWrite a concise report in English (3–5 paragraphs) answering:",
+        "1. What has the system learned about the user's preferences and habits?",
+        "2. Which agents are learning most actively, and which have the least data?",
+        "3. What patterns emerge across agents (e.g. communication style, response format)?",
+        "4. Which concrete areas need more experiments for the system to keep improving?",
     ]
     from langchain_mistralai import ChatMistralAI
     from langchain_core.messages import HumanMessage

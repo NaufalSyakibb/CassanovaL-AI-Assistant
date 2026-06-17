@@ -36,76 +36,119 @@ def _parse_json_output(agent_result: dict) -> dict:
     return {"error": "Could not parse agent output", "raw": raw[:500]}
 
 
-# 20 anonymous independent research analysts — no predefined role or perspective.
-PREDICTORS = [{"id": f"analyst_{i+1:02d}", "name": f"Analyst {i+1}"} for i in range(20)]
+PREDICTORS = [
+    {
+        "id": "trend",
+        "name": "Trend Analyst",
+        "prompt": """You are the Trend Analyst — an expert who reads momentum and directional movement from current data patterns.
+Based on the given news, predict where this event is heading based on current trends.
 
-_PREDICTOR_PROMPT = """You are an elite research analyst with a proven track record of accurate forecasting. Your goal is to produce the single best possible prediction for the given topic — specific, evidence-backed, and intellectually honest.
-
-## Research Protocol (follow in order)
-
-Step 1 — Broad search: Call get_recent_news with the main topic to map the landscape.
-Step 2 — Targeted search: From your step 1 findings, identify the most significant signal or development. Search again on that specific angle.
-Step 3 — Stress-test: Identify the strongest counterargument to your emerging hypothesis. Search once more to confirm or challenge it.
-
-Do not stop at one search. Three searches minimum for a high-quality prediction.
-
-## Evidence Standards
-
-Before writing your prediction:
-- Identify the 2-3 most reliable pieces of evidence you found (cite headline or source)
-- Separate what is confirmed from what is inferred
-- Ask: "What would have to be true for this prediction to be wrong?"
-
-## Prediction Standards
-
-Your prediction must be:
-- Specific — name actors, places, timeframes, magnitudes where possible
-- Causal — explain the mechanism, not just the outcome
-- Falsifiable — someone should be able to verify if you were right
-- Singular — one clear best prediction, not a list of scenarios
-
-## Output
-
-Return ONLY valid JSON (no other text):
+Return ONLY JSON (no other text):
 {
-  "agent_id": "your assigned agent ID",
-  "agent_name": "your assigned agent name",
-  "prediction_title": "precise prediction title (max 8 words)",
-  "prediction": "your best prediction in 2-3 sentences — specific, mechanistic, with timeframe",
+  "agent_id": "trend",
+  "agent_name": "Trend Analyst",
+  "prediction_title": "short prediction title (max 8 words)",
+  "prediction": "concrete prediction in 2-3 sentences",
+  "confidence": 72,
+  "reasoning": "brief explanation of why this is most likely"
+}""",
+    },
+    {
+        "id": "risk",
+        "name": "Risk Assessor",
+        "prompt": """You are the Risk Assessor — a pessimist who identifies worst-case scenarios and tail risks.
+Based on the given news, identify what could go wrong and the most dangerous scenarios.
+
+Return ONLY JSON (no other text):
+{
+  "agent_id": "risk",
+  "agent_name": "Risk Assessor",
+  "prediction_title": "short prediction title (max 8 words)",
+  "prediction": "concrete 2-3 sentence prediction about risks",
+  "confidence": 60,
+  "reasoning": "why this risk is real and worth watching"
+}""",
+    },
+    {
+        "id": "optimist",
+        "name": "Optimist",
+        "prompt": """You are the Optimist — an analyst who identifies positive catalysts and best opportunity windows.
+Based on the given news, predict the best realistic scenario that could unfold.
+
+Return ONLY JSON (no other text):
+{
+  "agent_id": "optimist",
+  "agent_name": "Optimist",
+  "prediction_title": "short prediction title (max 8 words)",
+  "prediction": "concrete 2-3 sentence prediction about the best opportunity",
+  "confidence": 65,
+  "reasoning": "what catalysts could drive this positive scenario"
+}""",
+    },
+    {
+        "id": "history",
+        "name": "Historical Analogist",
+        "prompt": """You are the Historical Analyst — an expert who finds historical analogies and recurring cycle patterns.
+Based on the given news, find similar events from history and predict based on those precedents.
+
+Return ONLY JSON (no other text):
+{
+  "agent_id": "history",
+  "agent_name": "Historical Analogist",
+  "prediction_title": "short prediction title (max 8 words)",
+  "prediction": "concrete 2-3 sentence prediction, citing the relevant historical precedent",
   "confidence": 70,
-  "reasoning": "your 2-3 strongest evidence points with source references that drove this prediction"
-}
+  "reasoning": "which historical analogy is most relevant and why the pattern repeats"
+}""",
+    },
+    {
+        "id": "systems",
+        "name": "Systems Thinker",
+        "prompt": """You are the Systems Thinker — an analyst who maps second-order effects and cascading consequences that are often missed.
+Based on the given news, predict indirect impacts that will be felt beyond the primary domain.
 
-confidence: integer 1-100. Calibrate honestly — a precise prediction at 60 beats a vague one at 85. Only exceed 80 if multiple independent sources strongly converge."""
+Return ONLY JSON (no other text):
+{
+  "agent_id": "systems",
+  "agent_name": "Systems Thinker",
+  "prediction_title": "short prediction title (max 8 words)",
+  "prediction": "concrete 2-3 sentence prediction about unexpected downstream effects",
+  "confidence": 68,
+  "reasoning": "the causal mechanism that produces these downstream effects"
+}""",
+    },
+]
 
-_GATHERER_PROMPT = """Kamu adalah NewsGatherer — analis berita yang mengumpulkan berita terkini dari berbagai sumber global.
-Gunakan tool get_recent_news untuk mencari berita tentang topik yang diberikan.
+_GATHERER_PROMPT = """You are NewsGatherer — a news analyst who collects the latest news from diverse global sources.
+Use the get_recent_news tool to search for news about the given topic.
 
-Kembalikan HANYA JSON (tanpa teks lain):
+Return ONLY JSON (no other text):
 {
   "news": [
     {
-      "headline": "judul berita",
-      "source": "nama media",
-      "date": "tanggal/waktu",
-      "summary": "ringkasan 1-2 kalimat"
+      "headline": "news headline",
+      "source": "media name",
+      "date": "date/time",
+      "summary": "1-2 sentence summary"
     }
   ]
 }
 
-Kumpulkan 5-8 berita terbaru. Jika tool tidak menemukan hasil, kembalikan {"news": []}.
+Collect 5-8 of the most recent articles. If the tool finds no results, return {"news": []}.
 """
 
-_COUNCIL_PROMPT = """Kamu adalah Dewan Peramal — majelis hakim yang menimbang 20 prediksi independen dan menetapkan vonis akhir.
-Gunakan tool save_prophecy untuk menyimpan vonis ke vault sebelum mengembalikan JSON.
+_COUNCIL_PROMPT = """You are the Council of Oracles — a panel of judges who weigh 5 predictions from different perspectives and deliver the final verdict.
+Use the save_prophecy tool to save the verdict to the vault before returning the JSON.
 
-Kembalikan HANYA JSON (tanpa teks lain):
+Available agent IDs: trend, risk, optimist, history, systems
+
+Return ONLY JSON (no other text):
 {
-  "verdict_title": "judul vonis singkat (max 8 kata)",
-  "verdict_detail": "vonis konkret 3-4 kalimat — prediksi paling mungkin dan alasannya",
+  "verdict_title": "short verdict title (max 8 words)",
+  "verdict_detail": "concrete 3-4 sentence verdict — most likely prediction and reasoning",
   "confidence": 75,
-  "endorsed_agent": "nama agen yang prediksinya paling akurat",
-  "dissenting_view": "1 kalimat sudut pandang berbeda yang patut dipertimbangkan"
+  "endorsed_agent": "one of: trend, risk, optimist, history, systems",
+  "dissenting_view": "1 sentence dissenting view worth considering"
 }
 """
 
@@ -114,7 +157,7 @@ def run_news_gatherer(event: str) -> dict:
     from tools.news_tools import get_recent_news
     agent = build_agent(_GATHERER_PROMPT, [get_recent_news])
     result = _invoke_with_retry(agent, {
-        "messages": [{"role": "user", "content": f"Cari berita terkini tentang: {event}"}]
+        "messages": [{"role": "user", "content": f"Search for the latest news about: {event}"}]
     })
     parsed = _parse_json_output(result)
     if "news" not in parsed:
@@ -122,26 +165,12 @@ def run_news_gatherer(event: str) -> dict:
     return parsed
 
 
-def run_predictor(predictor: dict, event: str, news_summary: str = "") -> dict:
-    from tools.news_tools import get_recent_news
-    agent = build_agent(
-        _PREDICTOR_PROMPT, [get_recent_news],
-        temperature=0.4,   # higher variance across 20 independent agents
-        max_tokens=4096,   # room for multi-step reasoning and tool calls
-    )
+def run_predictor(predictor: dict, event: str, news_summary: str) -> dict:
+    agent = build_agent(predictor["prompt"], [])
     result = _invoke_with_retry(agent, {
-        "messages": [{"role": "user", "content": (
-            f"Your ID: {predictor['id']}\n"
-            f"Your name: {predictor['name']}\n\n"
-            f"Research topic: {event}\n\n"
-            f"Follow the research protocol: three searches minimum. "
-            f"Produce your single best, most specific prediction."
-        )}]
+        "messages": [{"role": "user", "content": f"Topic: {event}\n\nRecent news:\n{news_summary}\n\nProvide your prediction."}]
     })
-    parsed = _parse_json_output(result)
-    parsed["agent_id"] = predictor["id"]
-    parsed["agent_name"] = predictor["name"]
-    return parsed
+    return _parse_json_output(result)
 
 
 def run_council(event: str, predictions: list) -> dict:
@@ -149,12 +178,12 @@ def run_council(event: str, predictions: list) -> dict:
     agent = build_agent(_COUNCIL_PROMPT, [save_prophecy])
     preds_text = "\n\n".join(
         f"[{p.get('agent_name', '?')}]\n"
-        f"Prediksi: {p.get('prediction_title', '')}\n"
+        f"Prediction: {p.get('prediction_title', '')}\n"
         f"{p.get('prediction', '')}\n"
-        f"Kepercayaan: {p.get('confidence', '?')}%"
+        f"Confidence: {p.get('confidence', '?')}%"
         for p in predictions
     )
     result = _invoke_with_retry(agent, {
-        "messages": [{"role": "user", "content": f"Topik: {event}\n\n{len(predictions)} Prediksi:\n\n{preds_text}\n\nTetapkan vonis dan simpan ke vault."}]
+        "messages": [{"role": "user", "content": f"Topic: {event}\n\n{len(predictions)} Predictions:\n\n{preds_text}\n\nDeliver the verdict and save it to the vault."}]
     })
     return _parse_json_output(result)

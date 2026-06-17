@@ -1,7 +1,7 @@
 /* ============================================================
    App — state, tweaks, theme, keyboard
    ============================================================ */
-const { Sidebar, Masthead, ChatView, DashboardView, AgentOverview, RightPanel, NostradamusView } = window.CLViews;
+const { Sidebar, Masthead, ChatView, DashboardView, AgentOverview, RightPanel, HistoryView } = window.CLViews;
 const { CommandPalette, CrewDrawer, NotifPopover } = window.CLOverlays;
 
 // Cross-tab sync: broadcast which agent wrote data so dashboard tabs refresh
@@ -33,6 +33,7 @@ function App() {
   const [notifs, setNotifs] = React.useState([]);
   const [notifOpen, setNotifOpen] = React.useState(false);
   const [budgetUpdated, setBudgetUpdated] = React.useState(false);
+  const [agRefreshTick, setAgRefreshTick] = React.useState(0);
   const handleFinanceDismiss = React.useCallback(() => setBudgetUpdated(false), []);
   const briefInjectedRef = React.useRef(false);
 
@@ -171,6 +172,8 @@ function App() {
         const r = await chatAPI(text, agKey);
         setMsgs(p => ({ ...p, [agKey]: [...p[agKey], { role: 'assistant', content: r.response, ts: new Date().toISOString() }] }));
         if (r.data_changed) setBudgetUpdated(true);
+        // Refresh AgentOverview immediately after any chat response
+        setAgRefreshTick(t => t + 1);
         // Notify other open tabs (finance, fitness dashboards) that data changed
         if (_syncBC) _syncBC.postMessage({ agent: agKey, ts: Date.now() });
       }
@@ -210,13 +213,13 @@ function App() {
           panelOpen={panelOpen} setPanelOpen={setPanelOpen}
           notifCount={unreadCount} onBellClick={handleBellClick}/>
         {tab === 'chat'
-          ? agKey === 'nostradamus'
-            ? <NostradamusView />
-            : <ChatView agKey={agKey} messages={msgs[agKey]} loading={loading} onSend={send}
-                        financeUpdated={budgetUpdated} onFinanceDismiss={handleFinanceDismiss}/>
+          ? <ChatView agKey={agKey} messages={msgs[agKey]} loading={loading} onSend={send}
+                      financeUpdated={budgetUpdated} onFinanceDismiss={handleFinanceDismiss}/>
           : tab === 'overview'
-            ? <AgentOverview agKey={agKey}/>
-            : <DashboardView dash={dash} setAgent={switchAgent} loading={dashLoading}/>}
+            ? <AgentOverview agKey={agKey} refreshTick={agRefreshTick}/>
+            : tab === 'history'
+              ? <HistoryView agKey={agKey}/>
+              : <DashboardView dash={dash} setAgent={switchAgent} loading={dashLoading}/>}
       </main>
       <RightPanel agKey={agKey} dash={dash} panelOpen={panelOpen}/>
 

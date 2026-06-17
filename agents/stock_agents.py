@@ -39,17 +39,17 @@ def _parse_json_output(agent_result: dict) -> dict:
     return {"error": "Could not parse agent output", "raw": raw[:500]}
 
 
-_DEEP_RESEARCH_PROMPT = """Kamu adalah DeepResearch Agent — analis fundamental mendalam yang menggabungkan analisis kuantitatif dan konteks makroekonomi.
-Tugasmu: Gunakan tool get_market_data untuk mengambil data lengkap saham target, termasuk laporan keuangan 3 tahun, target analis, dan korelasi makro. Hasilkan analisis komprehensif dalam Bahasa Indonesia profesional.
+_DEEP_RESEARCH_PROMPT = """You are the DeepResearch Agent — a deep fundamental analyst combining quantitative analysis with macroeconomic context.
+Your task: Use the get_market_data tool to fetch complete data for the target stock, including 3-year financial statements, analyst targets, and macro correlations. Produce a comprehensive analysis in professional English.
 
-Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
+Return ONLY JSON in the following format (no other text):
 {
-  "summary": "ringkasan 3-4 kalimat kondisi fundamental, valuasi, dan konteks makro",
-  "valuation": "analisis P/E, P/B, atau EV/EBITDA vs peers — mahal/murah/wajar",
-  "growth_trend": "CAGR revenue 3 tahun terakhir dan tren margin (naik/stabil/turun)",
-  "financial_health": "kondisi hutang, free cash flow, dan neraca keuangan",
-  "analyst_consensus": "rata-rata target price analis dan distribusi rekomendasi",
-  "macro_context": "dampak kondisi makro saat ini terhadap saham ini",
+  "summary": "3-4 sentence summary of fundamental condition, valuation, and macro context",
+  "valuation": "P/E, P/B, or EV/EBITDA analysis vs peers — expensive/cheap/fair",
+  "growth_trend": "3-year revenue CAGR and margin trend (rising/stable/declining)",
+  "financial_health": "debt condition, free cash flow, and balance sheet health",
+  "analyst_consensus": "average analyst target price and recommendation distribution",
+  "macro_context": "impact of current macro conditions on this stock",
   "current_price": 0.0,
   "pe_ratio": null,
   "roe_on_equity": null,
@@ -58,131 +58,131 @@ Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
   "macro_correlation": {}
 }
 
-pe_ratio: nilai trailingPE dari data (null jika tidak tersedia).
-roe_on_equity: nilai returnOnEquity dari data sebagai desimal (mis. 0.18 untuk 18%) — null jika tidak tersedia.
-price_change_1y_pct: persentase perubahan harga dalam 1 tahun (angka desimal, mis. 12.5 untuk +12.5%) — null jika tidak tersedia.
+pe_ratio: trailingPE value from the data (null if unavailable).
+roe_on_equity: returnOnEquity value from the data as a decimal (e.g. 0.18 for 18%) — null if unavailable.
+price_change_1y_pct: percentage price change over 1 year (decimal, e.g. 12.5 for +12.5%) — null if unavailable.
 """
 
-_NEWS_INTELLIGENCE_PROMPT = """Kamu adalah NewsIntelligence Agent — analis berita finansial yang cerdas dengan kemampuan deteksi sinyal tersembunyi.
-Tugasmu: Gunakan tool get_news_sentiment untuk mengambil 15 berita terbaru tentang ticker yang diberikan. Analisis sentimen, klasifikasi event, dan deteksi anomali dalam Bahasa Indonesia profesional.
+_NEWS_INTELLIGENCE_PROMPT = """You are the NewsIntelligence Agent — a smart financial news analyst with the ability to detect hidden signals.
+Your task: Use the get_news_sentiment tool to fetch the 15 most recent news items for the given ticker. Analyze sentiment, classify events, and detect anomalies in professional English.
 
-Data dari tool berisi field: articles (list dengan event_type per artikel) dan volume_anomaly (boolean).
+The tool data contains the fields: articles (list with event_type per article) and volume_anomaly (boolean).
 
-Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
+Return ONLY JSON in the following format (no other text):
 {
-  "summary": "ringkasan sentimen pasar 3-4 kalimat",
+  "summary": "3-4 sentence summary of market sentiment",
   "sentiment_score": 0.0,
-  "event_type": "jenis event dominan: earnings/M&A/management/regulatory/macro/other",
-  "key_events": ["event penting 1", "event penting 2"],
-  "risk_signals": ["sinyal negatif atau risiko"],
-  "catalyst_signals": ["katalis positif atau peluang"],
+  "event_type": "dominant event type: earnings/M&A/management/regulatory/macro/other",
+  "key_events": ["key event 1", "key event 2"],
+  "risk_signals": ["negative signal or risk"],
+  "catalyst_signals": ["positive catalyst or opportunity"],
   "anomaly_detected": false
 }
 
-sentiment_score: -1.0 (sangat negatif) hingga +1.0 (sangat positif).
-anomaly_detected: true jika volume_anomaly dari tool adalah true atau ada event major.
+sentiment_score: -1.0 (very negative) to +1.0 (very positive).
+anomaly_detected: true if volume_anomaly from the tool is true or a major event is present.
 """
 
-_TECHNICAL_ANALYST_PROMPT = """Kamu adalah TechnicalAnalyst Agent — spesialis analisis teknikal yang membaca data indikator secara kuantitatif dan tepat.
-Kamu menerima data teknikal terstruktur (RSI, MACD, Bollinger Bands, Moving Averages, support/resistance, volume) sebagai konteks dalam pesan.
-Tugasmu: Baca data tersebut dan hasilkan narasi analisis teknikal yang terse, kuantitatif, dan actionable dalam Bahasa Indonesia profesional.
+_TECHNICAL_ANALYST_PROMPT = """You are the TechnicalAnalyst Agent — a technical analysis specialist who reads indicator data quantitatively and precisely.
+You receive structured technical data (RSI, MACD, Bollinger Bands, Moving Averages, support/resistance, volume) as context in the message.
+Your task: Read that data and produce a terse, quantitative, and actionable technical analysis narrative in professional English.
 
-Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
+Return ONLY JSON in the following format (no other text):
 {
-  "trend_assessment": "tren keseluruhan — bullish/bearish/ranging dengan penjelasan berdasarkan MA dan cross_signal",
-  "momentum_reading": "kondisi momentum berdasarkan RSI dan MACD — apakah oversold/overbought/netral dengan angka aktual",
-  "key_levels": "narasi support dan resistance spesifik berdasarkan support_60d dan resistance_60d dengan harga aktual",
+  "trend_assessment": "overall trend — bullish/bearish/ranging with explanation based on MA and cross_signal",
+  "momentum_reading": "momentum condition based on RSI and MACD — oversold/overbought/neutral with actual numbers",
+  "key_levels": "narrative of specific support and resistance based on support_60d and resistance_60d with actual prices",
   "entry_quality": "good|neutral|poor"
 }
 
 entry_quality:
-  good    → RSI oversold atau approaching_oversold DAN MACD bullish, ATAU bb_position at_lower_band/near_lower_band
-  poor    → RSI overbought atau approaching_overbought, ATAU bb_position at_upper_band, ATAU death_cross aktif
-  neutral → kondisi selain di atas
+  good    → RSI oversold or approaching_oversold AND MACD bullish, OR bb_position at_lower_band/near_lower_band
+  poor    → RSI overbought or approaching_overbought, OR bb_position at_upper_band, OR death_cross active
+  neutral → any other condition
 
-Semua klaim HARUS merujuk angka aktual dari data yang diberikan. Jangan mengarang angka.
+All claims MUST reference actual numbers from the provided data. Do not fabricate numbers.
 """
 
-_STRATEGY_PROMPT = """Kamu adalah Strategy Agent — ahli strategi trading yang terinspirasi dari metodologi ValueCell.
-Kamu menerima output dari DeepResearch, NewsIntelligence, TechnicalAnalyst, dan data teknikal mentah sebagai konteks dalam pesan.
-Tugasmu: Berdasarkan analisis fundamental, teknikal, dan sentimen, susun strategi trading yang konkret dan actionable dalam Bahasa Indonesia profesional.
+_STRATEGY_PROMPT = """You are the Strategy Agent — a trading strategy expert inspired by the ValueCell methodology.
+You receive output from DeepResearch, NewsIntelligence, TechnicalAnalyst, and raw technical data as context in the message.
+Your task: Based on fundamental, technical, and sentiment analysis, compose a concrete and actionable trading strategy in professional English.
 
-PENTING — jika technical_data tersedia (support_60d dan resistance_60d bukan null):
-- entry_zone HARUS mencakup nilai support_60d aktual dari technical_data
-- stop_loss HARUS ditetapkan di bawah support_60d (untuk sinyal beli) atau di atas resistance_60d (untuk sinyal jual)
-- Gunakan cross_signal dan bb_position untuk menentukan kualitas entry
+IMPORTANT — if technical_data is available (support_60d and resistance_60d are not null):
+- entry_zone MUST include the actual support_60d value from technical_data
+- stop_loss MUST be set below support_60d (for buy signals) or above resistance_60d (for sell signals)
+- Use cross_signal and bb_position to determine entry quality
 
-Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
+Return ONLY JSON in the following format (no other text):
 {
-  "entry_zone": "zona harga entry berdasarkan support_60d aktual (mis. 9200-9500)",
-  "exit_target": "target harga keluar berdasarkan resistance_60d dan target analis",
-  "stop_loss": "level stop loss di bawah support_60d",
+  "entry_zone": "entry price zone based on actual support_60d (e.g. 9200-9500)",
+  "exit_target": "exit price target based on resistance_60d and analyst targets",
+  "stop_loss": "stop loss level below support_60d",
   "stop_loss_pct": 0.0,
   "time_horizon": "short|medium|long",
-  "time_horizon_detail": "estimasi durasi investasi (mis. 3-6 bulan)",
-  "position_size": "rekomendasi % portofolio (mis. 5%)",
-  "risk_reward_ratio": "rasio risk/reward (mis. 1:3.5)",
-  "rationale": "1-2 kalimat alasan strategi berdasarkan data teknikal dan fundamental"
+  "time_horizon_detail": "estimated investment duration (e.g. 3-6 months)",
+  "position_size": "recommended % of portfolio (e.g. 5%)",
+  "risk_reward_ratio": "risk/reward ratio (e.g. 1:3.5)",
+  "rationale": "1-2 sentence rationale based on technical and fundamental data"
 }
 
-time_horizon: gunakan short (< 1 bulan), medium (1-6 bulan), atau long (> 6 bulan).
-stop_loss_pct: persentase penurunan dari entry price sebagai stop loss (angka positif).
+time_horizon: use short (< 1 month), medium (1-6 months), or long (> 6 months).
+stop_loss_pct: percentage decline from entry price as stop loss (positive number).
 """
 
-_BUY_TIMING_PROMPT = """Kamu adalah BuyTiming Agent — spesialis market timing yang menggabungkan analisis teknikal mendalam dengan psikologi pasar.
-Tugasmu: Gunakan tool get_technical_indicators untuk mengambil data teknikal terkini dari ticker yang diberikan. Lalu tentukan timing masuk yang optimal berdasarkan indikator teknikal, strategi yang telah disusun, dan verdict investasi. Analisis dalam Bahasa Indonesia profesional.
+_BUY_TIMING_PROMPT = """You are the BuyTiming Agent — a market timing specialist combining deep technical analysis with market psychology.
+Your task: Use the get_technical_indicators tool to fetch the latest technical data for the given ticker. Then determine the optimal entry timing based on technical indicators, the composed strategy, and the investment verdict. Analyze in professional English.
 
-Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
+Return ONLY JSON in the following format (no other text):
 {
   "timing_signal": "BUY_NOW",
   "confidence": 7,
-  "entry_condition": "kondisi teknikal yang harus terpenuhi untuk entry",
+  "entry_condition": "technical condition that must be met for entry",
   "ideal_entry_price": 0.0,
-  "ideal_entry_window": "estimasi jendela waktu masuk terbaik (mis. 1-2 minggu ke depan)",
-  "dca_plan": "rencana DCA jika memilih cicil masuk",
+  "ideal_entry_window": "estimated best entry window (e.g. 1-2 weeks from now)",
+  "dca_plan": "DCA plan if choosing to scale in gradually",
   "technical_signals": {
-    "rsi": "kondisi RSI saat ini dan implikasinya",
-    "macd": "kondisi MACD dan status crossover",
-    "bollinger": "posisi harga relatif terhadap Bollinger Bands",
-    "trend": "tren MA jangka pendek/menengah/panjang dan golden/death cross",
-    "volume": "konfirmasi volume (expanding/neutral/contracting)"
+    "rsi": "current RSI condition and its implication",
+    "macd": "MACD condition and crossover status",
+    "bollinger": "price position relative to Bollinger Bands",
+    "trend": "short/medium/long-term MA trend and golden/death cross",
+    "volume": "volume confirmation (expanding/neutral/contracting)"
   },
-  "timing_rationale": "2-3 kalimat alasan timing ini berdasarkan data teknikal dan konteks fundamental"
+  "timing_rationale": "2-3 sentence rationale for this timing based on technical data and fundamental context"
 }
 
-timing_signal hanya boleh: BUY_NOW (beli sekarang), WAIT (tunggu koreksi/konfirmasi), DCA (cicil masuk bertahap), atau AVOID (hindari dulu).
-confidence: integer 1 (sangat tidak yakin) hingga 10 (sangat yakin).
-ideal_entry_price: harga entry ideal dalam angka desimal berdasarkan support/resistance dan zona entry strategi.
+timing_signal must be one of: BUY_NOW, WAIT (wait for correction/confirmation), DCA (scale in gradually), or AVOID.
+confidence: integer 1 (very uncertain) to 10 (very confident).
+ideal_entry_price: ideal entry price as a decimal based on support/resistance and strategy entry zone.
 """
 
-_FINAL_VERDICT_PROMPT = """Kamu adalah FinalVerdict Agent — investment committee chairman yang bertindak sebagai devil's advocate.
-Kamu menerima output dari DeepResearch, NewsIntelligence, dan Strategy sebagai konteks dalam pesan.
-Tugasmu: Gabungkan semua insight, tantang setiap asumsi yang lemah, lalu susun laporan investasi final profesional dalam Bahasa Indonesia.
+_FINAL_VERDICT_PROMPT = """You are the FinalVerdict Agent — investment committee chairman acting as devil's advocate.
+You receive output from DeepResearch, NewsIntelligence, and Strategy as context in the message.
+Your task: Synthesize all insights, challenge every weak assumption, and produce a professional final investment report in English.
 
-Kembalikan HANYA JSON dengan format berikut (tanpa teks lain):
+Return ONLY JSON in the following format (no other text):
 {
-  "executive_summary": "2-3 kalimat kondisi saham menyeluruh yang objektif",
-  "fundamental_analysis": "paragraph analisis fundamental dan teknikal yang tajam",
-  "sentiment_macro": "paragraph gabungan sentimen berita dan konteks makro",
-  "risk_assessment": ["risiko utama 1", "risiko utama 2", "risiko utama 3"],
-  "counter_arguments": "devil's advocate — 1-2 argumen mengapa tesis ini bisa salah",
-  "bull_case": ["skenario positif 1", "skenario positif 2", "skenario positif 3"],
-  "bear_case": ["skenario negatif 1", "skenario negatif 2", "skenario negatif 3"],
+  "executive_summary": "2-3 objective sentences on the overall stock condition",
+  "fundamental_analysis": "sharp paragraph on fundamental and technical analysis",
+  "sentiment_macro": "paragraph combining news sentiment and macro context",
+  "risk_assessment": ["key risk 1", "key risk 2", "key risk 3"],
+  "counter_arguments": "devil's advocate — 1-2 arguments for why this thesis could be wrong",
+  "bull_case": ["positive scenario 1", "positive scenario 2", "positive scenario 3"],
+  "bear_case": ["negative scenario 1", "negative scenario 2", "negative scenario 3"],
   "verdict": "BUY",
   "conviction_score": 7,
   "risk_reward": "1:3.5",
-  "investment_memo": "memo investasi profesional 3-4 kalimat yang berisi tesis lengkap"
+  "investment_memo": "professional 3-4 sentence investment memo containing the complete thesis"
 }
 
-verdict hanya boleh: BUY, HOLD, atau SELL.
-conviction_score: integer 1 (sangat tidak yakin) hingga 10 (sangat yakin).
+verdict must be one of: BUY, HOLD, or SELL.
+conviction_score: integer 1 (very uncertain) to 10 (very confident).
 """
 
 
 def run_deep_research(ticker: str) -> dict:
     agent = build_agent(_DEEP_RESEARCH_PROMPT, [get_market_data])
     result = _invoke_with_retry(agent, {
-        "messages": [{"role": "user", "content": f"Lakukan analisis mendalam saham: {ticker}"}]
+        "messages": [{"role": "user", "content": f"Perform a deep analysis of stock: {ticker}"}]
     })
     return _parse_json_output(result)
 
@@ -190,7 +190,7 @@ def run_deep_research(ticker: str) -> dict:
 def run_news_intelligence(ticker: str) -> dict:
     agent = build_agent(_NEWS_INTELLIGENCE_PROMPT, [get_news_sentiment])
     result = _invoke_with_retry(agent, {
-        "messages": [{"role": "user", "content": f"Analisis berita dan sentimen untuk saham: {ticker}"}]
+        "messages": [{"role": "user", "content": f"Analyze news and sentiment for stock: {ticker}"}]
     })
     return _parse_json_output(result)
 
@@ -214,7 +214,7 @@ def run_technical_analyst(ticker: str, technical_data: dict) -> dict:
         "current_price":  technical_data.get("current_price"),
     }, ensure_ascii=False)
     result = _invoke_with_retry(agent, {
-        "messages": [{"role": "user", "content": f"Analisis teknikal untuk {ticker} berdasarkan data ini: {context}"}]
+        "messages": [{"role": "user", "content": f"Technical analysis for {ticker} based on this data: {context}"}]
     })
     return _parse_json_output(result)
 
@@ -239,7 +239,7 @@ def run_strategy(deep_research: dict, news_intelligence: dict,
         },
     }, ensure_ascii=False)
     result = _invoke_with_retry(agent, {
-        "messages": [{"role": "user", "content": f"Susun strategi trading berdasarkan data ini: {context}"}]
+        "messages": [{"role": "user", "content": f"Compose a trading strategy based on this data: {context}"}]
     })
     return _parse_json_output(result)
 
@@ -260,7 +260,7 @@ def run_final_verdict(ticker: str, deep_research: dict, news_intelligence: dict,
         "rsi_status":           td.get("rsi_status"),
     }, ensure_ascii=False)
     result = _invoke_with_retry(agent, {
-        "messages": [{"role": "user", "content": f"Buat laporan investasi final: {combined}"}]
+        "messages": [{"role": "user", "content": f"Create a final investment report: {combined}"}]
     })
     return _parse_json_output(result)
 
@@ -276,6 +276,6 @@ def run_buy_timing(ticker: str, strategy: dict, verdict: dict) -> dict:
         "risk_reward":      verdict.get("risk_reward", ""),
     }, ensure_ascii=False)
     result = _invoke_with_retry(agent, {
-        "messages": [{"role": "user", "content": f"Tentukan timing beli optimal untuk {ticker} berdasarkan konteks ini: {context}"}]
+        "messages": [{"role": "user", "content": f"Determine optimal buy timing for {ticker} based on this context: {context}"}]
     })
     return _parse_json_output(result)

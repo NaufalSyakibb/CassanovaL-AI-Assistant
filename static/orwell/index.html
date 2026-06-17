@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orwell — Writing Workshop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..500&family=Inter:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #EAE4D6;
+  --surface:  #F4EEE2;
+  --paper:    #FAF6EE;
+  --white:    #FFFFFF;
+  --ink:      #1A1813;
+  --ink2:     #3A352B;
+  --dim:      #756C5A;
+  --faint:    #A09180;
+  --gold:     #8C7228;
+  --clay:     #B5523A;
+  --green:    #4A7050;
+  --border:   #CEC5B0;
+  --border2:  #DAD1BC;
+  --hair:     #E5DCCA;
+  --shadow:   rgba(26,24,19,0.07);
+
+  --serif:    'Instrument Serif', serif;
+  --serif2:   'Newsreader', serif;
+  --sans:     'Inter', sans-serif;
+  --mono:     'JetBrains Mono', monospace;
+
+  --radius:   6px;
+  --pad:      26px;
+}
+
+html, body { height: 100%; }
+
+body {
+  background: var(--bg);
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* grain overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.55;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+}
+
+::selection { background: rgba(140,114,40,0.2); }
+
+/* ── Header ── */
+.header {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0 var(--pad);
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  position: relative;
+}
+.header::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--clay) 0%, var(--gold) 55%, var(--green) 100%);
+  opacity: 0.9;
+}
+.header-brand { display: flex; align-items: baseline; gap: 14px; }
+.header-logo {
+  font-family: var(--serif);
+  font-size: 22px;
+  color: var(--paper);
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+.header-logo .mark { font-size: 14px; color: var(--gold); }
+.header-tag {
+  font-size: 9px;
+  font-family: var(--mono);
+  color: rgba(250,246,238,0.45);
+  border: 1px solid rgba(250,246,238,0.2);
+  padding: 3px 8px 2px;
+  border-radius: 2px;
+  letter-spacing: 0.22em;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+.header-right { display: flex; align-items: center; gap: 20px; }
+.header-rules {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: rgba(250,246,238,0.3);
+  letter-spacing: 0.04em;
+  display: flex;
+  gap: 14px;
+}
+.header-rules span { cursor: default; }
+.header-back {
+  font-size: 11px;
+  color: rgba(250,246,238,0.45);
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  transition: color 0.18s;
+}
+.header-back:hover { color: var(--paper); }
+
+/* ── Canvas ── */
+.canvas {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 300px 380px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Column shared ── */
+.col {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.col + .col { border-left: 1px solid var(--border); }
+
+.col-header {
+  padding: 14px 18px 13px;
+  border-bottom: 1px solid var(--hair);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  background: var(--paper);
+}
+.col-label {
+  font-size: 9px;
+  font-weight: 600;
+  font-family: var(--mono);
+  letter-spacing: 0.18em;
+  color: var(--gold);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.col-label::before {
+  content: '';
+  width: 14px; height: 1px;
+  background: var(--gold);
+  opacity: 0.55;
+}
+.col-count {
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--faint);
+  letter-spacing: 0.04em;
+}
+
+/* ── Column 1: Input ── */
+.input-col { background: var(--paper); }
+
+.input-col .col-header { background: var(--paper); }
+
+.textarea-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+#text-input {
+  flex: 1;
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 22px var(--pad);
+  font-size: 15px;
+  line-height: 1.72;
+  font-family: var(--serif2);
+  color: var(--ink);
+  overflow-y: auto;
+}
+#text-input::placeholder { color: var(--faint); font-style: italic; }
+
+/* Annotated view (after analysis) */
+#text-annotated {
+  flex: 1;
+  padding: 22px var(--pad);
+  font-size: 15px;
+  line-height: 1.72;
+  font-family: var(--serif2);
+  color: var(--ink);
+  overflow-y: auto;
+  display: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+#text-annotated .weak-word {
+  background: rgba(181,82,58,0.1);
+  border-bottom: 1.5px solid var(--clay);
+  color: var(--clay);
+  border-radius: 2px;
+  padding: 0 1px;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.15s;
+}
+#text-annotated .weak-word:hover { background: rgba(181,82,58,0.18); }
+#text-annotated .weak-word.rejected {
+  background: rgba(0,0,0,0.04);
+  border-bottom-color: var(--faint);
+  color: var(--dim);
+  text-decoration: line-through;
+}
+
+.input-footer {
+  border-top: 1px solid var(--hair);
+  padding: 14px var(--pad);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  background: var(--surface);
+}
+.wc {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--faint);
+  letter-spacing: 0.04em;
+}
+.btn-edit-raw {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--dim);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 5px 12px;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  display: none;
+  transition: border-color 0.15s, color 0.15s;
+}
+.btn-edit-raw:hover { border-color: var(--gold); color: var(--ink); }
+
+.btn-analyze {
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  border-radius: var(--radius);
+  padding: 10px 20px;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-family: var(--mono);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.18s, transform 0.06s;
+  white-space: nowrap;
+}
+.btn-analyze .arr { color: var(--gold); }
+.btn-analyze:hover { background: #2a2519; }
+.btn-analyze:active { transform: translateY(1px); }
+.btn-analyze:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ── Column 2: Word Analysis ── */
+.analysis-col { background: var(--surface); }
+
+.words-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 0;
+}
+
+/* Empty / loading / error states */
+.state-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  text-align: center;
+}
+.state-icon {
+  font-family: var(--serif);
+  font-size: 32px;
+  color: var(--faint);
+  font-style: italic;
+}
+.state-label {
+  font-size: 12px;
+  color: var(--dim);
+  line-height: 1.5;
+  max-width: 200px;
+}
+
+/* Spinner */
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Word card */
+.word-card {
+  padding: 12px 16px;
+  margin: 4px 10px;
+  background: var(--paper);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, opacity 0.15s;
+  user-select: none;
+}
+.word-card:hover { border-color: var(--gold); box-shadow: 0 1px 6px var(--shadow); }
+.word-card.accepted {
+  border-color: rgba(74,112,80,0.5);
+  background: rgba(74,112,80,0.04);
+}
+.word-card.rejected {
+  opacity: 0.45;
+  border-color: var(--border2);
+  background: var(--surface);
+}
+
+.word-pair {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 5px;
+  flex-wrap: wrap;
+}
+.word-original {
+  font-family: var(--serif2);
+  font-size: 14px;
+  color: var(--clay);
+  text-decoration: line-through;
+  text-decoration-color: rgba(181,82,58,0.5);
+}
+.word-arrow {
+  font-size: 11px;
+  color: var(--faint);
+}
+.word-suggestion {
+  font-family: var(--serif2);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--green);
+}
+.word-reason {
+  font-size: 11px;
+  color: var(--dim);
+  line-height: 1.45;
+  font-style: italic;
+}
+.word-status {
+  float: right;
+  font-size: 10px;
+  font-family: var(--mono);
+  letter-spacing: 0.08em;
+  margin-top: 1px;
+}
+.word-card.accepted .word-status { color: var(--green); }
+.word-card.rejected .word-status { color: var(--faint); }
+
+.analysis-footer {
+  border-top: 1px solid var(--hair);
+  padding: 12px 16px;
+  flex-shrink: 0;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.btn-toggle-all {
+  flex: 1;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--dim);
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  transition: border-color 0.15s, color 0.15s;
+}
+.btn-toggle-all:hover { border-color: var(--gold); color: var(--ink); }
+
+.btn-rewrite {
+  background: var(--clay);
+  color: var(--paper);
+  border: none;
+  border-radius: var(--radius);
+  padding: 9px 16px;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-family: var(--mono);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: background 0.18s, transform 0.06s;
+  white-space: nowrap;
+}
+.btn-rewrite:hover { background: #9A3E28; }
+.btn-rewrite:active { transform: translateY(1px); }
+.btn-rewrite:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-rewrite .arr { opacity: 0.75; }
+
+/* ── Column 3: Rewrite Output ── */
+.output-col { background: var(--paper); }
+
+.output-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 22px var(--pad);
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.output-paragraph {
+  font-family: var(--serif2);
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.output-divider {
+  height: 1px;
+  background: var(--hair);
+}
+
+.output-summary-label {
+  font-size: 9px;
+  font-family: var(--mono);
+  color: var(--gold);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.output-summary-text {
+  font-size: 12px;
+  color: var(--dim);
+  line-height: 1.6;
+  font-style: italic;
+}
+
+.output-footer {
+  border-top: 1px solid var(--hair);
+  padding: 14px var(--pad);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  background: var(--surface);
+}
+.btn-copy {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 16px;
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--dim);
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  transition: border-color 0.15s, color 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-copy:hover { border-color: var(--gold); color: var(--ink); }
+.btn-copy.copied { border-color: var(--green); color: var(--green); }
+
+.diff-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--dim);
+  cursor: pointer;
+  user-select: none;
+}
+.diff-toggle input[type="checkbox"] {
+  accent-color: var(--gold);
+  width: 13px; height: 13px;
+  cursor: pointer;
+}
+
+/* diff highlight (show original vs rewrite) */
+.output-paragraph .changed {
+  background: rgba(140,114,40,0.12);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* orwell quote strip */
+.quote-strip {
+  padding: 10px var(--pad);
+  background: rgba(26,24,19,0.03);
+  border-top: 1px solid var(--hair);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+.quote-text {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 12px;
+  color: var(--dim);
+  flex: 1;
+  line-height: 1.5;
+}
+.quote-src {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--faint);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+/* scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--dim); }
+</style>
+</head>
+<body>
+
+<!-- ── Header ───────────────────────────────────────── -->
+<header class="header">
+  <div class="header-brand">
+    <div class="header-logo">
+      Orwell <span class="mark">✦</span>
+    </div>
+    <span class="header-tag">Writing Workshop</span>
+  </div>
+  <div class="header-right">
+    <div class="header-rules">
+      <span title="Never use a long word where a short one will do">Rule II</span>
+      <span title="If it is possible to cut a word out, always cut it out">Rule III</span>
+      <span title="Never use the passive where you can use the active">Rule IV</span>
+    </div>
+    <a class="header-back" href="/">← CassanovaL</a>
+  </div>
+</header>
+
+<!-- ── Canvas ───────────────────────────────────────── -->
+<main class="canvas">
+
+  <!-- Column 1: Input -->
+  <section class="col input-col">
+    <div class="col-header">
+      <span class="col-label">Your Text</span>
+      <span class="col-count" id="wc-label">0 words</span>
+    </div>
+
+    <div class="textarea-wrap">
+      <textarea id="text-input"
+        placeholder="Paste or type your prose here. The analyst will find weak words, passive voice, and deadwood phrases — then Orwell rewrites it clean."
+        spellcheck="false"
+      ></textarea>
+      <div id="text-annotated" aria-live="polite"></div>
+    </div>
+
+    <div class="input-footer">
+      <button class="btn-edit-raw" id="btn-edit-raw" onclick="switchToRaw()">Edit text</button>
+      <div style="display:flex;gap:10px;align-items:center;margin-left:auto">
+        <button class="btn-analyze" id="btn-analyze" onclick="runAnalysis()">
+          Analyze <span class="arr">▸</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Column 2: Word Analysis -->
+  <section class="col analysis-col">
+    <div class="col-header">
+      <span class="col-label">Word Analysis</span>
+      <span class="col-count" id="words-count"></span>
+    </div>
+
+    <div class="words-list" id="words-list">
+      <div class="state-card">
+        <div class="state-icon">¶</div>
+        <p class="state-label">Paste your text and click Analyze. The WordAnalyst will flag weak words and suggest sharper replacements.</p>
+      </div>
+    </div>
+
+    <div class="analysis-footer" id="analysis-footer" style="display:none">
+      <button class="btn-toggle-all" id="btn-toggle-all" onclick="toggleAll()">Accept all</button>
+      <button class="btn-rewrite" id="btn-rewrite" onclick="runRewrite()">
+        Rewrite <span class="arr">▸</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- Column 3: Rewritten Output -->
+  <section class="col output-col">
+    <div class="col-header">
+      <span class="col-label">Rewrite</span>
+      <span class="col-count" id="output-count"></span>
+    </div>
+
+    <div class="output-body" id="output-body">
+      <div class="state-card">
+        <div class="state-icon">✦</div>
+        <p class="state-label">Accept the word substitutions you want, then click Rewrite. Orwell will produce the sharpened paragraph.</p>
+      </div>
+    </div>
+
+    <div class="output-footer">
+      <label class="diff-toggle" id="diff-toggle" style="display:none">
+        <input type="checkbox" id="diff-check" onchange="toggleDiff()">
+        show changes
+      </label>
+      <div style="margin-left:auto">
+        <button class="btn-copy" id="btn-copy" onclick="copyOutput()" style="display:none">
+          Copy ⧉
+        </button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ── Orwell quote strip ── -->
+<footer class="quote-strip">
+  <span class="quote-text" id="quote-text">"Never use a long word where a short one will do."</span>
+  <span class="quote-src">— Politics and the English Language, 1946</span>
+</footer>
+
+<script>
+const QUOTES = [
+  ["Never use a long word where a short one will do.", "Politics and the English Language, 1946"],
+  ["If it is possible to cut a word out, always cut it out.", "Politics and the English Language, 1946"],
+  ["Never use the passive where you can use the active.", "Politics and the English Language, 1946"],
+  ["Good prose is like a windowpane.", "Why I Write, 1946"],
+  ["The great enemy of clear language is insincerity.", "Politics and the English Language, 1946"],
+  ["Never use a foreign phrase, a scientific word, or a jargon word if you can think of an everyday English equivalent.", "Politics and the English Language, 1946"],
+];
+
+// rotate quote every 12 seconds
+let qIdx = 0;
+setInterval(() => {
+  qIdx = (qIdx + 1) % QUOTES.length;
+  const el = document.getElementById('quote-text');
+  el.style.opacity = '0';
+  setTimeout(() => {
+    el.textContent = `"${QUOTES[qIdx][0]}"`;
+    document.querySelector('.quote-src').textContent = `— ${QUOTES[qIdx][1]}`;
+    el.style.opacity = '1';
+  }, 300);
+}, 12000);
+document.getElementById('quote-text').style.transition = 'opacity 0.3s';
+
+// ── State ──────────────────────────────────────────────────────────────────
+let words = [];      // [{original, suggestion, reason, accepted: bool}]
+let rawText = '';
+let rewrittenParagraph = '';
+let rewriteSummary = '';
+let allAccepted = true;
+
+// ── Word count ──────────────────────────────────────────────────────────────
+document.getElementById('text-input').addEventListener('input', updateWordCount);
+
+function updateWordCount() {
+  const v = document.getElementById('text-input').value.trim();
+  const wc = v ? v.split(/\s+/).length : 0;
+  document.getElementById('wc-label').textContent = `${wc} word${wc !== 1 ? 's' : ''}`;
+}
+
+// ── Analysis ────────────────────────────────────────────────────────────────
+async function runAnalysis() {
+  const text = document.getElementById('text-input').value.trim();
+  if (!text) { flash('Paste some text first.'); return; }
+
+  rawText = text;
+  const btn = document.getElementById('btn-analyze');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+
+  showWordListLoading();
+
+  try {
+    const res = await fetch('/api/orwell/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    if (!res.ok) throw new Error(`${res.status}`);
+    const data = await res.json();
+    words = (data.words || []).map(w => ({ ...w, accepted: true }));
+    renderWordCards();
+    renderAnnotatedText();
+    switchToAnnotated();
+    document.getElementById('analysis-footer').style.display = 'flex';
+    document.getElementById('words-count').textContent =
+      `${words.length} suggestion${words.length !== 1 ? 's' : ''}`;
+  } catch (e) {
+    showWordListError(`Analysis failed: ${e.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Analyze <span class="arr">▸</span>';
+  }
+}
+
+function showWordListLoading() {
+  document.getElementById('words-list').innerHTML = `
+    <div class="state-card">
+      <div class="spinner"></div>
+      <p class="state-label">WordAnalyst scanning for weak words…</p>
+    </div>`;
+}
+
+function showWordListError(msg) {
+  document.getElementById('words-list').innerHTML = `
+    <div class="state-card">
+      <div class="state-icon" style="color:var(--clay)">!</div>
+      <p class="state-label" style="color:var(--clay)">${escHtml(msg)}</p>
+    </div>`;
+}
+
+function renderWordCards() {
+  const list = document.getElementById('words-list');
+  if (!words.length) {
+    list.innerHTML = `<div class="state-card"><div class="state-icon">✓</div><p class="state-label">No weak words found. This text is already clean.</p></div>`;
+    return;
+  }
+  list.innerHTML = words.map((w, i) => `
+    <div class="word-card ${w.accepted ? 'accepted' : 'rejected'}" id="card-${i}" onclick="toggleCard(${i})">
+      <div class="word-pair">
+        <span class="word-original">${escHtml(w.original)}</span>
+        <span class="word-arrow">→</span>
+        <span class="word-suggestion">${escHtml(w.suggestion)}</span>
+        <span class="word-status">${w.accepted ? '✓ accept' : '✗ skip'}</span>
+      </div>
+      <div class="word-reason">${escHtml(w.reason)}</div>
+    </div>
+  `).join('');
+  syncToggleAllLabel();
+}
+
+function toggleCard(i) {
+  words[i].accepted = !words[i].accepted;
+  renderWordCards();
+  renderAnnotatedText();
+}
+
+function toggleAll() {
+  const hasRejected = words.some(w => !w.accepted);
+  words.forEach(w => { w.accepted = hasRejected; });
+  renderWordCards();
+  renderAnnotatedText();
+}
+
+function syncToggleAllLabel() {
+  const hasRejected = words.some(w => !w.accepted);
+  document.getElementById('btn-toggle-all').textContent = hasRejected ? 'Accept all' : 'Reject all';
+}
+
+// ── Annotated text view ──────────────────────────────────────────────────────
+function renderAnnotatedText() {
+  const container = document.getElementById('text-annotated');
+  let html = escHtml(rawText);
+
+  // Sort words by length descending to avoid partial replacements
+  const sorted = words
+    .filter(w => w.original)
+    .sort((a, b) => b.original.length - a.original.length);
+
+  sorted.forEach((w, globalIdx) => {
+    const realIdx = words.indexOf(w);
+    const cls = w.accepted ? 'weak-word' : 'weak-word rejected';
+    const escaped = escHtml(w.original).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(escaped, 'g');
+    html = html.replace(re, `<span class="${cls}" onclick="toggleCard(${realIdx})" title="${escHtml(w.suggestion)}: ${escHtml(w.reason)}">${escHtml(w.original)}</span>`);
+  });
+
+  container.innerHTML = html;
+}
+
+function switchToAnnotated() {
+  document.getElementById('text-input').style.display = 'none';
+  document.getElementById('text-annotated').style.display = 'block';
+  document.getElementById('btn-edit-raw').style.display = 'inline-flex';
+}
+
+function switchToRaw() {
+  document.getElementById('text-annotated').style.display = 'none';
+  document.getElementById('text-input').style.display = 'block';
+  document.getElementById('text-input').value = rawText;
+  document.getElementById('btn-edit-raw').style.display = 'none';
+  // Reset analysis state
+  words = [];
+  document.getElementById('words-list').innerHTML = `
+    <div class="state-card">
+      <div class="state-icon">¶</div>
+      <p class="state-label">Paste your text and click Analyze.</p>
+    </div>`;
+  document.getElementById('analysis-footer').style.display = 'none';
+  document.getElementById('words-count').textContent = '';
+  updateWordCount();
+}
+
+// ── Rewrite ──────────────────────────────────────────────────────────────────
+async function runRewrite() {
+  const accepted = words.filter(w => w.accepted);
+  const substitutions = accepted.map(w => ({ original: w.original, replacement: w.suggestion }));
+
+  const btn = document.getElementById('btn-rewrite');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px"></span>';
+
+  showOutputLoading();
+
+  try {
+    const res = await fetch('/api/orwell/rewrite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: rawText, substitutions })
+    });
+    if (!res.ok) throw new Error(`${res.status}`);
+    const data = await res.json();
+    rewrittenParagraph = data.paragraph || '';
+    rewriteSummary = data.summary || '';
+    renderOutput();
+  } catch (e) {
+    showOutputError(`Rewrite failed: ${e.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Rewrite <span class="arr">▸</span>';
+  }
+}
+
+function showOutputLoading() {
+  document.getElementById('output-body').innerHTML = `
+    <div class="state-card">
+      <div class="spinner"></div>
+      <p class="state-label">ParagraphRewriter applying substitutions and tightening structure…</p>
+    </div>`;
+  document.getElementById('btn-copy').style.display = 'none';
+  document.getElementById('diff-toggle').style.display = 'none';
+}
+
+function showOutputError(msg) {
+  document.getElementById('output-body').innerHTML = `
+    <div class="state-card">
+      <div class="state-icon" style="color:var(--clay)">!</div>
+      <p class="state-label" style="color:var(--clay)">${escHtml(msg)}</p>
+    </div>`;
+}
+
+function renderOutput() {
+  const wc = rewrittenParagraph.trim() ? rewrittenParagraph.trim().split(/\s+/).length : 0;
+  document.getElementById('output-count').textContent = `${wc} words`;
+
+  const body = document.getElementById('output-body');
+  body.innerHTML = `
+    <div class="output-paragraph" id="output-para">${escHtml(rewrittenParagraph)}</div>
+    ${rewriteSummary ? `
+      <div class="output-divider"></div>
+      <div>
+        <div class="output-summary-label">Editorial notes</div>
+        <div class="output-summary-text">${escHtml(rewriteSummary)}</div>
+      </div>
+    ` : ''}
+  `;
+
+  document.getElementById('btn-copy').style.display = 'flex';
+  document.getElementById('diff-toggle').style.display = 'flex';
+}
+
+function toggleDiff() {
+  // Naive diff: highlight words in the output that differ from original
+  const checked = document.getElementById('diff-check').checked;
+  const para = document.getElementById('output-para');
+  if (!para) return;
+  if (!checked) {
+    para.innerHTML = escHtml(rewrittenParagraph);
+    return;
+  }
+
+  const origWords = rawText.split(/\s+/);
+  const newWords  = rewrittenParagraph.split(/\s+/);
+  const origSet   = new Set(origWords.map(w => w.toLowerCase().replace(/[^a-z]/g, '')));
+
+  const html = newWords.map(w => {
+    const clean = w.toLowerCase().replace(/[^a-z]/g, '');
+    const isNew = clean && !origSet.has(clean);
+    return isNew ? `<span class="changed">${escHtml(w)}</span>` : escHtml(w);
+  }).join(' ');
+
+  para.innerHTML = html;
+}
+
+async function copyOutput() {
+  if (!rewrittenParagraph) return;
+  try {
+    await navigator.clipboard.writeText(rewrittenParagraph);
+    const btn = document.getElementById('btn-copy');
+    btn.textContent = 'Copied ✓';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = 'Copy ⧉';
+      btn.classList.remove('copied');
+    }, 1800);
+  } catch {}
+}
+
+// ── Utility ─────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function flash(msg) {
+  const label = document.getElementById('wc-label');
+  const orig = label.textContent;
+  label.textContent = msg;
+  label.style.color = 'var(--clay)';
+  setTimeout(() => { label.textContent = orig; label.style.color = ''; }, 2000);
+}
+
+// Focus input on load
+document.getElementById('text-input').focus();
+</script>
+</body>
+</html>

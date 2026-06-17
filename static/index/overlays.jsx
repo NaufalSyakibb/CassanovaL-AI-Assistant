@@ -242,7 +242,7 @@ function CrewDrawer({ onClose }) {
         { num:'1', name:'DiscoveryAgent', role:'DuckDuckGo search → top URLs per platform', llm:'ddgs', phase:'Phase 1', hue:'var(--hue-alfred)' },
         { num:'2', name:'ScraperAgent',   role:'Firecrawl API → clean LLM-ready markdown (parallel workers)', llm:'firecrawl', phase:'Phase 2', hue:'var(--hue-linus)' },
         { num:'3', name:'ExtractorAgent', role:'Mistral-small → structured trending topics list', llm:'mistral-small', phase:'Phase 3', hue:'var(--hue-cicero)' },
-        { num:'4', name:'SummarizerAgent',role:'Mistral-large → Indonesian per-platform summary', llm:'mistral-large', phase:'Phase 4', hue:'var(--hue-najwa)' },
+        { num:'4', name:'SummarizerAgent',role:'Mistral-large → English per-platform summary', llm:'mistral-large', phase:'Phase 4', hue:'var(--hue-najwa)' },
       ]
     : /* dataanalyst */ [
         { num:'I',   name:'The Cleaner',      role:'Preprocessing',     hue:'var(--hue-miyamoto)' },

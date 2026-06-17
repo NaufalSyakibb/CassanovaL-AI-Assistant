@@ -12,26 +12,26 @@ _NAV_PHRASES = re.compile(
 )
 _AUTH_LINK = re.compile(r"\[.*?\]\(.*?/(login|signin|signup|register|auth).*?\)", re.IGNORECASE)
 
-_SUMMARY_PROMPT = """Kamu adalah analis konten media sosial. Berdasarkan data tren yang dikumpulkan dari {platform}, buat ringkasan terstruktur dalam Bahasa Indonesia.
+_SUMMARY_PROMPT = """You are a social media content analyst. Based on trending data collected from {platform}, create a structured summary in English.
 
-Data mentah:
+Raw data:
 {content}
 
-Buat analisis dalam format berikut:
+Produce the analysis in the following format:
 
 ## Trending Topics
-- Daftar topik/tagar/konten yang sedang tren
+- List trending topics, hashtags, and content
 
-## Konten Populer
-- Jenis konten yang banyak muncul
+## Popular Content
+- Types of content appearing most frequently
 
-## Tema Utama
-- Tema atau isu besar yang mendominasi
+## Main Themes
+- Major themes or issues dominating the platform
 
 ## Insight
-- Analisis singkat: mengapa topik ini tren, siapa audiensnya, potensi viralnya
+- Brief analysis: why these topics are trending, who the audience is, viral potential
 
-Tulis dalam Bahasa Indonesia yang informatif dan padat."""
+Write in informative, concise English."""
 
 
 def _clean_markdown(text: str) -> str:
@@ -64,7 +64,7 @@ class SummarizerAgent:
         try:
             items = json.loads(raw_path.read_text(encoding="utf-8"))
         except Exception:
-            return f"_Gagal membaca data untuk {platform}._"
+            return f"_Failed to read data for {platform}._"
 
         raw_text = "\n\n".join(
             item.get("content", item.get("topic", ""))
@@ -74,7 +74,7 @@ class SummarizerAgent:
 
         cleaned = _clean_markdown(raw_text)
         if not cleaned.strip():
-            return f"_Tidak ada konten yang bisa dianalisis untuk {platform}._"
+            return f"_No content available to analyze for {platform}._"
 
         truncated = cleaned[:6000]
 
@@ -84,7 +84,7 @@ class SummarizerAgent:
             response = llm.invoke(prompt)
             return response.content if hasattr(response, "content") else str(response)
         except Exception as exc:
-            return f"_Gagal generate summary untuk {platform}: {exc}_"
+            return f"_Failed to generate summary for {platform}: {exc}_"
 
     def run(self, raw_files: dict) -> dict:
         """Run per-platform summaries in parallel with a 90s per-platform timeout."""

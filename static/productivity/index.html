@@ -982,6 +982,17 @@ function esc(s){
 
 load();
 
+// Auto-refresh every 30 seconds so calendar and tasks stay current
+setInterval(load, 30000);
+
+// BroadcastChannel: refresh immediately when the hub's Miyamoto agent responds
+if (typeof BroadcastChannel !== 'undefined') {
+  const _prodBC = new BroadcastChannel('cassanoval-sync');
+  _prodBC.onmessage = (e) => {
+    if (e.data?.agent === 'schedule' || e.data?.agent === 'task') load();
+  };
+}
+
 // ── Miyamoto Chat Panel ───────────────────────────────────────────────────
 let _chatBusy = false;
 function _nowTime(){ const n=new Date(); return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0'); }
@@ -1033,5 +1044,8 @@ function cpResize(ta){ ta.style.height='auto'; ta.style.height=Math.min(ta.scrol
   if (cv && window.PixelSprites) PixelSprites.render(cv, 'miyamoto', 4);
 })();
 </script>
+<link rel="stylesheet" href="/static/shared/convo-history.css">
+<script src="/static/shared/convo-history.js"></script>
+<script>ConvoHistory.mount({ agent: 'schedule', label: 'Miyamoto', accent: '#4E9A51' });</script>
 </body>
 </html>
